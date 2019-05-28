@@ -14,6 +14,7 @@ import org.apache.kafka.common.errors.TopicExistsException;
 import org.apache.kafka.common.requests.MetadataResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.collection.Iterable;
 import scala.collection.Iterator;
 
 import java.util.ArrayList;
