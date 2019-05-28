@@ -1,0 +1,134 @@
+version: 2
+
+references:
+  container_config: &container_config
+    docker:
+    - image: docker.tw.ee/circle_xenial_oracle_jvm8:171
+      user: circleci
+    resource_class: medium
+    environment:
+      TERM: vt100
+      GRADLE_OPTS: '-Dorg.gradle.console=plain'
+
+  container_config_extended: &container_config_extended
+    <<: *container_config
+    docker:
+    - image: docker.tw.ee/circle_xenial_oracle_jvm8:171
+      user: circleci
+    - image: circleci/mysql:5.7.23
+      name: mysql1
+      command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
+      environment:
+        MYSQL_ROOT_PASSWORD: Kalamaja123
+        MYSQL_DATABASE: tw-tasks-test
+    - image: circleci/postgres:9.6.8-alpine
+      name: postgres1
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: Kalamaja123
+    - image: zookeeper:3.5.4-beta
+      name: zk-service1
+      environment:
+        ZOO_MY_ID: 1
+    - image: zookeeper:3.4.11
+      name: zk1
+      environment:
+        ZOO_MY_ID: 1
+    - image: wurstmeister/kafka:2.11-0.11.0.3
+      name: kafka1
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: zk1:2181
+        KAFKA_LISTENERS: PLAINTEXT://:9092
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        KAFKA_MESSAGE_MAX_BYTES: '10000012'
+        KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 10000
+        KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
+        KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+  gather_test_results: &gather_test_results
+    run:
+      name: Gather test results
+      shell: /bin/bash
+      command: |
+        tar -zcvf ~/reports.tar.gz tw-tasks-executor/build/reports
+        tar -zcvf ~/test-results.tar.gz tw-tasks-executor/build/test-results
+      when: always
+jobs:
+  test:
+    <<: *container_config_extended
+    steps:
+    - checkout
+    - restore_cache:
+        # here we restore the .gradle folder, so we don't have to download all the jars again.
+        # the cache key is the checksum of build.gradle, so a new version of the cache will
+        # be produced if you changed something in the build script (likely you changed a dependency)
+        keys:
+        - gradle-cache-{{ checksum "build.gradle" }}
+    - run:
+        name: Install dependencies
+        command: ./gradlew :tw-tasks-executor:dependencies :tw-tasks-executor:testClasses
+    - run:
+        name: Run tests
+        command: ./gradlew :tw-tasks-executor:clean :tw-tasks-executor:check -Dspring.profiles.include=circle --stacktrace
+    - *gather_test_results
+    - store_test_results:
+        path: tw-tasks-executor/build/test-results/
+    - store_artifacts:
+        path: ~/reports.tar.gz
+    - store_artifacts:
+        path: ~/test-results.tar.gz
+    - save_cache:
+        # here we save the .gradle folder, so we can reuse it in the later steps and also later builds.
+        key: gradle-cache-{{ checksum "build.gradle" }}
+        paths:
+        - "~/.gradle"
+  publish_snapshot:
+    <<: *container_config
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - gradle-cache-{{ checksum "build.gradle" }}
+    - run:
+        name: Publish snapshot
+        command: ./gradlew :tw-tasks-executor:uploadArchives
+  release:
+    <<: *container_config
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - gradle-cache-{{ checksum "build.gradle" }}
+    - add_ssh_keys:
+        fingerprints:
+        # this is the deploy key we added in the project's settings.
+        # this enables write access to the repo for gradle to push version updates.
+        # you MUST replace it with your r/w key's fingerprint when reusing this template.
+        - "3c:95:3c:d3:f5:2d:b4:f3:a4:25:5e:fb:68:ab:46:ea"
+    - run:
+        # this step is required for pushing to git, otherwise git push in the release plugin will fail
+        name: Set git config
+        command: git config --global user.name "TransferWise CircleCI" && git config --global user.email circle@circle.tw.ee
+    - run:
+        name: Publish release
+        command: ./gradlew :tw-tasks-executor:release -Prelease.useAutomaticVersion=true -x test --stacktrace
+
+workflows:
+  version: 2
+  test_and_publish:
+    jobs:
+    - test
+    - release:
+        context: artifactory-deploy
+        requires:
+        - test
+        filters:
+          branches:
+            only: master
+    - publish_snapshot:
+        context: artifactory-deploy
+        requires:
+        - test
+        filters:
+          branches:
+            ignore: master

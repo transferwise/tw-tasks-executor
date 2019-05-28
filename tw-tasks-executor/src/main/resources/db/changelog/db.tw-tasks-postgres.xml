@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd">
+
+    <changeSet id="02.05.2017.1" author="Kristo Kuusküll" runOnChange="false">
+        <sql>
+            CREATE TABLE tw_task (
+            id UUID PRIMARY KEY,
+            type TEXT NOT NULL,
+            sub_type TEXT NULL,
+            status TEXT NOT NULL,
+            data TEXT NOT NULL,
+            next_event_time TIMESTAMPTZ(3) NULL,
+            state_time TIMESTAMPTZ(3) NOT NULL,
+            processing_client_id TEXT NULL,
+            processing_start_time TIMESTAMPTZ(3) NULL,
+            time_created TIMESTAMPTZ(3) NOT NULL,
+            time_updated TIMESTAMPTZ(3) NOT NULL,
+            processing_tries_count INT NOT NULL,
+            version INT NOT NULL,
+            priority INT NOT NULL DEFAULT 5
+            );
+
+            CREATE INDEX tw_task_idx1 ON tw_task (status, next_event_time);
+            CREATE INDEX tw_task_idx2 ON tw_task (id, version);
+
+            CREATE TABLE unique_tw_task_key (
+            task_id UUID PRIMARY KEY,
+            key_hash INT NOT NULL,
+            key TEXT NOT NULL,
+            unique (key_hash, key)
+            );
+        </sql>
+    </changeSet>
+</databaseChangeLog>

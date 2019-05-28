@@ -1,0 +1,172 @@
+import com.github.spotbugs.SpotBugsTask
+
+plugins{
+    id 'net.researchgate.release'
+    id 'java-library'
+    id 'maven-publish'
+    id 'groovy'
+    id 'com.github.spotbugs'
+    id 'io.spring.dependency-management'
+    id 'checkstyle'
+}
+
+group = 'com.transferwise.tasks'
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+jar {
+    manifest {
+        attributes(
+            "Implementation-Title": "TransferWise Task Executor",
+            "Implementation-Version": version
+        )
+    }
+}
+
+compileJava {
+    options.encoding = 'utf-8'
+    options.compilerArgs << '-parameters'
+}
+
+repositories {
+    maven {
+        url 'https://arti.tw.ee/artifactory/libs-release'
+    }
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.boot:spring-boot-dependencies:2.1.4.RELEASE"
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Greenwich.SR1"
+    }
+}
+
+dependencies {
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    compileOnly 'org.projectlombok:lombok'
+
+    // Optional begin
+    compileOnly 'org.springframework:spring-tx'
+    compileOnly 'org.springframework.boot:spring-boot'
+    compileOnly 'org.springframework.boot:spring-boot-autoconfigure'
+    compileOnly 'org.springframework.boot:spring-boot-actuator'
+    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly 'org.springframework.boot:spring-boot-starter-jdbc'
+    compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
+    compileOnly 'org.apache.kafka:kafka_2.11:0.11.0.1'
+    compileOnly 'org.springframework.kafka:spring-kafka'
+    // Optional end
+
+    implementation 'com.github.spotbugs:spotbugs-annotations:3.1.12'
+
+    implementation 'com.transferwise.common:tw-leader-selector:1.1.1'
+    implementation 'com.transferwise.common:tw-base-utils:1.2.3'
+    implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.2'
+    implementation 'com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2'
+    implementation 'com.transferwise.common:tw-incidents:1.0.1'
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'commons-io:commons-io:2.6'
+    implementation 'com.newrelic.agent.java:newrelic-api:5.0.0'
+    implementation 'io.micrometer:micrometer-core'
+    implementation 'com.google.guava:guava:27.1-jre'
+    implementation 'org.apache.curator:curator-recipes'
+    implementation 'org.apache.commons:commons-collections4:4.3'
+
+    testAnnotationProcessor 'org.projectlombok:lombok'
+    testImplementation 'org.projectlombok:lombok'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
+    testImplementation 'org.liquibase:liquibase-core'
+    testImplementation 'org.postgresql:postgresql'
+    testImplementation 'mysql:mysql-connector-java'
+    testImplementation 'org.springframework.kafka:spring-kafka'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'uk.co.datumedge:hamcrest-json:0.2'
+    testImplementation 'org.skyscreamer:jsonassert:1.5.0'
+    testImplementation 'org.spockframework:spock-core:1.2-groovy-2.5'
+    testImplementation 'org.spockframework:spock-spring:1.2-groovy-2.5'
+    testImplementation 'org.testcontainers:testcontainers:1.11.2'
+    testImplementation 'org.awaitility:awaitility:3.1.6'
+}
+
+release {
+    tagTemplate = '$name-$version'
+    preTagCommitMessage = "[ci skip] pre tag commit: "
+    tagCommitMessage = "[ci skip] creating tag: "
+    newVersionCommitMessage = "[ci skip] new version commit: "
+    failOnUnversionedFiles = true
+}
+
+afterReleaseBuild.dependsOn publish
+
+ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
+ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
+
+task sourcesJar(type: Jar) {
+    from sourceSets.main.allJava
+    archiveClassifier = 'sources'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            artifact sourcesJar
+
+            pom {
+                name = 'Transferwise Task Executor'
+                description = 'Transferwise Task Executor - Fire and forget until Alert.'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0, Copyright 2019 TransferWise Ltd'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'onukristo'
+                        name = 'Kristo Kuusküll'
+                    }
+                }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
+            credentials {
+                username = artifactoryUser
+                password = artifactoryPassword
+            }
+        }
+    }
+}
+
+test {
+    systemProperty("spring.profiles.include", System.getProperty("spring.profiles.include"))
+
+    testLogging {
+        events "passed", "skipped", "failed", "standardError"
+        showStackTraces = true
+        exceptionFormat = 'full'
+    }
+}
+
+spotbugs{
+    sourceSets = [sourceSets.main]
+    effort = "max"
+}
+
+tasks.withType(SpotBugsTask) {
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
+}

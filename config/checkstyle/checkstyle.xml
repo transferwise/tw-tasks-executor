@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE module PUBLIC "-//Puppy Crawl//DTD Check Configuration 1.3//EN"
+        "http://www.puppycrawl.com/dtds/configuration_1_3.dtd">
+<module name="Checker">
+    <!--
+    Allows to place a @SuppressWarnings annotation on a class or method.
+
+    Examples:
+
+    @SuppressWarnings("checkstyle:magicnumber")
+    ignores magic number checks.
+
+    @SuppressWarnings({ "checkstyle:magicnumber". "checkstyle:genericwhitespace" })
+    ignores both magic number checks and generic whitespace checks.
+
+    IMPORTANT NOTE: the module names (e.g. magicnumber) must be in lower case only.
+
+    -->
+    <module name="SuppressWarningsFilter"/>
+
+    <module name="TreeWalker">
+        <!--
+        Needed for support of the @SuppressWarnings annotations
+        http://checkstyle.sourceforge.net/config_annotation.html#SuppressWarningsHolder
+        -->
+        <module name="SuppressWarningsHolder"/>
+
+        <!--
+        Checks that no comparison with the == operator is made between two strings
+        http://checkstyle.sourceforge.net/config_coding.html#StringLiteralEquality
+        -->
+        <module name="StringLiteralEquality"/>
+
+        <!--
+        Checks for unused and redundants imports
+
+        http://checkstyle.sourceforge.net/config_imports.html#UnusedImports
+        http://checkstyle.sourceforge.net/config_imports.html#RedundantImport
+        -->
+        <module name="UnusedImports"/>
+        <module name="RedundantImport"/>
+
+        <!--
+        Checks for empty statements
+        http://checkstyle.sourceforge.net/config_coding.html#EmptyStatement
+        -->
+        <module name="EmptyStatement"/>
+
+        <!--
+        Checks for magic numbers.
+        This check is relatively permissive and allows some specific magic values.
+
+        http://checkstyle.sourceforge.net/config_coding.html#MagicNumber
+        -->
+        <module name="MagicNumber">
+            <property name="ignoreHashCodeMethod" value="true"/>
+            <property name="ignoreAnnotation" value="true"/>
+            <property name="ignoreNumbers" value="-1, 0, 1, 2, 1000"/>
+            <!-- Allowed magic values -->
+            <property name="constantWaiverParentToken"
+                      value="VARIABLE_DEF,VARIABLE_DEF,ASSIGN, ARRAY_INIT, EXPR, UNARY_PLUS, UNARY_MINUS, TYPECAST, ELIST, LITERAL_NEW, METHOD_CALL, STAR, DIV, PLUS, MINUS"/>
+        </module>
+
+        <!--
+        http://checkstyle.sourceforge.net/config_coding.html#ModifiedControlVariable
+        -->
+        <module name="ModifiedControlVariable"/>
+
+        <!--
+        Checks for duplicated strings litterals
+        http://checkstyle.sourceforge.net/config_coding.html#MultipleStringLiterals
+        -->
+        <module name="MultipleStringLiterals">
+            <property name="ignoreStringsRegexp" value='^(("")|(", "))$'/>
+            <!-- Allow empty string, comma separator and star to be duplicated -->
+            <property name="allowedDuplicates" value="2"/>
+        </module>
+
+        <!--
+        Checks that no two statements are written on a single line
+        http://checkstyle.sourceforge.net/config_coding.html#OneStatementPerLine
+        -->
+        <module name="OneStatementPerLine"/>
+
+        <!--
+        Checks for boolean expressions that could be simplified
+
+        http://checkstyle.sourceforge.net/config_coding.html#SimplifyBooleanExpression
+        http://checkstyle.sourceforge.net/config_coding.html#SimplifyBooleanReturn
+        -->
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+
+        <!--
+        Checks for proper whitespacing (generic)
+        http://checkstyle.sourceforge.net/config_whitespace.html#GenericWhitespace
+        -->
+        <module name="GenericWhitespace"/>
+
+        <!--
+        Checks that some particular tokens don't have a whitespace before them.
+
+        e.g. myObject .method() or array [1] would fail
+        http://checkstyle.sourceforge.net/config_whitespace.html#NoWhitespaceAfter
+        -->
+        <module name="NoWhitespaceAfter">
+            <property name="tokens"
+                      value="INC, DEC, UNARY_MINUS, UNARY_PLUS, BNOT, LNOT, DOT, ARRAY_DECLARATOR, INDEX_OP"/>
+        </module>
+
+        <!--
+        Checks that some particular tokens have a whitespace after them.
+
+        e.g. if(cond) or method(a,b) would fail
+        http://checkstyle.sourceforge.net/config_whitespace.html#WhitespaceAfter
+        -->
+        <module name="WhitespaceAfter"/>
+
+	<!--
+	Checks that the code is properly indented, and using spaces (not tabs)
+	http://checkstyle.sourceforge.net/config_misc.html#Indentation
+	-->
+	<module name="Indentation"/>
+
+    </module>
+</module>

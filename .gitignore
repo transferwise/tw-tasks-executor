@@ -1,0 +1,9 @@
+.gradle
+out/
+application.pid
+logs
+logs2
+target/
+build
+
+.idea

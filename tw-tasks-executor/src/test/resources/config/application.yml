@@ -1,0 +1,101 @@
+spring:
+  kafka:
+    bootstrap-servers: ${testenv.kafka.host:localhost}:${testenv.kafka.port}
+    properties:
+      max.request.size: 10000012
+      request.timeout.ms: 11000
+      session.timeout.ms: 10000
+      max.partition.fetch.bytes: 10485760
+    producer:
+      acks: 'all'
+    consumer:
+      maxPollRecords: 10
+      autoOffsetReset: 'earliest'
+      enableAutoCommit: false
+      heartbeatInterval: PT1S
+
+tw-tasks.core:
+  zookeeper-connect-string: ${testenv.zookeeper.host:localhost}:${testenv.zookeeper.port}
+  topic-replication-factor: 1
+  waiting-tasks-polling-interval: PT0.1S
+
+logging.level.com.transferwise.tasks: DEBUG
+logging.level.kafka: WARN
+logging.level.org.apache.zookeeper: WARN
+
+tw-graceful-shutdown:
+  shutdown-timeout-ms: 1000
+  clients-reaction-time-ms: 1
+  strategies-check-interval-time-ms: 1
+tw-incidents:
+  victorops:
+    enabled: false
+  slack:
+    enabled: false
+
+---
+
+spring:
+  profiles: circle
+testenv:
+  mysql:
+    port: 3306
+    host: mysql1
+  postgres:
+    port: 5432
+    host: postgres1
+  kafka:
+    host: kafka1
+    port: 9092
+  zookeeper:
+    host: zk-service1
+    port: 2181
+
+testcontainers.enabled: false
+
+---
+
+spring:
+  profiles: mysql
+  datasource:
+    url: jdbc:mysql://${testenv.mysql.host:localhost}:${testenv.mysql.port}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
+    username: root
+    password: Kalamaja123
+  kafka:
+    client-id: test-mysql
+    consumer:
+      groupId: 'test-mysql'
+
+tw-tasks.core:
+  db-type: mysql
+  group-id: test-mysql
+  client-id: test-mysql
+
+spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-mysql.xml
+
+---
+
+spring:
+  profiles: postgres
+  datasource:
+    url: jdbc:postgresql://${testenv.postgres.host:localhost}:${testenv.postgres.port}/postgres
+    username: postgres
+    password: Kalamaja123
+  kafka:
+    client-id: test-postgres
+    consumer:
+      groupId: 'test'
+
+tw-tasks.core:
+  db-type: postgres
+  group-id: test-postgres
+  client-id: test-postgres
+
+spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-postgres.xml
+
+---
+spring:
+  profiles: test
+
+tw-tasks.core:
+  stuck-tasks-polling-interval: PT10S
