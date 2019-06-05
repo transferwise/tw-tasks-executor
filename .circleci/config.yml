@@ -82,53 +82,9 @@ jobs:
         key: gradle-cache-{{ checksum "build.gradle" }}
         paths:
         - "~/.gradle"
-  publish_snapshot:
-    <<: *container_config
-    steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - gradle-cache-{{ checksum "build.gradle" }}
-    - run:
-        name: Publish snapshot
-        command: ./gradlew :tw-tasks-executor:uploadArchives
-  release:
-    <<: *container_config
-    steps:
-    - checkout
-    - restore_cache:
-        keys:
-        - gradle-cache-{{ checksum "build.gradle" }}
-    - add_ssh_keys:
-        fingerprints:
-        # this is the deploy key we added in the project's settings.
-        # this enables write access to the repo for gradle to push version updates.
-        # you MUST replace it with your r/w key's fingerprint when reusing this template.
-        - "3c:95:3c:d3:f5:2d:b4:f3:a4:25:5e:fb:68:ab:46:ea"
-    - run:
-        # this step is required for pushing to git, otherwise git push in the release plugin will fail
-        name: Set git config
-        command: git config --global user.name "TransferWise CircleCI" && git config --global user.email circle@circle.tw.ee
-    - run:
-        name: Publish release
-        command: ./gradlew :tw-tasks-executor:release -Prelease.useAutomaticVersion=true -x test --stacktrace
 
 workflows:
   version: 2
   test_and_publish:
     jobs:
     - test
-    - release:
-        context: artifactory-deploy
-        requires:
-        - test
-        filters:
-          branches:
-            only: master
-    - publish_snapshot:
-        context: artifactory-deploy
-        requires:
-        - test
-        filters:
-          branches:
-            ignore: master
