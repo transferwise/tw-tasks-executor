@@ -131,7 +131,6 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     @Override
-    @Transactional(propagation = Propagation.NEVER)
     public void trigger(BaseTask task) {
         ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
         if (taskHandler == null) {

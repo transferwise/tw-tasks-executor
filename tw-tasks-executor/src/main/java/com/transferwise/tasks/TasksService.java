@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
-@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class TasksService implements ITasksService, GracefulShutdownStrategy {
     @Autowired
@@ -71,6 +70,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
     @Override
     @Trace
+    @Transactional(rollbackFor = Exception.class)
     public AddTaskResponse addTask(AddTaskRequest request) {
         return MdcContext.with(() -> {
             MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), new TaskVersionId(request.getTaskId(), 0));
@@ -130,6 +130,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
     @Override
     @SuppressWarnings("checkstyle:MultipleStringLiterals")
     @Trace
+    @Transactional(rollbackFor = Exception.class)
     public boolean resumeTask(ResumeTaskRequest request) {
         return MdcContext.with(() -> {
             UUID taskId = request.getTaskId();

@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
  * <p>
  * Normally, applications should only use {@link com.transferwise.tasks.TasksService}
  */
-@Transactional(rollbackFor = Exception.class)
 @Slf4j
 public class TasksManagementService implements ITasksManagementService {
     @Autowired
@@ -38,6 +37,7 @@ public class TasksManagementService implements ITasksManagementService {
     private IMeterHelper meterHelper;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public MarkTasksAsFailedResponse markTasksAsFailed(MarkTasksAsFailedRequest request) {
         MarkTasksAsFailedResponse response = new MarkTasksAsFailedResponse();
 
@@ -59,6 +59,7 @@ public class TasksManagementService implements ITasksManagementService {
 
     @Override
     @Trace
+    @Transactional(rollbackFor = Exception.class)
     public ResumeTasksImmediatelyResponse resumeTasksImmediately(ResumeTasksImmediatelyRequest request) {
         ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
 
@@ -91,6 +92,7 @@ public class TasksManagementService implements ITasksManagementService {
 
     @Override
     @Trace
+    @Transactional(rollbackFor = Exception.class)
     public ResumeTasksImmediatelyResponse resumeAllTasksImmediately(ResumeAllTasksImmediatelyRequest request) {
         ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
 

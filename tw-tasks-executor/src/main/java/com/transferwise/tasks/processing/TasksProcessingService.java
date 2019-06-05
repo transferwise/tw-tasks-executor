@@ -305,7 +305,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             boolean grabbed = false;
             try {
                 boolean expectingVersionToBeTheSameInDb = true;
-                // TODO: Maybe add transaction around two database calls, if tasksProperties.isCheckVersionBeforeGrabbing() is set.
                 if (tasksProperties.isCheckVersionBeforeGrabbing()) {
                     Long taskVersionInDb = taskDao.getTaskVersion(task.getId());
                     expectingVersionToBeTheSameInDb = (taskVersionInDb != null) && (taskVersionInDb == task.getVersion());
@@ -543,7 +542,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
 
     @Override
-    @Transactional(propagation = Propagation.NEVER)
     public void applicationStarted() {
         for (String bucketId : bucketsManager.getBucketIds()) {
             if (!bucketsManager.getBucketProperties(bucketId).getTriggerSameTaskInAllNodes() && tasksProperties.isCheckVersionBeforeGrabbing()) {

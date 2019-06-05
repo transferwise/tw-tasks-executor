@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
 import java.time.Duration;
@@ -29,7 +28,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 @Slf4j
-@Transactional(rollbackFor = Exception.class)
 public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
     @Autowired
     private TasksProperties tasksProperties;

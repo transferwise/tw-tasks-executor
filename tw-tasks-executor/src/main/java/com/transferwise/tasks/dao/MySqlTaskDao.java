@@ -57,7 +57,6 @@ import static com.transferwise.tasks.utils.UUIDUtils.toUUID;
 //TODO: Separate interface methods to Engine, Management and Tests and annotate them.
 //TODO: We should allow to set "data" field to null, to have better performance on Postgres.
 @Slf4j
-@Transactional(rollbackFor = Exception.class)
 @SuppressWarnings("checkstyle:magicnumber")
 public class MySqlTaskDao implements ITaskDao {
     @Autowired
@@ -176,6 +175,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public InsertTaskResponse insertTask(InsertTaskRequest request) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
         ZonedDateTime nextEventTime = request.getRunAfterTime() == null ?
@@ -207,6 +207,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean setToBeRetried(UUID taskId, ZonedDateTime retryTime, long version, boolean resetTriesCount) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
 
@@ -222,6 +223,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Task grabForProcessing(BaseTask task, String clientId, ZonedDateTime maxProcessingEndTime) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
 
@@ -234,6 +236,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean setStatus(UUID taskId, TaskStatus status, long version) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
         int updatedCount = jdbcTemplate.update(setStatusSql, args(status, now, now, version + 1, taskId, version));
@@ -241,6 +244,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean scheduleTaskForImmediateExecution(UUID taskId, long version) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
         int updatedCount = jdbcTemplate.update(scheduleTaskForImmediateExecutionSql, args(TaskStatus.WAITING,
@@ -249,6 +253,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean markAsSubmittedAndSetNextEventTime(TaskVersionId taskVersionId, ZonedDateTime nextEventTime) {
         Timestamp now = Timestamp.from(ZonedDateTime.now(ClockHolder.getClock()).toInstant());
         int updatedCount = jdbcTemplate.update(setStatusSql1, args(TaskStatus.SUBMITTED, nextEventTime, now, now,
@@ -283,6 +288,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<StuckTask> prepareStuckOnProcessingTasksForResuming(String clientId, ZonedDateTime maxStuckTime) {
         Timestamp now = Timestamp.from(ZonedDateTime.now(ClockHolder.getClock()).toInstant());
         List<StuckTask> result = new ArrayList<>();
@@ -304,6 +310,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
 
@@ -412,6 +419,7 @@ public class MySqlTaskDao implements ITaskDao {
 
     @Override
     // For Tests only
+    @Transactional(rollbackFor = Exception.class)
     public void deleteAllTasks() {
         jdbcTemplate.update(deleteAllTasksSql);
         jdbcTemplate.update(deleteAllTasksSql1);
@@ -420,6 +428,7 @@ public class MySqlTaskDao implements ITaskDao {
     @Override
     // For Tests only
     @SuppressWarnings("checkstyle:indentation")
+    @Transactional(rollbackFor = Exception.class)
     public void deleteTasks(String type, String subType, TaskStatus... statuses) {
         String sql = cachedSql(sqlKey("deleteTasksSql", subType == null ? 0 : 1,
             ArrayUtils.getLength(statuses)), () -> {
@@ -480,6 +489,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize) {
         DeleteFinishedOldTasksResult result = new DeleteFinishedOldTasksResult();
         Timestamp deletedBeforeTime = Timestamp.from(Instant.now(ClockHolder.getClock()).minus(age));
@@ -541,6 +551,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean deleteTask(UUID taskId, long version) {
         int updatedCount = jdbcTemplate.update(deleteTaskSql, args(taskId, version));
         if (updatedCount != 0) {
@@ -583,6 +594,7 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean clearPayloadAndMarkDone(UUID taskId, long version) {
         Timestamp now = Timestamp.from(Instant.now(ClockHolder.getClock()));
         int updatedCount = jdbcTemplate.update(clearPayloadAndMarkDoneSql, args(TaskStatus.DONE, now, now, version + 1,

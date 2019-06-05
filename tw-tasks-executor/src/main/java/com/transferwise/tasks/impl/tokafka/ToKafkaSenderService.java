@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RequiredArgsConstructor
-@Transactional(rollbackFor = Exception.class)
 public class ToKafkaSenderService implements IToKafkaSenderService {
     private static final int MEGABYTE_MULTIPLIER = 1_000_000;
     private static final double KILOBYTE_DENOM = 1024.0;
@@ -27,6 +26,7 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
     private final IXRequestIdHolder xRequestIdHolder;
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void sendMessage(SendMessageRequest request) {
         ToKafkaMessages messages = new ToKafkaMessages().setTopic(request.getTopic()).add(convert(request));
 
@@ -35,6 +35,7 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public void sendMessages(SendMessagesRequest request) {
         List<ToKafkaMessages.Message> messageStream = request
             .getMessages()
@@ -55,7 +56,7 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
     }
 
     @SuppressWarnings("checkstyle:magicnumber")
-    List<List<ToKafkaMessages.Message>> splitToBatches(List<ToKafkaMessages.Message> messages, int batchSizeBytes) {
+    protected List<List<ToKafkaMessages.Message>> splitToBatches(List<ToKafkaMessages.Message> messages, int batchSizeBytes) {
         if (messages.isEmpty())
             return Collections.emptyList();
 
