@@ -6,6 +6,7 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -82,6 +83,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public AddTaskResponse addTask(AddTaskRequest request) {
         track(request);
         if (newTaskInterceptPredicate != null && newTaskInterceptPredicate.test(request)) {
