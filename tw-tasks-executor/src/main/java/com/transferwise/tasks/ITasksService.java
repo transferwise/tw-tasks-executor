@@ -21,7 +21,7 @@ public interface ITasksService {
      * <p>
      * If a task with provided id or key already exists, an ALREADY_EXISTS result is given.
      * <p>
-     * dontWarnOnDuplicates means no warning log message will be generated if the task already exists.
+     * warnWhenTaskExists means that warning log message will be generated if the task already exists.
      */
     AddTaskResponse addTask(AddTaskRequest request);
 
