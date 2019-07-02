@@ -9,10 +9,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Set <code>allow-durations-config: true</code> and you can use the ISO-8601 for durations,
- * such as "PT1S" for 1 second (see see https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html).
- */
 @ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)
 @Data
 @SuppressWarnings("checkstyle:magicnumber")

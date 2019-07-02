@@ -457,6 +457,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         } catch (Throwable t) {
             log.error(t.getMessage(), t);
         }
+
         try {
             kafkaConsumer.close();
         } catch (Throwable t) {
