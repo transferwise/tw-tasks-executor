@@ -183,7 +183,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             taskProcessed = true;
                         }
                     } catch (Throwable t) {
-                        log.error("Scheduling of task {} failed.", LogUtils.asParameter(task.getVersionId()), t);
+                        log.error("Scheduling of task '" + task.getVersionId() + "' failed.", t);
                         taskProcessed = true;
                     }
 
@@ -243,7 +243,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                 log.error("Marking task {} as ERROR, because no task handler was found for type '{}'.",
                     LogUtils.asParameter(task.getVersionId()), task.getType());
                 meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
-            }   else {
+            } else {
                 // Some old trigger was re-executed.
             }
             return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
@@ -325,7 +325,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                 }
             }
         } catch (Throwable t) {
-            log.error("Grabbing task {} failed.", LogUtils.asParameter(task.getVersionId()), t);
+            log.error("Grabbing task '" + task.getVersionId() + "' failed.", t);
         } finally {
             bucket.getSize().decrementAndGet();
             bucket.increaseVersion();
@@ -352,7 +352,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             try {
                 processTask(taskHandler, concurrencyPolicy, bucketId, taskForProcessing);
             } catch (Throwable t) {
-                log.error("Processing task {} failed.", LogUtils.asParameter(taskForProcessing.getVersionId()), t);
+                log.error("Processing task '" + taskForProcessing.getVersionId() + "' failed.", t);
             }
         });
     }
@@ -448,7 +448,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
                         });
                 } catch (Throwable t) {
-                    log.error("Processing task {} failed.", LogUtils.asParameter(task.getVersionId()), t);
+                    log.error("Processing task '" + task.getVersionId() + "' failed.", t);
                     if (taskMarkedAsFinished.compareAndSet(false, true)) {
                         taskFinished(bucketId, concurrencyPolicy, task);
                     }

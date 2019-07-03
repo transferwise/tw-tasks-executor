@@ -208,7 +208,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
                                     log.debug("Task {} triggered. AfterCommit queue size is {}.", LogUtils.asParameter(task.getVersionId()), inProgressAfterCommitTasks.get());
                                 }
                             } catch (Throwable t) {
-                                log.error("Triggering task {} failed.", LogUtils.asParameter(task.getVersionId()), t);
+                                log.error("Triggering task '" + task.getVersionId() + "' failed.", t);
                             }
                         });
                     } catch (Throwable t) {
