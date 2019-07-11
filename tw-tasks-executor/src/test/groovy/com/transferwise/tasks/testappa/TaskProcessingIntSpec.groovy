@@ -14,6 +14,7 @@ import com.transferwise.tasks.test.ITestTasksService
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer
 import groovy.util.logging.Slf4j
+import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.aop.framework.Advised
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -40,6 +41,8 @@ class TaskProcessingIntSpec extends BaseIntSpec {
     protected ITransactionsHelper transactionsHelper
     @Autowired
     private ITasksExecutionTriggerer tasksExecutionTriggerer
+    @Autowired
+    private MeterRegistry meterRegistry
 
     private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer
 
@@ -96,6 +99,11 @@ class TaskProcessingIntSpec extends BaseIntSpec {
             await().until { consumerBucket.getOffsetsToBeCommitedCount() == 0 }
         then:
             1 == 1
+        and:
+            // instrumentation assertions
+            meterRegistry.find("twTasks.tasks.processingsCount").counter().count() == UNIQUE_TASKS_COUNT
+            meterRegistry.find("twTasks.tasks.processedCount").counter().count() == UNIQUE_TASKS_COUNT
+            meterRegistry.find("twTasks.tasks.duplicatesCount").counter().count()== UNIQUE_TASKS_COUNT
     }
 
     def "a task running for too long will be handled"() {
@@ -151,6 +159,8 @@ class TaskProcessingIntSpec extends BaseIntSpec {
             log.info "Tasks execution took ${end - start} ms."
         then:
             1 == 1
+        and:
+            meterRegistry.find("twTasks.tasks.markedAsErrorCount").counter().count() == 1
     }
 
 
