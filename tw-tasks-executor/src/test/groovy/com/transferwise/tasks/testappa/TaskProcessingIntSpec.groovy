@@ -52,6 +52,10 @@ class TaskProcessingIntSpec extends BaseIntSpec {
 
     def "all unique tasks will get processed"() {
         given:
+            int initialProcessingsCount = meterRegistry.find("twTasks.tasks.processingsCount").counter()?.count() ?: 0
+            int initialProcessedCount = meterRegistry.find("twTasks.tasks.processedCount").counter()?.count() ?: 0
+            int initialDuplicatesCount = meterRegistry.find("twTasks.tasks.duplicatesCount").counter()?.count() ?: 0
+
             int DUPLICATES_MULTIPLIER = 2
             int UNIQUE_TASKS_COUNT = 500
             int SUBMITTING_THREADS_COUNT = 10
@@ -101,9 +105,9 @@ class TaskProcessingIntSpec extends BaseIntSpec {
             1 == 1
         and:
             // instrumentation assertions
-            meterRegistry.find("twTasks.tasks.processingsCount").counter().count() == UNIQUE_TASKS_COUNT
-            meterRegistry.find("twTasks.tasks.processedCount").counter().count() == UNIQUE_TASKS_COUNT
-            meterRegistry.find("twTasks.tasks.duplicatesCount").counter().count()== UNIQUE_TASKS_COUNT
+            meterRegistry.find("twTasks.tasks.processingsCount").counter().count() == UNIQUE_TASKS_COUNT + initialProcessingsCount
+            meterRegistry.find("twTasks.tasks.processedCount").counter().count() == UNIQUE_TASKS_COUNT + initialProcessedCount
+            meterRegistry.find("twTasks.tasks.duplicatesCount").counter().count() == UNIQUE_TASKS_COUNT + initialDuplicatesCount
     }
 
     def "a task running for too long will be handled"() {
