@@ -183,6 +183,11 @@ public class TasksProperties {
      */
     private boolean preventStartWithoutZookeeper = true;
 
+    /**
+     * Automatically start task processing after initialization.
+     */
+    private boolean autoStartup = true;
+
     private String taskTableName = "tw_task";
     private String uniqueTaskKeyTableName = "unique_tw_task_key";
 

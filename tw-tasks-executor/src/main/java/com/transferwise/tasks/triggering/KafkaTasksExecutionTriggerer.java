@@ -102,6 +102,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     private ExecutorService executorService;
     private volatile boolean shuttingDown;
+    private volatile boolean started = false;
+
     private String triggerTopic;
     private Map<String, Object> kafkaConsumerProps;
     private Map<String, ConsumerBucket> consumerBuckets = new ConcurrentHashMap<>();
@@ -491,6 +493,23 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     @Override
     public void applicationStarted() {
+        if (tasksProperties.isAutoStartup()) {
+            start();
+        }
+    }
+
+    @Override
+    public boolean isStarted() {
+        return started;
+    }
+
+    @Override
+    public void start() {
+        if (isStarted()) {
+            throw new IllegalStateException("Task triggering has been started already.");
+        }
+        started = true;
+
         for (String bucketId : bucketsManager.getBucketIds()) {
             executorService.submit(() -> {
                 while (!shuttingDown) {
