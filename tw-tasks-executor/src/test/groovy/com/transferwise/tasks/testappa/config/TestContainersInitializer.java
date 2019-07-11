@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -41,7 +42,8 @@ public class TestContainersInitializer implements ApplicationContextInitializer<
             if (container == null) {
                 int kafka1Port = SocketUtils.findAvailableTcpPort();
 
-                Path tempDirectory = Files.createTempDirectory("tw-tasks-tests");
+                Path tempDirectory = Files.createTempDirectory(Paths.get("/tmp"), "tw-tasks-tests");
+
                 PathMatchingResourcePatternResolver resolver = new PathMatchingResourcePatternResolver();
                 org.springframework.core.io.Resource[] resources = resolver.getResources("testcontainers/**/*");
                 for (org.springframework.core.io.Resource resource : resources) {
