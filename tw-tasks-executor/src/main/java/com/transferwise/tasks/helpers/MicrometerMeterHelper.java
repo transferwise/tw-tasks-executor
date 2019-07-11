@@ -41,13 +41,13 @@ public class MicrometerMeterHelper implements IMeterHelper {
     @Override
     public void registerTaskProcessingEnd(String bucketId, String taskType) {
         String resolvedBucketId = resolveBucketId(bucketId);
-        meterRegistry.counter(METRIC_PREFIX + "tasks.processingsCount", "bucketId", resolvedBucketId, "taskType", taskType).increment();
+        meterRegistry.counter(METRIC_PREFIX + "tasks.processedCount", "bucketId", resolvedBucketId, "taskType", taskType).increment();
         gauges.get(Triple.of("tasks.ongoingProcessingsCount", resolvedBucketId, taskType)).decrementAndGet();
     }
 
     @Override
     public void registerKafkaCoreMessageProcessing(String topic) {
-        meterRegistry.counter(METRIC_PREFIX + "coreKafka.processedMessagesCount", Tags.of("topic", topic));
+        meterRegistry.counter(METRIC_PREFIX + "coreKafka.processedMessagesCount", Tags.of("topic", topic)).increment();
     }
 
     @Override
