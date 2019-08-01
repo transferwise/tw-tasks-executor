@@ -179,8 +179,8 @@ Profit!
 tw-incidents:
   victorops:
     enabled: true
-      notify-base-url: https://alert.victorops.com/integrations/generic/12345678/alert/
-      routing-key: my-fancy-team
+    notify-base-url: https://alert.victorops.com/integrations/generic/12345678/alert/
+    routing-key: my-fancy-team
 ```
 
 ## Tasks in production, Best Practices
