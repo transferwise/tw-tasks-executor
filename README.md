@@ -49,7 +49,7 @@ Basically fire-and-forget-until-alert kind of system.
     - JMX and Grafana support is included as well. The engine provides lots of different JMX beans and metrics for its inner state.
     - When ever the engine deals with a specific task, its sets the task id into Slf4j MDC. This can be added into application's log row.
 - Manual or automatic intervention
-    - There is a need and possibility to stop a task, resume a task, retry a task or mark it as completely failed and thus turn of further alerts.
+    - There is a need and possibility to stop a task, resume a task, retry a task or mark it as completely failed and thus turn off further alerts.
     - TwTasks provides programmatic and REST API for that. There is a Ninjas2 interface as well, based on that REST API.
 - Sophisticated concurrency control
     - In order to protect the service from trashing because of too many concurrent threads/processes, TwTasks allows engineer
@@ -179,8 +179,8 @@ Profit!
 tw-incidents:
   victorops:
     enabled: true
-      notify-base-url: https://alert.victorops.com/integrations/generic/12345678/alert/
-      routing-key: my-fancy-team
+    notify-base-url: https://alert.victorops.com/integrations/generic/12345678/alert/
+    routing-key: my-fancy-team
 ```
 
 ## Tasks in production, Best Practices
