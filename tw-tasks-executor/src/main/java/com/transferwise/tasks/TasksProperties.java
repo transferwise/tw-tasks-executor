@@ -63,6 +63,8 @@ public class TasksProperties {
      * In second algorithms every node is taking every trigger from topic and tries to execute them. The cons is that it may be inefficient with large cluster size (10+), even when
      * we actually use very efficient optimistic locking for a node to grab a task for itself.
      * <p>
+     * It does not work well in cluster, where node ids change. Like, for example, in kubernetes. So if service in kubernetes don't set it to true.
+     * <p>
      * So rule of thumb is that you probably want to use the second algorithm for cluster with less than 10 nodes.
      * <p>
      * Second algorithm is activated with setting this parameter to true.
