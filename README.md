@@ -181,6 +181,7 @@ tw-incidents:
     enabled: true
     notify-base-url: https://alert.victorops.com/integrations/generic/12345678/alert/
     routing-key: my-fancy-team
+    api-token: my api token that comes after the "/alert/" bit in the Victorops URL to notify
 ```
 
 ## Tasks in production, Best Practices
