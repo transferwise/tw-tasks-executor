@@ -19,13 +19,13 @@ references:
       name: mysql1
       command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
       environment:
-        MYSQL_ROOT_PASSWORD: Kalamaja123
+        MYSQL_ROOT_PASSWORD: example-password-change-me
         MYSQL_DATABASE: tw-tasks-test
     - image: circleci/postgres:9.6.8-alpine
       name: postgres1
       environment:
         POSTGRES_USER: postgres
-        POSTGRES_PASSWORD: Kalamaja123
+        POSTGRES_PASSWORD: example-password-change-me
     - image: zookeeper:3.5.4-beta
       name: zk-service1
       environment:
