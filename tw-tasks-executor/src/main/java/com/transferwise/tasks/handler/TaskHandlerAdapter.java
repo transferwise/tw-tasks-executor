@@ -1,6 +1,7 @@
 package com.transferwise.tasks.handler;
 
 import com.transferwise.tasks.domain.IBaseTask;
+import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
@@ -12,6 +13,8 @@ import lombok.experimental.Accessors;
 
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 @Getter
@@ -34,6 +37,33 @@ public class TaskHandlerAdapter implements ITaskHandler {
         this.retryPolicy = new NoRetryPolicy();
         this.concurrencyPolicy = new SimpleTaskConcurrencyPolicy(1);
         this.processingPolicy = new SimpleTaskProcessingPolicy().setMaxProcessingDuration(Duration.of(1, ChronoUnit.HOURS));
+    }
+
+    /**
+     * Example use case:
+     *
+     * @Bean
+     * public ITaskHandler processUserAddressChangeHandler() {
+     *     return new TaskHandlerAdapter(
+     *         task -> "USER_ADDRESS_CHANGE".equals(task.getType())),
+     *         UserAddressChangeHandler::processAddressChange,
+     *         new JsonDeserializer(UserAddressChange.class)
+     *     )
+     *         .setConcurrencyPolicy(...)
+     *         .setProcessingPolicy(...)
+     * }
+     */
+    public <T> TaskHandlerAdapter(Predicate<IBaseTask> handlesPredicate, Consumer<T> processor, Function<String, T> deserializer) {
+        this(handlesPredicate, TaskHandlerAdapter.createTaskProcessorFromConsumer(processor, deserializer));
+    }
+
+    private static <T> ISyncTaskProcessor createTaskProcessorFromConsumer(Consumer<T> consumer, Function<String, T> deserializer) {
+        return task -> {
+            T data = deserializer.apply(task.getData());
+            consumer.accept(data);
+            return new ISyncTaskProcessor.ProcessResult()
+                .setResultCode(ISyncTaskProcessor.ProcessResult.ResultCode.DONE);
+        };
     }
 
     @Override
