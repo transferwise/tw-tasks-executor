@@ -9,7 +9,7 @@ spring:
   datasource:
     url: jdbc:postgresql://host.local:15432/postgres # TODO: Get rid of host.local
     username: postgres
-    password: Kalamaja123
+    password: example-password-change-me
     tomcat:
       max-active: 30
       max-idle: 30
@@ -123,7 +123,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:13306/demoapp?characterEncoding=UTF-8&rewriteBatchedStatements=true&useSSL=false
     username: root
-    password: Kalamaja123
+    password: example-password-change-me
 
 tw-tasks.core:
   db-type: MYSQL

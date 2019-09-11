@@ -47,12 +47,12 @@ services:
     hostname: mysql1
     command: mysqld --max_allowed_packet=32m --innodb_buffer_pool_size=100m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
     environment:
-      MYSQL_ROOT_PASSWORD: Kalamaja123
+      MYSQL_ROOT_PASSWORD: example-password-change-me
       MYSQL_DATABASE: tw-tasks-test
   postgres1:
     image: postgres:10.4
     environment:
-      POSTGRES_PASSWORD: Kalamaja123
+      POSTGRES_PASSWORD: example-password-change-me
 networks:
   default:
     driver: bridge

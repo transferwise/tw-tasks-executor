@@ -60,7 +60,7 @@ spring:
   datasource:
     url: jdbc:mysql://${testenv.mysql.host:localhost}:${testenv.mysql.port}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
     username: root
-    password: Kalamaja123
+    password: example-password-change-me
   kafka:
     client-id: test-mysql
     consumer:
@@ -80,7 +80,7 @@ spring:
   datasource:
     url: jdbc:postgresql://${testenv.postgres.host:localhost}:${testenv.postgres.port}/postgres
     username: postgres
-    password: Kalamaja123
+    password: example-password-change-me
   kafka:
     client-id: test-postgres
     consumer:
