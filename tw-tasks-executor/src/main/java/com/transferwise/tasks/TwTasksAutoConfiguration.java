@@ -215,6 +215,7 @@ public class TwTasksAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public CoreKafkaListener twTasksCoreKafkaListener() {
         return new CoreKafkaListener();
     }

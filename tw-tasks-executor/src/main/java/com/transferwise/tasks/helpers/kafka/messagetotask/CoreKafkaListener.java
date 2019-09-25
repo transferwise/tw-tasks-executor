@@ -9,10 +9,12 @@ import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.utils.WaitUtils;
 import lombok.Data;
+import lombok.Setter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 
@@ -39,11 +41,14 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     private IErrorLoggingThrottler errorLoggingThrottler;
     @Autowired
     private IMeterHelper meterHelper;
+    @Setter
+    private ConsumerRebalanceListener consumerRebalanceListener;
 
     private ExecutorService executorService;
     private boolean shuttingDown;
     private List<MyTopic> topics = new ArrayList<>();
     private List<String> kafkaDataCenterPrefixes;
+
 
     /**
      * Remember to set correct number of partitions for all topics here: @ https://octopus.tw.ee/kafka/topic/change .
@@ -82,6 +87,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
             })
             .setErrorLoggingThrottler(errorLoggingThrottler)
             .setMeterHelper(meterHelper)
+            .setConsumerRebalanceListener(consumerRebalanceListener)
             .consume();
     }
 

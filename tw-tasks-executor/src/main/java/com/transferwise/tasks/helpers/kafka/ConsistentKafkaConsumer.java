@@ -13,6 +13,7 @@ import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -49,6 +50,8 @@ public class ConsistentKafkaConsumer<T> {
     private IMeterHelper meterHelper;
     @Setter
     private IErrorLoggingThrottler errorLoggingThrottler;
+    @Setter
+    private ConsumerRebalanceListener consumerRebalanceListener;
 
     public void consume() {
         MutableObject<Consumer<String, T>> consumerHolder = new MutableObject<>();
@@ -60,7 +63,7 @@ public class ConsistentKafkaConsumer<T> {
                         Map<String, Object> kafkaConsumerProps = new HashMap<>(kafkaPropertiesSupplier.get());
                         kafkaConsumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
                         consumerHolder.setValue(new KafkaConsumer<>(kafkaConsumerProps));
-                        consumerHolder.getValue().subscribe(topics);
+                        consumerHolder.getValue().subscribe(topics, consumerRebalanceListener);
                     }
 
                     boolean shouldPoll = shouldPollPredicate.get();
