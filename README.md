@@ -111,7 +111,7 @@ TwTask depends on and needs following infrastructure services.
 
 ##### Add dependency
 ```groovy
-implementation 'com.transferwise.tasks:tw-tasks-executor:1.0.1'
+implementation 'com.transferwise.tasks:tw-tasks-executor:1.0.9'
 ```
 
 ##### Create database tables

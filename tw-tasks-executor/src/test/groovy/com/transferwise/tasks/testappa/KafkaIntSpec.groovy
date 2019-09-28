@@ -15,6 +15,8 @@ import java.time.Duration
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicInteger
 
+import static org.awaitility.Awaitility.await
+
 @Slf4j
 class KafkaIntSpec extends BaseIntSpec {
     @Autowired
@@ -50,14 +52,14 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setDelayTimeout(Duration.ofSeconds(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
-                messagesReceivedCount.get() == 1 || System.currentTimeMillis() - start > 30000
-            })
+                    messagesReceivedCount.get() == 1 || System.currentTimeMillis() - start > 30000
+                })
                 .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
                 .setRecordConsumer({ record ->
-                if (record.value() == payload) {
-                    messagesReceivedCount.incrementAndGet()
-                }
-            }).consume()
+                    if (record.value() == payload) {
+                        messagesReceivedCount.incrementAndGet()
+                    }
+                }).consume()
         then:
             messagesReceivedCount.get() == 1
     }
@@ -88,19 +90,21 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setDelayTimeout(Duration.ofSeconds(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
-                messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
-            })
+                    messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
+                })
                 .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
                 .setRecordConsumer({ record ->
-                if (record.offset() < iteration * 1000 || record.offset() > (iteration + 1) * 1000 - 1) {
-                    throw new IllegalStateException("Unexpected offset detected for iteration " + iteration + ": " + iteration)
-                }
-                if (record.value() != 'Warmup') {
-                    messagesMap.get(record.value()).incrementAndGet()
-                }
-            }).consume()
+                    if (record.offset() < iteration * 1000 || record.offset() > (iteration + 1) * 1000 - 1) {
+                        throw new IllegalStateException("Unexpected offset detected for iteration " + iteration + ": " + iteration)
+                    }
+                    if (record.value() != 'Warmup') {
+                        messagesMap.get(record.value()).incrementAndGet()
+                    }
+                }).consume()
         then:
-            messagesMap.find({ k, v -> v.get() != 1 }) == null
+            await().until {
+                messagesMap.find({ k, v -> v.get() != 1 }) == null
+            }
         where:
             // We test is commiting offsets is working correctly and is able to finish before closing consumer.
             iteration << [0, 1, 2, 3]
@@ -109,8 +113,7 @@ class KafkaIntSpec extends BaseIntSpec {
     @Unroll
     def "sending batch messages to Kafka works with 5 partitions"() {
         given:
-            String topic = "toKafkaBatchTestTopic1"
-            setPartitions(topic, 5)
+            String topic = "toKafkaBatchTestTopic5Partitions"
             int N = 1000
         when:
             Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
@@ -118,12 +121,14 @@ class KafkaIntSpec extends BaseIntSpec {
                 messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
             }
 
+            Map<Integer, AtomicInteger> partitionsMap = new ConcurrentHashMap<>()
+
             transactionsHelper.withTransaction().asNew().call({
                 def messages = new IToKafkaSenderService.SendMessagesRequest()
                     .setTopic(topic)
                 for (int i = 0; i < N; i++) {
                     messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
-                        .setPayloadString("Message " + iteration + ":" + i).setKey(String.valueOf(i)))
+                        .setPayloadString("Message " + iteration + ":" + i))
                 }
                 toKafkaSenderService.sendMessages(messages)
             })
@@ -133,16 +138,22 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setDelayTimeout(Duration.ofSeconds(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
-                messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
-            })
+                    messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
+                })
                 .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
                 .setRecordConsumer({ record ->
-                if (record.value() != 'Warmup') {
-                    messagesMap.get(record.value()).incrementAndGet()
-                }
-            }).consume()
+                    if (record.value() != 'Warmup') {
+                        messagesMap.get(record.value()).incrementAndGet()
+                    }
+                    partitionsMap.computeIfAbsent(record.partition(), { k -> new AtomicInteger() }).incrementAndGet()
+                }).consume()
         then:
-            messagesMap.find({ k, v -> v.get() != 1 }) == null
+            await().until {
+                messagesMap.find({ k, v -> v.get() != 1 }) == null
+            }
+            5.times{
+                assert partitionsMap.get(it).get() > 0
+            }
         where:
             // We test is commiting offsets is working correctly and is able to finish before closing consumer.
             iteration << [0, 1, 2, 3]
@@ -174,27 +185,23 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setDelayTimeout(Duration.ofMillis(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
-                messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
-            })
+                    messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
+                })
                 .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
                 .setRecordConsumer({ record ->
-                if (Math.random() < 0.5) {
-                    throw new RuntimeException("Unlucky!")
-                }
-                if (record.value() != 'Warmup') {
-                    messagesMap.get(record.value()).incrementAndGet()
-                }
-            }).consume()
+                    if (Math.random() < 0.5) {
+                        throw new RuntimeException("Unlucky!")
+                    }
+                    if (record.value() != 'Warmup') {
+                        messagesMap.get(record.value()).incrementAndGet()
+                    }
+                }).consume()
         then:
-            messagesMap.find({ k, v -> v.get() != 1 }) == null
+            await().until {
+                messagesMap.find({ k, v -> v.get() != 1 }) == null
+            }
         where:
             // We test is commiting offsets is working correctly and is able to finish before closing consumer.
             iteration << [0, 1, 2, 3]
-    }
-
-    protected void setPartitions(String topic, int partitions) {
-        long start = System.currentTimeMillis()
-        topicPartitionsManager.setPartitionsCount(topic, partitions)
-        log.info("Setting partitions for topic took " + (System.currentTimeMillis() - start) + " ms.")
     }
 }

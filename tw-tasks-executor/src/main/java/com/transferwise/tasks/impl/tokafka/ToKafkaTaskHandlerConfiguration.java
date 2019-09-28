@@ -16,10 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
-import org.springframework.util.StringUtils;
 
 import java.time.Duration;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Slf4j
@@ -41,7 +39,7 @@ public class ToKafkaTaskHandlerConfiguration {
                 String topic = toKafkaMessages.getTopic();
                 for (ToKafkaMessages.Message message : toKafkaMessages.getMessages()) {
                     kafkaTemplate
-                        .send(topic, StringUtils.isEmpty(message.getKey()) ? String.valueOf(ThreadLocalRandom.current().nextLong()) : message.getKey(), message.getMessage())
+                        .send(topic, message.getKey(), message.getMessage())
                         .addCallback(
                             result -> {
                                 log.debug("Sent and acked Kafka message to topic '{}'.", topic);

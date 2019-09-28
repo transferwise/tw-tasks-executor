@@ -52,7 +52,7 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
     }
 
     protected ToKafkaMessages.Message convert(SendMessagesRequest.Message message) {
-        return toKafkaMessage(String.valueOf(message.getKey()), message.getPayloadString(), message.getPayload());
+        return toKafkaMessage(message.getKey(), message.getPayloadString(), message.getPayload());
     }
 
     @SuppressWarnings("checkstyle:magicnumber")
