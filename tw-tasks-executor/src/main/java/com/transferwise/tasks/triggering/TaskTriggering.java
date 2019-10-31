@@ -14,7 +14,7 @@ public class TaskTriggering {
     private TopicPartition topicPartition;
     private String bucketId;
 
-    public boolean isSameProcessTrigger(){
+    public boolean isSameProcessTrigger() {
         return topicPartition == null;
     }
 }

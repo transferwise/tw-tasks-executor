@@ -55,7 +55,7 @@ public class NoOpMeterHelper implements IMeterHelper {
     }
 
     @Override
-    public void registerTaskProcessingEnd(String bucketId, String type) {
+    public void registerTaskProcessingEnd(String bucketId, String type, long processingStartTimeMs, String processingResult) {
 
     }
 
@@ -66,6 +66,36 @@ public class NoOpMeterHelper implements IMeterHelper {
 
     @Override
     public void registerDuplicateTask(String taskType, boolean expected) {
+
+    }
+
+    @Override
+    public void registerScheduledTaskResuming(String taskType) {
+
+    }
+
+    @Override
+    public void registerStuckTaskMarkedAsFailed(String taskType) {
+
+    }
+
+    @Override
+    public void registerStuckTaskAsIgnored(String taskType) {
+
+    }
+
+    @Override
+    public void registerStuckTaskResuming(String taskType) {
+
+    }
+
+    @Override
+    public void registerStuckTaskMarkedAsError(String taskType) {
+
+    }
+
+    @Override
+    public void registerStuckClientTaskResuming(String taskType) {
 
     }
 }

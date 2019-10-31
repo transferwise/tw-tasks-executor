@@ -29,8 +29,8 @@ class ClusterWideTasksStateMonitorIntSpec extends BaseIntSpec {
             def tasksInErrorCountGauge = meterRegistry.get("twTasks.health.tasksInErrorCount").gauge()
             def stuckTasksGauge = meterRegistry.get("twTasks.health.stuckTasksCount").gauge()
         then:
-            await().atMost(31, TimeUnit.SECONDS).until { tasksInErrorCountGauge.value() == 0 }
-            stuckTasksGauge.value() == 0
+            await().atMost(30, TimeUnit.SECONDS).until { tasksInErrorCountGauge.value() == 0 }
+            await().until { stuckTasksGauge.value() == 0 }
         when:
             clusterWideTasksStateMonitor.leaderSelector.stop()
             await().until({ meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 0 })

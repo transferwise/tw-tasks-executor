@@ -1,7 +1,11 @@
 package com.transferwise.tasks.buckets;
 
+import com.transferwise.common.baseutils.ExceptionUtils;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
+
+import java.time.Duration;
 
 @Data
 @Accessors(chain = true)
@@ -27,4 +31,18 @@ public class BucketProperties {
      */
     @SuppressWarnings("checkstyle:magicnumber")
     private int taskGrabbingConcurrency = 10;
+
+    private Boolean autoStartProcessing;
+
+    private Duration autoResetOffsetToDuration;
+
+    public BucketProperties setAutoResetOffsetTo(String autoResetOffsetTo) {
+        if (!StringUtils.equalsIgnoreCase(autoResetOffsetTo, "earliest") && !StringUtils.equalsIgnoreCase(autoResetOffsetTo, "latest")) {
+            ExceptionUtils.doUnchecked(() -> {
+                autoResetOffsetToDuration = Duration.parse(autoResetOffsetTo);
+            });
+        }
+        this.autoResetOffsetTo = autoResetOffsetTo;
+        return this;
+    }
 }

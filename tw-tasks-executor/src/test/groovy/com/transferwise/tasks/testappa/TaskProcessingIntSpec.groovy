@@ -14,7 +14,9 @@ import com.transferwise.tasks.test.ITestTasksService
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer
 import groovy.util.logging.Slf4j
+import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import org.springframework.aop.framework.Advised
 import org.springframework.beans.factory.annotation.Autowired
 
@@ -22,6 +24,7 @@ import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.stream.Collectors
 
 import static org.awaitility.Awaitility.await
 
@@ -40,9 +43,9 @@ class TaskProcessingIntSpec extends BaseIntSpec {
     @Autowired
     protected ITransactionsHelper transactionsHelper
     @Autowired
-    private ITasksExecutionTriggerer tasksExecutionTriggerer
+    protected ITasksExecutionTriggerer tasksExecutionTriggerer
     @Autowired
-    private MeterRegistry meterRegistry
+    protected MeterRegistry meterRegistry
 
     private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer
 
@@ -52,9 +55,10 @@ class TaskProcessingIntSpec extends BaseIntSpec {
 
     def "all unique tasks will get processed"() {
         given:
-            int initialProcessingsCount = meterRegistry.find("twTasks.tasks.processingsCount").counter()?.count() ?: 0
-            int initialProcessedCount = meterRegistry.find("twTasks.tasks.processedCount").counter()?.count() ?: 0
-            int initialDuplicatesCount = meterRegistry.find("twTasks.tasks.duplicatesCount").counter()?.count() ?: 0
+            int initialProcessingsCount = counterSum("twTasks.tasks.processingsCount")
+            int initialProcessedCount = counterSum("twTasks.tasks.processedCount")
+            int initialDuplicatesCount = counterSum("twTasks.tasks.duplicatesCount")
+            int initialSummaryCount = timerSum("twTasks.tasks.processingTime")
 
             int DUPLICATES_MULTIPLIER = 2
             int UNIQUE_TASKS_COUNT = 500
@@ -105,9 +109,12 @@ class TaskProcessingIntSpec extends BaseIntSpec {
             1 == 1
         and:
             // instrumentation assertions
-            meterRegistry.find("twTasks.tasks.processingsCount").counter().count() == UNIQUE_TASKS_COUNT + initialProcessingsCount
-            meterRegistry.find("twTasks.tasks.processedCount").counter().count() == UNIQUE_TASKS_COUNT + initialProcessedCount
-            meterRegistry.find("twTasks.tasks.duplicatesCount").counter().count() == UNIQUE_TASKS_COUNT + initialDuplicatesCount
+            counterSum("twTasks.tasks.processingsCount") == UNIQUE_TASKS_COUNT + initialProcessingsCount
+            counterSum("twTasks.tasks.processedCount") == UNIQUE_TASKS_COUNT + initialProcessedCount
+            counterSum("twTasks.tasks.duplicatesCount") == UNIQUE_TASKS_COUNT + initialDuplicatesCount
+            timerSum("twTasks.tasks.processingTime") == UNIQUE_TASKS_COUNT + initialSummaryCount
+        and:
+            tasksService.getTasksProcessingState(null) == ITasksService.TasksProcessingState.STARTED
     }
 
     def "a task running for too long will be handled"() {
@@ -167,7 +174,6 @@ class TaskProcessingIntSpec extends BaseIntSpec {
             meterRegistry.find("twTasks.tasks.markedAsErrorCount").counter().count() == 1
     }
 
-
     def "a task with huge message can be handled"() {
         given:
             StringBuilder sb = new StringBuilder()
@@ -223,4 +229,13 @@ class TaskProcessingIntSpec extends BaseIntSpec {
         then:
             1 == 1
     }
+
+    private double counterSum(String name) {
+        return meterRegistry.find(name).counters().stream().collect(Collectors.summingDouble({ Counter c -> c.count() }))
+    }
+
+    private long timerSum(String name) {
+        meterRegistry.find(name).timers().stream().collect(Collectors.summingLong({ Timer t -> t.count() }))
+    }
+
 }

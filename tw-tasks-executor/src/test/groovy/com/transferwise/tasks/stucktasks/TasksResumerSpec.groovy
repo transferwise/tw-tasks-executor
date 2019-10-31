@@ -58,8 +58,9 @@ class TasksResumerSpec extends Specification {
             def nError = new AtomicInteger()
             def nFailed = new AtomicInteger()
 
-            ITaskProcessingPolicy processingPolicy = Stub()
+            ITaskProcessingPolicy processingPolicy = Mock()
             processingPolicy.getStuckTaskResolutionStrategy(_) >> resolutionStrategy
+            processingPolicy.getMaxProcessingEndTime(_) >> null
             taskHandlerRegistry.getTaskHandler(_) >> Stub(ITaskHandler)
             taskHandlerRegistry.getTaskHandler(null).getProcessingPolicy(_) >> processingPolicy
         when:

@@ -29,6 +29,7 @@ import javax.annotation.PostConstruct;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
@@ -98,7 +99,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
                 throw new IllegalStateException("Task type is mandatory, but '" + request.getType() + "' was provided.");
             }
 
-            ZonedDateTime maxStuckTime = now.plus(tasksProperties.getTaskStuckTimeout());
+            ZonedDateTime maxStuckTime = request.getExpectedQueueTime() == null ? now.plus(tasksProperties.getTaskStuckTimeout()) : now.plus(request.getExpectedQueueTime());
             ITaskDao.InsertTaskResponse insertTaskResponse = taskDao.insertTask(
                 new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getKey())
                     .setRunAfterTime(request.getRunAfterTime())
@@ -175,6 +176,21 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
             triggerTask(task.toBaseTask().setVersion(version));
             return true;
         });
+    }
+
+    @Override
+    public void startTasksProcessing(String bucketId) {
+        tasksExecutionTriggerer.startTasksProcessing(bucketId);
+    }
+
+    @Override
+    public Future<Void> stopTasksProcessing(String bucketId) {
+        return tasksExecutionTriggerer.stopTasksProcessing(bucketId);
+    }
+
+    @Override
+    public ITasksService.TasksProcessingState getTasksProcessingState(String bucketId) {
+        return tasksExecutionTriggerer.getTasksProcessingState(bucketId);
     }
 
     /**

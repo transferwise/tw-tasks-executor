@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
+import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
@@ -18,8 +20,8 @@ import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.mdc.MdcContext;
+import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
-import com.transferwise.tasks.processing.ProcessingState;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
@@ -38,7 +40,6 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
-import org.apache.kafka.common.errors.InvalidOffsetException;
 import org.apache.kafka.common.errors.RetriableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -48,6 +49,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.PostConstruct;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,8 +58,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -92,7 +96,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     @Autowired
     private ITopicPartitionsManager topicPartitionsManager;
     @Autowired
-    private ProcessingState processingState;
+    private GlobalProcessingState globalProcessingState;
     @Autowired
     private IBucketsManager bucketsManager;
     @Autowired
@@ -105,7 +109,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     private String triggerTopic;
     private Map<String, Object> kafkaConsumerProps;
     private Map<String, ConsumerBucket> consumerBuckets = new ConcurrentHashMap<>();
+    private Map<String, ProcessingBucket> processingBuckets = new ConcurrentHashMap<>();
     private AtomicInteger pollingBucketsCount = new AtomicInteger();
+    private Lock lifecycleLock = new ReentrantLock();
 
     @PostConstruct
     public void init() {
@@ -225,7 +231,12 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                 kafkaConsumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
                 kafkaConsumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
                 kafkaConsumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.bucket." + bucketId);
-                kafkaConsumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, tasksProperties.useSmartAutoOffsetReset() ? null : tasksProperties.getAutoResetOffsetTo());
+
+                if (bucketProperties.getAutoResetOffsetToDuration() != null) {
+                    kafkaConsumerProps.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+                } else {
+                    kafkaConsumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, tasksProperties.getAutoResetOffsetTo());
+                }
 
                 consumerBucket.setKafkaConsumer(kafkaConsumer = new KafkaConsumer<>(kafkaConsumerProps));
 
@@ -233,7 +244,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                 log.info("Subscribing to Kafka topics '" + topics + "'");
 
                 KafkaConsumer kafkaConsumerRef = kafkaConsumer;
-                kafkaConsumer.subscribe(topics, tasksProperties.useSmartAutoOffsetReset() ? new ConsumerRebalanceListener() {
+                kafkaConsumer.subscribe(topics, bucketProperties.getAutoResetOffsetToDuration() != null ? new ConsumerRebalanceListener() {
                     @Override
                     public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
                     }
@@ -241,13 +252,15 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                     @Override
                     public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
                         Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
-                        Long timestampToSearch = ZonedDateTime.now(ClockHolder.getClock()).minus(tasksProperties.getTaskStuckTimeout()).toEpochSecond();
+                        long timestampToSearchMs = ZonedDateTime.now(ClockHolder.getClock()).plus(bucketProperties.getAutoResetOffsetToDuration()).toInstant().toEpochMilli();
 
                         for (TopicPartition partition : partitions) {
                             try {
-                                kafkaConsumerRef.position(partition);
-                            } catch (InvalidOffsetException e) {
-                                timestampsToSearch.put(partition, timestampToSearch);
+                                if (kafkaConsumerRef.committed(partition) == null) {
+                                    timestampsToSearch.put(partition, timestampToSearchMs);
+                                }
+                            } catch (Throwable t) {
+                                timestampsToSearch.put(partition, timestampToSearchMs);
                             }
                         }
                         List<TopicPartition> seekToBeginningPartitions = new ArrayList<>();
@@ -255,8 +268,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                             Map<TopicPartition, OffsetAndTimestamp> offsets = kafkaConsumerRef.offsetsForTimes(timestampsToSearch);
                             offsets.forEach((k, v) -> {
                                 if (v != null) {
+                                    log.warn("No offset was commited for '" + k + "', seeking to offset " + v.offset() + ", @" + Instant.ofEpochMilli(v.timestamp()));
                                     kafkaConsumerRef.seek(k, v.offset());
                                 } else {
+                                    log.warn("No offset was commited for '" + k + "', seeking to beginning");
                                     seekToBeginningPartitions.add(k);
                                 }
                             });
@@ -276,9 +291,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         try {
             pollingBucketsCount.incrementAndGet();
             ConsumerBucket consumerBucket = getConsumerBucket(bucketId);
-            ProcessingState.Bucket bucket = processingState.getBuckets().get(bucketId);
+            GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
 
-            while (!shuttingDown) {
+            while (!shuttingDown && (getProcessingBucket(bucketId).getState() == ITasksService.TasksProcessingState.STARTED)) {
                 ConsumerRecords<String, String> consumerRecords = consumerBucket.getKafkaConsumer()
                     .poll(tasksProperties.getGenericMediumDelay());
 
@@ -313,7 +328,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                                 Or we go over ResultCode.FULL and wait before polling, instead (Feels much better).
                              */
                             if (addTaskForProcessingResponse.getResult() == ITasksProcessingService.AddTaskForProcessingResponse.ResultCode.FULL) {
-                                bucket.getVersionLock().lock();
+                                Lock versionLock = bucket.getVersionLock();
+                                versionLock.lock();
                                 try {
                                     // TODO: consumerBucket.getKafkaConsumer().pause(...)
                                     while (bucket.getVersion().get() == processingStateVersion && !shuttingDown) {
@@ -325,7 +341,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                                     }
                                     //TODO: consumerBucket.getKafkaConsumer().resume(...)
                                 } finally {
-                                    bucket.getVersionLock().unlock();
+                                    versionLock.unlock();
                                 }
                             } else {
                                 break;
@@ -491,23 +507,74 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     @Override
     public void applicationStarted() {
-        for (String bucketId : bucketsManager.getBucketIds()) {
-            executorService.submit(() -> {
-                while (!shuttingDown) {
-                    try {
-                        poll(bucketId);
-                    } catch (Throwable t) {
-                        log.error(t.getMessage(), t);
-                        try {
-                            closeKafkaConsumer(consumerBuckets.get(bucketId));
-                        } catch (Throwable t1) {
-                            log.error(t1.getMessage(), t1);
-                        }
-                        WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+        LockUtils.withLock(lifecycleLock, () -> {
+            for (String bucketId : bucketsManager.getBucketIds()) {
+                if (Boolean.TRUE.equals(bucketsManager.getBucketProperties(bucketId).getAutoStartProcessing())) {
+                    if (getProcessingBucket(bucketId).getState() == ITasksService.TasksProcessingState.STOPPED) {
+                        startBucketProcessing(bucketId);
                     }
                 }
+            }
+        });
+    }
+
+    private void startBucketProcessing(String bucketId) {
+        getProcessingBucket(bucketId).setState(ITasksService.TasksProcessingState.STARTED);
+        executorService.submit(() -> {
+            while (!shuttingDown && (getProcessingBucket(bucketId).getState() == ITasksService.TasksProcessingState.STARTED)) {
+                try {
+                    poll(bucketId);
+                } catch (Throwable t) {
+                    log.error(t.getMessage(), t);
+                    try {
+                        closeKafkaConsumer(consumerBuckets.get(bucketId));
+                    } catch (Throwable t1) {
+                        log.error(t1.getMessage(), t1);
+                    }
+                    WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+                }
+            }
+            LockUtils.withLock(lifecycleLock, () -> {
+                ProcessingBucket processingBucket = getProcessingBucket(bucketId);
+                processingBucket.setState(ITasksService.TasksProcessingState.STOPPED);
+                if (processingBucket.getStopFuture() != null) {
+                    processingBucket.getStopFuture().complete(null);
+                }
+                processingBucket.setStopFuture(null);
+                log.info("Stopped triggers processing for bucket '" + bucketId + "'.");
             });
-        }
+        });
+        log.info("Started triggers processing for bucket '" + bucketId + "'.");
+    }
+
+    @Override
+    public void startTasksProcessing(String bucketId) {
+        String safeBucketId = bucketId == null ? IBucketsManager.DEFAULT_ID : bucketId;
+        LockUtils.withLock(lifecycleLock, () -> {
+            if (getProcessingBucket(safeBucketId).getState() == ITasksService.TasksProcessingState.STOPPED) {
+                startBucketProcessing(safeBucketId);
+            }
+        });
+    }
+
+    @Override
+    public Future<Void> stopTasksProcessing(String bucketId) {
+        return LockUtils.withLock(lifecycleLock, () -> {
+            ProcessingBucket bucket = getProcessingBucket(bucketId);
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            if (bucket.getState() != ITasksService.TasksProcessingState.STARTED) {
+                future.complete(null);
+                return future;
+            }
+            bucket.setStopFuture(future);
+            bucket.setState(ITasksService.TasksProcessingState.STOP_IN_PROGRESS);
+            return future;
+        });
+    }
+
+    @Override
+    public ITasksService.TasksProcessingState getTasksProcessingState(String bucketId) {
+        return getProcessingBucket(bucketId).getState();
     }
 
     @Override
@@ -564,5 +631,16 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
             Boolean done = offsetsCompleted.get(offset);
             return done != null && done;
         }
+    }
+
+    private ProcessingBucket getProcessingBucket(String bucketId) {
+        return processingBuckets.computeIfAbsent(bucketId == null ? IBucketsManager.DEFAULT_ID : bucketId, (k) -> new ProcessingBucket());
+    }
+
+    @Data
+    @Accessors(chain = true)
+    private static class ProcessingBucket {
+        private ITasksService.TasksProcessingState state = ITasksService.TasksProcessingState.STOPPED;
+        private CompletableFuture<Void> stopFuture;
     }
 }

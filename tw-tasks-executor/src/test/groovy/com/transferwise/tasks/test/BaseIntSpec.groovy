@@ -45,27 +45,16 @@ abstract class BaseIntSpec extends Specification {
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule()
 
-    protected TestClock testClock
-
     static {
         Awaitility.setDefaultPollInterval(5, TimeUnit.MILLISECONDS)
     }
 
-    def setup() {
-        testClock = TestClock.createAndRegister()
+    def cleanup() {
         TestClock.reset()
         transactionsHelper.withTransaction().asNew().call {
             testTasksService.reset()
         }
-    }
-
-    def cleanup() {
         resultRegisteringSyncTaskProcessor.reset()
         testTaskHandlerAdapter.reset()
-
-    }
-
-    protected TestClock getTestClock() {
-        return testClock
     }
 }

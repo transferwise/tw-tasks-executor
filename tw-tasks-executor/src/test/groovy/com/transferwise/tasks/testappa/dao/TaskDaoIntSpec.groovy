@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testappa.dao
 
+import com.transferwise.common.baseutils.clock.ClockHolder
 import com.transferwise.common.baseutils.clock.TestClock
 import com.transferwise.tasks.dao.ITaskDao
 import com.transferwise.tasks.domain.BaseTask1
@@ -227,14 +228,14 @@ abstract class TaskDaoIntSpec extends BaseIntSpec {
 
     def "getStuckTasks returns all tasks to retry"() {
         given:
+            TestClock testClock = TestClock.createAndRegister()
             UUID taskId = UUID.randomUUID()
             addTask(taskId, TaskStatus.SUBMITTED)
             def oldNextEventTime = taskDao.getTask(taskId, FullTaskRecord.class).nextEventTime
             addRandomTask(TaskStatus.SUBMITTED)
-            sleep(1)
+            testClock.tick(Duration.ofMillis(1))
         when:
             ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(2, TaskStatus.SUBMITTED, TaskStatus.PROCESSING)
-
         then:
             !result.hasMore
             result.stuckTasks.size() == 2
@@ -406,10 +407,11 @@ abstract class TaskDaoIntSpec extends BaseIntSpec {
 
     def "getting stuck task count considers the limit time"() {
         given:
+            TestClock testClock = TestClock.createAndRegister()
             addRandomTask(TaskStatus.PROCESSING)
             addRandomTask(TaskStatus.PROCESSING)
-            ZonedDateTime limitTime = ZonedDateTime.now().plus(1, ChronoUnit.MILLIS)
-            sleep(5)
+            ZonedDateTime limitTime = ZonedDateTime.now(testClock).plus(1, ChronoUnit.MILLIS)
+            testClock.tick(Duration.ofMillis(1))
             addRandomTask(TaskStatus.PROCESSING)
         when:
             int count = taskDao.getStuckTasksCount(limitTime, 10)
@@ -654,7 +656,7 @@ abstract class TaskDaoIntSpec extends BaseIntSpec {
         String data = "DATA"
     ) {
         return taskDao.insertTask(new ITaskDao.InsertTaskRequest().setData(data)
-            .setMaxStuckTime(ZonedDateTime.now())
+            .setMaxStuckTime(ZonedDateTime.now(ClockHolder.getClock()))
             .setTaskId(id)
             .setPriority(5)
             .setStatus(taskStatus)

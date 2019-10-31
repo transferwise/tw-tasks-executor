@@ -77,7 +77,7 @@ public class TasksProperties {
     /**
      * Topic replication factor for listened topics and task triggering topics.
      */
-    private int topicReplicationFactor = 3;
+    private short topicReplicationFactor = 3;
     /**
      * MySQL or Postgres
      */
@@ -129,9 +129,11 @@ public class TasksProperties {
     private int maxPriority = 9;
     /**
      * When we lose the offset of a triggering topic, where do we rewind?
-     * Only used for task triggering. For usual topics listeneres, the spring-kafka configuration is used.
+     * Only used for task triggering. For usual topics listeners, the spring-kafka configuration is used.
+     *
+     * Can use "earliest", "latest" or Duration notion. For example, if you want to rewind 30 min back, you should write "-PT30M";
      */
-    private String autoResetOffsetTo = "earliest";
+    private String autoResetOffsetTo = "-PT30M";
     /**
      * When do we consider a task or task unique key old enough to be removed from the database.
      */
@@ -202,10 +204,18 @@ public class TasksProperties {
 
     /**
      * Safety limit, to not kill database performance, when something goes horribly wrong. For example when we have millions of waiting, erronous or stuck tasks.
-     *
+     * <p>
      * The side effect is, that for example erroneous tasks count will never exceed this number.
      */
     private int maxDatabaseFetchSize = 10000;
+
+    /**
+     * Allows to turn off automatic start of tasks processing.
+     * In technical terms, allows to turn off fetching of task triggers and processing those.
+     * <p>
+     * Does not apply when tasks are triggered with `triggerInSameProcess` system.
+     */
+    private boolean autoStartProcessing = true;
 
     public enum DbType {
         MYSQL, POSTGRES

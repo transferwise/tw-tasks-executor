@@ -19,7 +19,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Data
 @Accessors(chain = true)
-public class ProcessingState {
+public class GlobalProcessingState {
     private Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
     @Data
@@ -77,11 +77,9 @@ public class ProcessingState {
             TaskTriggering bPeek = b.getTasks().peek();
             if (aPeek == null && bPeek != null) {
                 return 1;
-            }
-            else if (aPeek != null && bPeek == null) {
+            } else if (aPeek != null && bPeek == null) {
                 return -1;
-            }
-            else if (aPeek == null || aPeek.getSequence() == bPeek.getSequence()) {
+            } else if (aPeek == null || aPeek.getSequence() == bPeek.getSequence()) {
                 return a.getType().compareTo(b.getType());
             }
             return a.getType().compareTo(b.getType());
