@@ -2,6 +2,7 @@ package com.transferwise.tasks.handler.interfaces;
 
 import com.transferwise.tasks.domain.IBaseTask;
 
+import java.time.Duration;
 import java.time.ZonedDateTime;
 
 public interface ITaskProcessingPolicy {
@@ -23,6 +24,10 @@ public interface ITaskProcessingPolicy {
     }
 
     ZonedDateTime getMaxProcessingEndTime(IBaseTask task);
+
+    default Duration getExpectedQueueTime(IBaseTask task){
+        return null;
+    }
 
     String getProcessingBucket(IBaseTask task);
 

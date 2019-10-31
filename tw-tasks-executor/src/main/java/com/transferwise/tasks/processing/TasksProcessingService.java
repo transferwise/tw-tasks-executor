@@ -3,6 +3,7 @@ package com.transferwise.tasks.processing;
 import com.google.common.collect.ImmutableMap;
 import com.newrelic.api.agent.NewRelic;
 import com.newrelic.api.agent.Trace;
+import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.IPriorityManager;
@@ -69,7 +70,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     @Autowired
     private IExecutorsHelper executorsHelper;
     @Autowired
-    private ProcessingState processingState;
+    private GlobalProcessingState globalProcessingState;
     @Autowired
     private IPriorityManager priorityManager;
     @Autowired
@@ -115,14 +116,14 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
         BucketProperties bucketProperties = bucketsManager.getBucketProperties(bucketId);
 
-        ProcessingState.Bucket bucket = processingState.getBuckets().get(bucketId);
+        GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
 
         if (bucket.getSize().get() >= bucketProperties.getMaxTriggersInMemory()) {
             return new AddTaskForProcessingResponse().setResult(AddTaskForProcessingResponse.ResultCode.FULL);
         }
 
         int priority = priorityManager.normalize(task.getPriority());
-        ProcessingState.PrioritySlot prioritySlot = bucket.getPrioritySlot(priority);
+        GlobalProcessingState.PrioritySlot prioritySlot = bucket.getPrioritySlot(priority);
 
         prioritySlot.getTaskTriggerings().add(taskTriggering);
         bucket.getSize().incrementAndGet();
@@ -142,7 +143,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
      * <p>
      * Return immediately as soon as one suitable task has been triggered.
      */
-    protected void processTasks(ProcessingState.Bucket bucket) {
+    protected void processTasks(GlobalProcessingState.Bucket bucket) {
         String bucketId = bucket.getBucketId();
 
         boolean taskProcessed = false;
@@ -154,11 +155,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                 break;
             }
 
-            ProcessingState.PrioritySlot prioritySlot = bucket.getPrioritySlot(priority);
+            GlobalProcessingState.PrioritySlot prioritySlot = bucket.getPrioritySlot(priority);
 
             transferFromIntermediateBuffer(bucket, prioritySlot);
 
-            for (ProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
+            for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
                 String type = typeTasks.getType();
 
                 if (noRoomMap.containsKey(type)) {
@@ -204,7 +205,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         }
     }
 
-    protected void transferFromIntermediateBuffer(ProcessingState.Bucket bucket, ProcessingState.PrioritySlot prioritySlot) {
+    protected void transferFromIntermediateBuffer(GlobalProcessingState.Bucket bucket, GlobalProcessingState.PrioritySlot prioritySlot) {
         while (true) {
             TaskTriggering taskTriggering = prioritySlot.getTaskTriggerings().poll();
             if (taskTriggering == null) {
@@ -214,9 +215,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             taskTriggering.setSequence(taskTriggeringSequence.incrementAndGet());
 
             String taskType = taskTriggering.getTask().getType();
-            ProcessingState.TypeTasks typeTasks = prioritySlot.getTypeTasks().get(taskType);
+            GlobalProcessingState.TypeTasks typeTasks = prioritySlot.getTypeTasks().get(taskType);
             if (typeTasks == null) {
-                prioritySlot.getTypeTasks().put(taskType, typeTasks = new ProcessingState.TypeTasks().setType(taskType));
+                prioritySlot.getTypeTasks().put(taskType, typeTasks = new GlobalProcessingState.TypeTasks().setType(taskType));
                 prioritySlot.getOrderedTypeTasks().add(typeTasks);
             }
             boolean emptyQueue = typeTasks.getTasks().peek() == null;
@@ -233,7 +234,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
 
     protected ProcessTaskResponse grabTaskForProcessing(String bucketId, BaseTask task) {
-        ProcessingState.Bucket bucket = processingState.getBuckets().get(bucketId);
+        GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
         BucketProperties bucketProperties = bucketsManager.getBucketProperties(bucketId);
 
         ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
@@ -297,7 +298,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
 
     @Trace(dispatcher = true)
-    protected void grabTaskForProcessing0(ProcessingState.Bucket bucket, BaseTask task, ITaskConcurrencyPolicy concurrencyPolicy, ITaskHandler taskHandler) {
+    protected void grabTaskForProcessing0(GlobalProcessingState.Bucket bucket, BaseTask task, ITaskConcurrencyPolicy concurrencyPolicy, ITaskHandler taskHandler) {
         NewRelic.setTransactionName("TwTasksEngine", "TaskGrabbing");
         try {
             ZonedDateTime maxProcessingEndTime = taskHandler.getProcessingPolicy(task).getMaxProcessingEndTime(task);
@@ -343,7 +344,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
 
     protected void scheduleTask(String bucketId, ITaskHandler taskHandler, ITaskConcurrencyPolicy concurrencyPolicy, Task taskForProcessing) {
-        ProcessingState.Bucket bucket = processingState.getBuckets().get(bucketId);
+        GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
         taskExecutor.submit(() -> {
             runningTasksCount.incrementAndGet();
             bucket.getRunningTasksCount().incrementAndGet();
@@ -373,6 +374,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         NewRelic.addCustomParameter("twTaskSubType", task.getSubType());
         NewRelic.setTransactionName("TwTasks", "Processing_" + task.getType());
 
+        long processingStartTimeMs = ClockHolder.getClock().millis();
+        MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
+
         processWithInterceptors(0, task, () -> {
             ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
             log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
@@ -399,8 +403,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                         if (result == null || result.getResultCode() == null || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
                             markTaskAsDone(task);
                         } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
+                            processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
                             setRepeatOnSuccess(bucketId, taskHandler, task);
                         } else {
+                            processingResultHolder.setValue(ProcessingResult.ERROR);
                             setRetriesOrError(bucketId, taskHandler, task, null);
                         }
                         return null;
@@ -419,14 +425,16 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                     } catch (Throwable t) {
                         log.error("Processing task {} type: '{}' subType: '{}' failed.",
                             LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                        processingResultHolder.setValue(ProcessingResult.ERROR);
                         setRetriesOrError(bucketId, taskHandler, task, t);
                     }
                 } catch (Throwable t) {
                     log.error("Processing task {} type: '{}' subType: '{}' failed.",
                         LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                    processingResultHolder.setValue(ProcessingResult.ERROR);
                     setRetriesOrError(bucketId, taskHandler, task, t);
                 } finally {
-                    taskFinished(bucketId, concurrencyPolicy, task);
+                    taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, processingResultHolder.getValue());
                 }
             }
             if (taskProcessor instanceof IAsyncTaskProcessor) {
@@ -437,20 +445,20 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                         task,
                         () -> {
                             if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                                taskFinished(bucketId, concurrencyPolicy, task);
+                                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.SUCCESS);
                             }
                             markTaskAsDoneFromAsync(task);
                         },
                         (t) -> {
                             if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                                taskFinished(bucketId, concurrencyPolicy, task);
+                                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
                             }
                             setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
                         });
                 } catch (Throwable t) {
                     log.error("Processing task '" + task.getVersionId() + "' failed.", t);
                     if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                        taskFinished(bucketId, concurrencyPolicy, task);
+                        taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
                     }
                     setRetriesOrError(bucketId, taskHandler, task, t);
                 }
@@ -520,11 +528,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         }
     }
 
-    private void taskFinished(String bucketId, ITaskConcurrencyPolicy concurrencyPolicy, Task task) {
+    private void taskFinished(String bucketId, ITaskConcurrencyPolicy concurrencyPolicy, Task task, long processingStartTimeMs, ProcessingResult processingResult) {
         runningTasksCount.decrementAndGet();
-        ProcessingState.Bucket bucket = processingState.getBuckets().get(bucketId);
+        GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
         bucket.getRunningTasksCount().decrementAndGet();
-        meterHelper.registerTaskProcessingEnd(bucketId, task.getType());
+        meterHelper.registerTaskProcessingEnd(bucketId, task.getType(), processingStartTimeMs, processingResult.name());
 
         concurrencyPolicy.freeSpaceForTask(task);
         bucket.increaseVersion();
@@ -548,7 +556,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                 log.warn("Suboptimal configuration for bucket '" + bucketId + "' found. triggerSameTaskInAllNodes=false and checkVersionBeforeGrabbing=true.");
             }
 
-            ProcessingState.Bucket bucket = processingState.getBuckets().get(bucketId);
+            GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
 
             Map<String, String> tags = ImmutableMap.of("bucketId", bucketId);
             meterHelper.registerGauge(METRIC_PREFIX + "processing.runningTasksCount", tags, () -> bucket.getRunningTasksCount().get());
@@ -601,5 +609,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             super(null, null, false, false);
             this.processResult = processResult;
         }
+    }
+
+    private static enum ProcessingResult {
+        SUCCESS,
+        COMMIT_AND_RETRY,
+        ERROR
     }
 }

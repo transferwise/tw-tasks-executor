@@ -4,7 +4,7 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.helpers.IMeterHelper;
-import com.transferwise.tasks.processing.ProcessingState;
+import com.transferwise.tasks.processing.GlobalProcessingState;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
@@ -21,7 +21,7 @@ public class BucketsManager implements IBucketsManager {
     @Autowired
     private TasksProperties tasksProperties;
     @Autowired
-    private ProcessingState processingState;
+    private GlobalProcessingState globalProcessingState;
     @Autowired
     private IPriorityManager priorityManager;
     @Autowired
@@ -39,7 +39,8 @@ public class BucketsManager implements IBucketsManager {
                 .setTriggerSameTaskInAllNodes(tasksProperties.isTriggerSameTaskInAllNodes())
                 .setTriggersFetchSize(tasksProperties.getTriggerFetchSize())
                 .setAutoResetOffsetTo(tasksProperties.getAutoResetOffsetTo())
-                .setTriggerInSameProcess(tasksProperties.isTriggerInSameProcess()));
+                .setTriggerInSameProcess(tasksProperties.isTriggerInSameProcess())
+                .setAutoStartProcessing(tasksProperties.isAutoStartProcessing()));
 
             registerUniqueBucketIds();
         });
@@ -55,8 +56,8 @@ public class BucketsManager implements IBucketsManager {
         bucketIds.sort(Comparator.naturalOrder());
 
         for (String bucketId : bucketIds) {
-            processingState.getBuckets().put(bucketId,
-                new ProcessingState.Bucket(priorityManager.getMinPriority(), priorityManager.getMaxPriority())
+            globalProcessingState.getBuckets().put(bucketId,
+                new GlobalProcessingState.Bucket(priorityManager.getMinPriority(), priorityManager.getMaxPriority())
                     .setBucketId(bucketId));
         }
     }
@@ -103,8 +104,11 @@ public class BucketsManager implements IBucketsManager {
             if (bucketProperties.getAutoResetOffsetTo() == null) {
                 bucketProperties.setAutoResetOffsetTo(defaultProperties.getAutoResetOffsetTo());
             }
-            if (bucketProperties.getTriggerInSameProcess() == null){
+            if (bucketProperties.getTriggerInSameProcess() == null) {
                 bucketProperties.setTriggerInSameProcess(defaultProperties.getTriggerInSameProcess());
+            }
+            if (bucketProperties.getAutoStartProcessing() == null) {
+                bucketProperties.setAutoStartProcessing(defaultProperties.getAutoStartProcessing());
             }
             bucketsProperties.put(bucketId, bucketProperties);
         });

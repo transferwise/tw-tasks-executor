@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testappa
 
+import com.transferwise.common.baseutils.clock.ClockHolder
 import com.transferwise.tasks.dao.ITaskDao
 import com.transferwise.tasks.domain.FullTaskRecord
 import com.transferwise.tasks.domain.TaskStatus
@@ -127,7 +128,7 @@ class TasksManagementIntSpec extends BaseIntSpec {
             response.getBody().getResults()[task0Id].success
             def task = taskDao.getTask(task0Id, FullTaskRecord.class)
             task.getStatus() == TaskStatus.WAITING.name()
-            !task.getNextEventTime().isAfter(ZonedDateTime.now(testClock).plusSeconds(1)) // decrementing 1 because of database rounding error.
+            !task.getNextEventTime().isAfter(ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(1)) // decrementing 1 because of database rounding error.
         cleanup:
             tasksResumer.resume()
     }
@@ -148,7 +149,7 @@ class TasksManagementIntSpec extends BaseIntSpec {
             response.getBody().getResults()[task0Id].success
             def task = taskDao.getTask(task0Id, FullTaskRecord.class)
             task.getStatus() == TaskStatus.WAITING.name()
-            !task.getNextEventTime().isAfter(ZonedDateTime.now(testClock).plusSeconds(1)) // decrementing 1 because of database rounding error.
+            !task.getNextEventTime().isAfter(ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(1)) // decrementing 1 because of database rounding error.
         cleanup:
             tasksResumer.resume()
     }

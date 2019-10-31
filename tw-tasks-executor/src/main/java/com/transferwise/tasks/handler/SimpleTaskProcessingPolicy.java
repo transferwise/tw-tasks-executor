@@ -32,7 +32,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
     @Getter
     @Setter
     @Accessors(chain = true)
-    private StuckTaskResolutionStrategy stuckTaskResolutionStrategy = StuckTaskResolutionStrategy.RETRY;
+    private StuckTaskResolutionStrategy stuckTaskResolutionStrategy = StuckTaskResolutionStrategy.MARK_AS_ERROR;
 
     @Override
     public ZonedDateTime getMaxProcessingEndTime(IBaseTask task) {

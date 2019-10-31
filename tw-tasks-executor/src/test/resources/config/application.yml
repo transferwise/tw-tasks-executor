@@ -14,10 +14,14 @@ spring:
       enableAutoCommit: false
       heartbeatInterval: PT1S
 
-tw-tasks.core:
-  zookeeper-connect-string: ${testenv.zookeeper.host:localhost}:${testenv.zookeeper.port}
-  topic-replication-factor: 1
-  waiting-tasks-polling-interval: PT0.1S
+tw-tasks:
+  core:
+    zookeeper-connect-string: ${testenv.zookeeper.host:localhost}:${testenv.zookeeper.port}
+    topic-replication-factor: 1
+    waiting-tasks-polling-interval: PT0.1S
+    additional-processing-buckets: manualStart
+    stuck-tasks-polling-interval: PT1S
+    configure-kafka-topics: true
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN
@@ -26,7 +30,7 @@ logging.level.org.apache.zookeeper: WARN
 tw-graceful-shutdown:
   shutdown-timeout-ms: 1000
   clients-reaction-time-ms: 1
-  strategies-check-interval-time-ms: 1
+  strategies-check-interval-time-ms: 1000
 tw-incidents:
   victorops:
     enabled: false
@@ -93,9 +97,3 @@ tw-tasks.core:
 
 spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-postgres.xml
 
----
-spring:
-  profiles: test
-
-tw-tasks.core:
-  stuck-tasks-polling-interval: PT10S

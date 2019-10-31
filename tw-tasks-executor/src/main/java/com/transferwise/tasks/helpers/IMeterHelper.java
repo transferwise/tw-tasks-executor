@@ -34,9 +34,21 @@ public interface IMeterHelper {
 
     void incrementCounter(String name, Map<String, String> tags, long delta);
 
-    void registerTaskProcessingEnd(String bucketId, String type);
+    void registerTaskProcessingEnd(String bucketId, String type, long processingStartTimeMs, String processingResult);
 
     void registerKafkaCoreMessageProcessing(String topic);
 
     void registerDuplicateTask(String taskType, boolean expected);
+
+    void registerScheduledTaskResuming(String taskType);
+
+    void registerStuckTaskMarkedAsFailed(String taskType);
+
+    void registerStuckTaskAsIgnored(String taskType);
+
+    void registerStuckTaskResuming(String taskType);
+
+    void registerStuckTaskMarkedAsError(String taskType);
+
+    void registerStuckClientTaskResuming(String taskType);
 }

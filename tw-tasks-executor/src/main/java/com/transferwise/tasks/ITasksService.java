@@ -3,8 +3,10 @@ package com.transferwise.tasks;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.UUID;
+import java.util.concurrent.Future;
 
 public interface ITasksService {
     /**
@@ -37,6 +39,7 @@ public interface ITasksService {
         private ZonedDateTime runAfterTime;
         private Integer priority;
         private boolean warnWhenTaskExists;
+        private Duration expectedQueueTime;
     }
 
     @Data
@@ -65,4 +68,15 @@ public interface ITasksService {
         private long version;
         private boolean force;
     }
+
+    void startTasksProcessing(String bucketId);
+
+    Future<Void> stopTasksProcessing(String bucketId);
+
+    TasksProcessingState getTasksProcessingState(String bucketId);
+
+    enum TasksProcessingState {
+        STARTED, STOPPED, STOP_IN_PROGRESS
+    }
+
 }

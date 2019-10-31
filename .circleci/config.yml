@@ -3,38 +3,30 @@ version: 2
 references:
   container_config: &container_config
     docker:
-    - image: docker.tw.ee/circle_xenial_oracle_jvm8:171
+    - image: arti.tw.ee/circle_openjdk8:latest
       user: circleci
-    resource_class: medium
-    environment:
-      TERM: vt100
-      GRADLE_OPTS: '-Dorg.gradle.console=plain'
-
-  container_config_extended: &container_config_extended
-    <<: *container_config
-    docker:
-    - image: docker.tw.ee/circle_xenial_oracle_jvm8:171
-      user: circleci
-    - image: circleci/mysql:5.7.23
+    - image: circleci/mysql:5.7
       name: mysql1
       command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
       environment:
         MYSQL_ROOT_PASSWORD: example-password-change-me
         MYSQL_DATABASE: tw-tasks-test
-    - image: circleci/postgres:9.6.8-alpine
+    - image: circleci/postgres:9.6
       name: postgres1
       environment:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: example-password-change-me
-    - image: zookeeper:3.5.4-beta
+    - image: bitnami/zookeeper:3.5.5
       name: zk-service1
       environment:
-        ZOO_MY_ID: 1
-    - image: zookeeper:3.4.11
+        ALLOW_ANONYMOUS_LOGIN: "yes"
+        JVMFLAGS: "-Xmx512m -Xms64m"
+    - image: bitnami/zookeeper:3.4.14
       name: zk1
       environment:
-        ZOO_MY_ID: 1
-    - image: wurstmeister/kafka:2.11-0.11.0.3
+        ALLOW_ANONYMOUS_LOGIN: "yes"
+        JVMFLAGS: "-Xmx512m -Xms64m"
+    - image: wurstmeister/kafka:2.12-2.2.0
       name: kafka1
       environment:
         KAFKA_BROKER_ID: 1
@@ -45,6 +37,11 @@ references:
         KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 10000
         KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
         KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+    resource_class: medium
+    environment:
+      TERM: vt100
+      GRADLE_OPTS: '-Dorg.gradle.console=plain'
+
   gather_test_results: &gather_test_results
     run:
       name: Gather test results
@@ -55,7 +52,7 @@ references:
       when: always
 jobs:
   test:
-    <<: *container_config_extended
+    <<: *container_config
     steps:
     - checkout
     - restore_cache:
@@ -82,6 +79,7 @@ jobs:
         key: gradle-cache-{{ checksum "build.gradle" }}
         paths:
         - "~/.gradle"
+
 
 workflows:
   version: 2

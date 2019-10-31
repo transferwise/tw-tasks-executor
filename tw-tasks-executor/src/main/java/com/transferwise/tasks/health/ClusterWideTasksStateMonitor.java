@@ -183,7 +183,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
         if (stuckTasksMeterNotRegistered) {
             stuckTasksCount = new AtomicInteger();
         }
-        stuckTasksCount.set(taskDao.getStuckTasksCount(ZonedDateTime.now(ClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()), tasksProperties.getMaxDatabaseFetchSize()));
+        stuckTasksCount
+            .set(taskDao.getStuckTasksCount(ZonedDateTime.now(ClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()), tasksProperties.getMaxDatabaseFetchSize()));
         if (stuckTasksMeterNotRegistered) {
             AtomicInteger stuckTasksCountCopy = stuckTasksCount;
             registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCountCopy::get));

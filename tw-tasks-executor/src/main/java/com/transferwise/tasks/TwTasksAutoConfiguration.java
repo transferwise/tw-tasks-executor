@@ -20,9 +20,9 @@ import com.transferwise.tasks.helpers.MicrometerMeterHelper;
 import com.transferwise.tasks.helpers.NoOpMeterHelper;
 import com.transferwise.tasks.helpers.executors.DefaultExecutorServiceProvider;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
+import com.transferwise.tasks.helpers.kafka.AdminClientTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.NoOpTopicPartitionsManager;
-import com.transferwise.tasks.helpers.kafka.ZkUtilsTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CoreKafkaListener;
 import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerRegistry;
 import com.transferwise.tasks.impl.tokafka.ToKafkaProperties;
@@ -30,8 +30,8 @@ import com.transferwise.tasks.impl.tokafka.ToKafkaSenderService;
 import com.transferwise.tasks.impl.tokafka.ToKafkaTaskHandlerConfiguration;
 import com.transferwise.tasks.management.TasksManagementPortController;
 import com.transferwise.tasks.management.TasksManagementService;
+import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
-import com.transferwise.tasks.processing.ProcessingState;
 import com.transferwise.tasks.processing.TasksProcessingService;
 import com.transferwise.tasks.stucktasks.ITasksResumer;
 import com.transferwise.tasks.stucktasks.TasksResumer;
@@ -168,16 +168,9 @@ public class TwTasksAutoConfiguration {
     }
 
     @Bean
-    public ITopicPartitionsManager twTasksTopicPartitionsManager(CuratorFramework curatorFramework, TasksProperties tasksProperties) {
+    public ITopicPartitionsManager twTasksTopicPartitionsManager(TasksProperties tasksProperties) {
         if (tasksProperties.isConfigureKafkaTopics()) {
-            try {
-                Class.forName("kafka.utils.ZkUtils");
-                Class.forName("kafka.admin.AdminUtils");
-            } catch (Throwable t) {
-                log.info("Turning off the automatic configuration of Kafka's partitions count.");
-                return new NoOpTopicPartitionsManager();
-            }
-            return new ZkUtilsTopicPartitionsManager(curatorFramework, tasksProperties);
+            return new AdminClientTopicPartitionsManager();
         }
         return new NoOpTopicPartitionsManager();
     }
@@ -188,8 +181,8 @@ public class TwTasksAutoConfiguration {
     }
 
     @Bean
-    public ProcessingState twTasksProcessingState() {
-        return new ProcessingState();
+    public GlobalProcessingState twTasksGlobalProcessingState() {
+        return new GlobalProcessingState();
     }
 
     @Bean
