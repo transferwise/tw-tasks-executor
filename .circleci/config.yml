@@ -5,16 +5,6 @@ references:
     docker:
     - image: arti.tw.ee/circle_openjdk8:latest
       user: circleci
-    resource_class: medium
-    environment:
-      TERM: vt100
-      GRADLE_OPTS: '-Dorg.gradle.console=plain'
-
-  container_config_extended: &container_config_extended
-    <<: *container_config
-    docker:
-    - image: arti.tw.ee/circle_openjdk8:latest
-      user: circleci
     - image: circleci/mysql:5.7
       name: mysql1
       command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
@@ -47,6 +37,11 @@ references:
         KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 10000
         KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
         KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+    resource_class: medium
+    environment:
+      TERM: vt100
+      GRADLE_OPTS: '-Dorg.gradle.console=plain'
+
   gather_test_results: &gather_test_results
     run:
       name: Gather test results
@@ -57,7 +52,7 @@ references:
       when: always
 jobs:
   test:
-    <<: *container_config_extended
+    <<: *container_config
     steps:
     - checkout
     - restore_cache:
