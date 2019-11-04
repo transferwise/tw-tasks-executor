@@ -1,9 +1,10 @@
 package com.transferwise.tasks.triggering
 
+import com.transferwise.tasks.test.BaseSpec
 import org.apache.kafka.common.TopicPartition
 import spock.lang.Specification
 
-class KafkaTasksExecutionTriggererSpec extends Specification {
+class KafkaTasksExecutionTriggererSpec extends BaseSpec {
 
     def "something works"() {
         given:

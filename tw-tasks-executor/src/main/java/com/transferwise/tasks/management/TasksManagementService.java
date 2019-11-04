@@ -44,11 +44,14 @@ public class TasksManagementService implements ITasksManagementService {
         for (TaskVersionId taskVersionId : request.getTaskVersionIds()) {
             MdcContext.with(() -> {
                 MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), taskVersionId);
+                BaseTask1 task = taskDao.getTask(taskVersionId.getId(), BaseTask1.class);
+
                 boolean succeeded = taskDao.setStatus(taskVersionId.getId(), TaskStatus.FAILED, taskVersionId.getVersion());
                 log.info("Marking of task '" + taskVersionId.getId() + "' as FAILED " + (succeeded ? " succeeded" : "failed") + ".");
                 if (succeeded) {
-                    BaseTask1 task = taskDao.getTask(taskVersionId.getId(), BaseTask1.class);
                     meterHelper.registerTaskMarkedAsFailed(null, task.getType());
+                } else {
+                    meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
                 }
                 response.getResults().put(taskVersionId.getId(), new MarkTasksAsFailedResponse.Result().
                     setSuccess(succeeded));
@@ -80,6 +83,8 @@ public class TasksManagementService implements ITasksManagementService {
                         .getStatus() + "' to be immediately resumed " + (succeeded ? " succeeded" : "failed") + ".");
                     if (succeeded) {
                         meterHelper.registerTaskResuming(null, task.getType());
+                    } else {
+                        meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
                     }
                     response.getResults().put(taskVersionId.getId(), new ResumeTasksImmediatelyResponse.Result().
                         setSuccess(succeeded));

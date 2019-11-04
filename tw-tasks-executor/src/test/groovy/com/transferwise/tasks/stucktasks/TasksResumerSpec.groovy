@@ -11,6 +11,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskHandler
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy
 import com.transferwise.tasks.helpers.IMeterHelper
+import com.transferwise.tasks.test.BaseSpec
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer
 import org.apache.curator.framework.CuratorFramework
 import spock.lang.Specification
@@ -21,7 +22,7 @@ import java.time.Duration
 import java.time.ZonedDateTime
 import java.util.concurrent.atomic.AtomicInteger
 
-class TasksResumerSpec extends Specification {
+class TasksResumerSpec extends BaseSpec {
     private ITasksExecutionTriggerer tasksExecutionTriggerer = Mock()
     private ITaskHandlerRegistry taskHandlerRegistry = Mock()
     private TasksProperties tasksProperties = Mock()
@@ -41,13 +42,9 @@ class TasksResumerSpec extends Specification {
     )
     private ZonedDateTime now = ZonedDateTime.now(ClockHolder.clock)
 
-    void setup() {
+    def setup() {
         tasksProperties.getTaskStuckTimeout() >> Duration.ofMinutes(10)
         ClockHolder.setClock(Clock.fixed(now.toInstant(), now.zone))
-    }
-
-    void cleanup() {
-        ClockHolder.setClock(Clock.systemDefaultZone())
     }
 
     @Unroll
@@ -68,9 +65,9 @@ class TasksResumerSpec extends Specification {
         then:
             //noinspection GroovyAssignabilityCheck
             resumed * tasksExecutionTriggerer.trigger({ BaseTask baseTask -> baseTask.version == 1 && baseTask.id == task.getVersionId().id })
-            resumed * taskDao.markAsSubmittedAndSetNextEventTime(task.versionId, now.plusMinutes(10))
-            error * taskDao.setStatus(task.versionId.id, TaskStatus.ERROR, task.versionId.version)
-            failed * taskDao.setStatus(task.versionId.id, TaskStatus.FAILED, task.versionId.version)
+            resumed * taskDao.markAsSubmitted(task.versionId.id, task.versionId.version, now.plusMinutes(10)) >> true
+            error * taskDao.setStatus(task.versionId.id, TaskStatus.ERROR, task.versionId.version) >> true
+            failed * taskDao.setStatus(task.versionId.id, TaskStatus.FAILED, task.versionId.version) >> true
             nResumed.get() == resumed
             nError.get() == error
             nFailed.get() == failed
@@ -91,7 +88,7 @@ class TasksResumerSpec extends Specification {
             service.handleStuckTask(task, nResumed, null, null)
         then:
             1 * tasksExecutionTriggerer.trigger({ BaseTask baseTask -> baseTask.version == 1 && baseTask.id == task.getVersionId().id })
-            1 * taskDao.markAsSubmittedAndSetNextEventTime(task.versionId, now.plusMinutes(10))
+            1 * taskDao.markAsSubmitted(task.versionId.id, task.versionId.version, now.plusMinutes(10)) >> true
         and:
             nResumed.get() == 1
     }

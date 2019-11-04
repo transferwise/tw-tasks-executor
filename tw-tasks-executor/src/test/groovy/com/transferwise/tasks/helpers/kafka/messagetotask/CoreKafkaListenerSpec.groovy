@@ -1,10 +1,10 @@
 package com.transferwise.tasks.helpers.kafka.messagetotask
 
 import com.transferwise.tasks.TasksProperties
-import spock.lang.Specification
+import com.transferwise.tasks.test.BaseSpec
 import spock.lang.Unroll
 
-class CoreKafkaListenerSpec extends Specification {
+class CoreKafkaListenerSpec extends BaseSpec {
     @Unroll
     def "topic prefixes are correctly removed"() {
         given:

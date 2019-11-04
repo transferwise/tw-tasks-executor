@@ -1,5 +1,7 @@
 package com.transferwise.tasks.helpers;
 
+import com.transferwise.tasks.domain.TaskStatus;
+
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -96,6 +98,11 @@ public class NoOpMeterHelper implements IMeterHelper {
 
     @Override
     public void registerStuckClientTaskResuming(String taskType) {
+
+    }
+
+    @Override
+    public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus){
 
     }
 }

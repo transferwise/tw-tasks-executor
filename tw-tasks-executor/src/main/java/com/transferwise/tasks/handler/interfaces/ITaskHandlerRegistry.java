@@ -4,4 +4,6 @@ import com.transferwise.tasks.domain.IBaseTask;
 
 public interface ITaskHandlerRegistry {
     ITaskHandler getTaskHandler(IBaseTask task);
+
+    ITaskProcessingPolicy getTaskProcessingPolicy(IBaseTask task);
 }

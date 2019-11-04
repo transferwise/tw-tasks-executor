@@ -153,6 +153,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
             if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
                 if (!taskDao.setStatus(taskId, TaskStatus.SUBMITTED, version++)) {
+                    meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
                     if (log.isDebugEnabled()) {
                         log.debug("Can not resume task '" + taskId + "', expected version " + request.getVersion()
                             + " does not match " + task.getVersion() + ".");
@@ -169,6 +170,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
                     log.warn("Task '" + taskId + "' will be force resumed. Status will change from '" + task.getStatus() + "' to 'SUBMITTED'.");
                 }
                 if (!taskDao.setStatus(taskId, TaskStatus.SUBMITTED, version++)) {
+                    meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
                     log.debug("Can not resume task {}, it has wrong version '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
                     return false;
                 }

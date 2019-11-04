@@ -3,6 +3,7 @@ package com.transferwise.tasks.handler;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
+import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,5 +37,11 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
             return results.get(0);
         }
         return null;
+    }
+
+    @Override
+    public ITaskProcessingPolicy getTaskProcessingPolicy(IBaseTask task){
+        ITaskHandler taskHandler = getTaskHandler(task);
+        return taskHandler == null ? null : taskHandler.getProcessingPolicy(task);
     }
 }

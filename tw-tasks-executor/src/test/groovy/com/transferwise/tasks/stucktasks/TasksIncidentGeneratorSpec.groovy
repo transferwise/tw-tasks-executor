@@ -3,10 +3,11 @@ package com.transferwise.tasks.stucktasks
 import com.transferwise.common.incidents.Incident
 import com.transferwise.tasks.health.ITasksStateMonitor
 import com.transferwise.tasks.health.TasksIncidentGenerator
+import com.transferwise.tasks.test.BaseSpec
 import org.apache.commons.lang3.tuple.ImmutablePair
 import spock.lang.Specification
 
-class TasksIncidentGeneratorSpec extends Specification {
+class TasksIncidentGeneratorSpec extends BaseSpec {
     private TasksIncidentGenerator generator
 
     def setup() {

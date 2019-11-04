@@ -1,9 +1,9 @@
 package com.transferwise.tasks.utils
 
+import com.transferwise.tasks.test.BaseSpec
 import org.apache.commons.lang3.RandomUtils
-import spock.lang.Specification
 
-class UUIDUtilsSpec extends Specification {
+class UUIDUtilsSpec extends BaseSpec {
     def "converting from UUID and back to bytes end with the same result"() {
         given:
             UUID uuid = UUID.randomUUID();

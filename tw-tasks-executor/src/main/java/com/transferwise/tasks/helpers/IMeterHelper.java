@@ -1,5 +1,7 @@
 package com.transferwise.tasks.helpers;
 
+import com.transferwise.tasks.domain.TaskStatus;
+
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -51,4 +53,7 @@ public interface IMeterHelper {
     void registerStuckTaskMarkedAsError(String taskType);
 
     void registerStuckClientTaskResuming(String taskType);
+
+    void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
+
 }

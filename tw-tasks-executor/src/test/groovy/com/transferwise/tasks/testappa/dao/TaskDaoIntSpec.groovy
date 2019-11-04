@@ -257,7 +257,7 @@ abstract class TaskDaoIntSpec extends BaseIntSpec {
             addRandomTask(TaskStatus.NEW)
 
         when:
-            def result = taskDao.markAsSubmittedAndSetNextEventTime(new TaskVersionId(taskId, 0), maxStuckTime)
+            def result = taskDao.markAsSubmitted(taskId, 0, maxStuckTime)
 
         then:
             result

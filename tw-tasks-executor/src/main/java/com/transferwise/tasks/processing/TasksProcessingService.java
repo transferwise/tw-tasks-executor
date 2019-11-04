@@ -245,7 +245,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                     LogUtils.asParameter(task.getVersionId()), task.getType());
                 meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
             } else {
-                // Some old trigger was re-executed.
+                // Some old trigger was re-executed, logging would be spammy here.
+                meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
             }
             return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
         }
@@ -253,8 +254,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         ITaskProcessingPolicy processingPolicy = taskHandler.getProcessingPolicy(task);
         if (processingPolicy == null) {
             log.error("Marking task {} as ERROR, as the handler does not provide a processing policy.", LogUtils.asParameter(task.getVersionId()));
-            taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion());
-            meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+            if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+            } else {
+                meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+            }
             return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
         }
 
@@ -265,8 +269,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         ITaskConcurrencyPolicy concurrencyPolicy = taskHandler.getConcurrencyPolicy(task);
         if (concurrencyPolicy == null) {
             log.error("Marking task {} as ERROR, as the handler does not provide a concurrency policy.", LogUtils.asParameter(task.getVersionId()));
-            taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion());
-            meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+            if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+            } else {
+                meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+            }
             return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
         }
 
@@ -290,7 +297,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         } catch (Throwable t) {
             log.error(t.getMessage(), t);
             concurrencyPolicy.freeSpaceForTask(task);
-            taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion());
+            if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+            }
             return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
         }
 
@@ -484,9 +493,13 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         if (tasksProperties.isDeleteTaskOnFinish()) {
             taskDao.deleteTask(taskId, task.getVersion());
         } else if (tasksProperties.isClearPayloadOnFinish()) {
-            taskDao.clearPayloadAndMarkDone(taskId, task.getVersion());
+            if (!taskDao.clearPayloadAndMarkDone(taskId, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
+            }
         } else {
-            taskDao.setStatus(taskId, TaskStatus.DONE, task.getVersion());
+            if (!taskDao.setStatus(taskId, TaskStatus.DONE, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
+            }
         }
     }
 
@@ -513,8 +526,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     protected void setRetriesOrError(String bucketId, Task task, ZonedDateTime retryTime) {
         if (retryTime == null) {
             log.info("Task {} marked as ERROR.", LogUtils.asParameter(task.getVersionId()));
-            taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion());
-            meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+            if (taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+                meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+            } else {
+                meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.ERROR);
+            }
         } else {
             log.info("Task {} will be reprocessed @ " + retryTime + ".", LogUtils.asParameter(task.getVersionId()));
             meterHelper.registerTaskRetryOnError(bucketId, task.getType());
@@ -524,6 +540,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
     private void setToBeRetried(Task task, ZonedDateTime retryTime, boolean resetTriesCount) {
         if (!taskDao.setToBeRetried(task.getId(), retryTime, task.getVersion(), resetTriesCount)) {
+            meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
             log.error("Failed to setup task {} to be retried.", LogUtils.asParameter(task.getVersionId()));
         }
     }

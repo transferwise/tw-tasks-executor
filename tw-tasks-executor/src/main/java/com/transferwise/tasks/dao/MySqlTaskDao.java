@@ -253,15 +253,6 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean markAsSubmittedAndSetNextEventTime(TaskVersionId taskVersionId, ZonedDateTime nextEventTime) {
-        Timestamp now = Timestamp.from(ZonedDateTime.now(ClockHolder.getClock()).toInstant());
-        int updatedCount = jdbcTemplate.update(setStatusSql1, args(TaskStatus.SUBMITTED, nextEventTime, now, now,
-            taskVersionId.getVersion() + 1, taskVersionId.getId(), taskVersionId.getVersion()));
-        return updatedCount == 1;
-    }
-
-    @Override
     @SuppressWarnings("checkstyle:Indentation")
     public GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus... statuses) {
         Timestamp now = Timestamp.from(ZonedDateTime.now(ClockHolder.getClock()).toInstant());

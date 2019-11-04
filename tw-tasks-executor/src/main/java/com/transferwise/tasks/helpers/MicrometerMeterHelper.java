@@ -1,6 +1,7 @@
 package com.transferwise.tasks.helpers;
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.tasks.domain.TaskStatus;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,6 +27,8 @@ public class MicrometerMeterHelper implements IMeterHelper {
     private static String TAG_TASK_TYPE = "taskType";
     private static String TAG_REASON = "reason";
     private static String TAG_PROCESSING_RESULT = "processingResult";
+    private static String TAG_FROM_STATUS = "fromStatus";
+    private static String TAG_TO_STATUS = "toStatus";
 
     private final MeterRegistry meterRegistry;
 
@@ -57,6 +60,12 @@ public class MicrometerMeterHelper implements IMeterHelper {
             TAG_PROCESSING_RESULT, processingResult)
             .record(ClockHolder.getClock().millis() - processingStartTimeMs, TimeUnit.MILLISECONDS);
         gauges.get(Triple.of("tasks.ongoingProcessingsCount", resolvedBucketId, taskType)).decrementAndGet();
+    }
+
+    @Override
+    public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus) {
+        meterRegistry.counter(METRIC_PREFIX, "tasks.failedStatusChangeCount", TAG_TASK_TYPE, taskType,
+            TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name());
     }
 
     @Override

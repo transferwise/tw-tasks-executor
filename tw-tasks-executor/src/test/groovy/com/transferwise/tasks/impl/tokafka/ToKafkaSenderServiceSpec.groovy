@@ -3,11 +3,12 @@ package com.transferwise.tasks.impl.tokafka
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.transferwise.common.baseutils.tracing.IXRequestIdHolder
 import com.transferwise.tasks.ITasksService
+import com.transferwise.tasks.test.BaseSpec
 import org.apache.commons.lang3.RandomStringUtils
 import spock.lang.Specification
 import spock.lang.Unroll
 
-class ToKafkaSenderServiceSpec extends Specification {
+class ToKafkaSenderServiceSpec extends BaseSpec {
     private ObjectMapper objectMapper = Mock()
     private ITasksService taskService = Mock()
     private IXRequestIdHolder xRequestIdHolder = Mock()

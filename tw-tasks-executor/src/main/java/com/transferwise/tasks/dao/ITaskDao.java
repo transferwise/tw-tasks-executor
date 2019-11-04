@@ -34,8 +34,6 @@ public interface ITaskDao {
 
     GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus... statuses);
 
-    boolean markAsSubmittedAndSetNextEventTime(TaskVersionId taskVersionId, ZonedDateTime nextEventTime);
-
     @Data
     @Accessors(chain = true)
     class GetStuckTasksResponse {

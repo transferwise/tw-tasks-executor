@@ -1,6 +1,7 @@
 package com.transferwise.tasks.demoapp
 
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper
+import com.transferwise.tasks.test.BaseSpec
 import groovy.util.logging.Slf4j
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpMethod
@@ -8,7 +9,6 @@ import org.springframework.http.MediaType
 import org.springframework.http.RequestEntity
 import org.springframework.web.client.RestTemplate
 import spock.lang.Ignore
-import spock.lang.Specification
 
 import java.time.Duration
 import java.util.concurrent.ExecutorService
@@ -20,7 +20,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 @Slf4j
 @Ignore("Not meant to be automatically run.")
-class DemoAppRealSpec extends Specification {
+class DemoAppRealSpec extends BaseSpec {
     private RestTemplate restTemplate = new RestTemplate()
 
     def "bounded executor works"() {

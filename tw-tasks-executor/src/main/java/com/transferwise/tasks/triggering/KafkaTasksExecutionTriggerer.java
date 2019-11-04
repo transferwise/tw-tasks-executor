@@ -143,6 +143,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
             log.error("Marking task {} as ERROR, because no task handler was found for type '" + task.getType() + "'.");
             meterHelper.registerTaskMarkedAsError(null, task.getType());
             if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
                 log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()));
             }
             return;
@@ -154,6 +155,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
             log.error("Marking task {} as ERROR, because task handler has unknown bucket '{}'.", LogUtils.asParameter(task.getVersionId()), processingBucketId);
             meterHelper.registerTaskMarkedAsError(processingBucketId, task.getType());
             if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+                meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
                 log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()));
             }
             return;

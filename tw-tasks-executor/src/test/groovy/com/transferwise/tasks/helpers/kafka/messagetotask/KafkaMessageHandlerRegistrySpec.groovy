@@ -1,12 +1,12 @@
 package com.transferwise.tasks.helpers.kafka.messagetotask
 
+import com.transferwise.tasks.test.BaseSpec
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.springframework.context.ApplicationContext
 import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean
-import spock.lang.Specification
 
-class KafkaMessageHandlerRegistryTest extends Specification {
+class KafkaMessageHandlerRegistrySpec extends BaseSpec {
     static final TOPIC_A = "TOPIC_A"
 
     IKafkaMessageHandlerRegistry kafkaMessageHandlerRegistry
