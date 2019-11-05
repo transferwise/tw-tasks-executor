@@ -65,7 +65,7 @@ public class MicrometerMeterHelper implements IMeterHelper {
     @Override
     public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus) {
         meterRegistry.counter(METRIC_PREFIX, "tasks.failedStatusChangeCount", TAG_TASK_TYPE, taskType,
-            TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name());
+            TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name()).increment();
     }
 
     @Override
