@@ -147,6 +147,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
             long version = task.getVersion();
 
             if (version != request.getVersion()) {
+                meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
                 log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
                 return false;
             }
