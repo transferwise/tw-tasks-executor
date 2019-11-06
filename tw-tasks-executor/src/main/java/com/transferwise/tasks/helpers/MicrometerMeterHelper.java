@@ -43,7 +43,6 @@ public class MicrometerMeterHelper implements IMeterHelper {
     public void registerTaskProcessingStart(String bucketId, String taskType) {
         String resolvedBucketId = resolveBucketId(bucketId);
         meterRegistry.counter(METRIC_PREFIX + "tasks.processingsCount", TAG_BUCKET_ID, resolvedBucketId, TAG_TASK_TYPE, taskType).increment();
-        log.info("Increased tasks.processingsCount");
         gauges.computeIfAbsent(Triple.of("tasks.ongoingProcessingsCount", resolvedBucketId, taskType), (t) -> {
             AtomicInteger counter = new AtomicInteger(0);
             meterRegistry.gauge(METRIC_PREFIX + "tasks.ongoingProcessingsCount", Tags.of(TAG_BUCKET_ID, resolvedBucketId, TAG_TASK_TYPE, taskType), counter);
