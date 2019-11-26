@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import javax.validation.constraints.NotNull;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
@@ -118,7 +119,7 @@ public interface ITasksManagementPort {
     @Data
     @Accessors(chain = true)
     class GetTasksByIdRequest {
-        private List<UUID> taskIds;
+        @NotNull private List<UUID> taskIds;
     }
 
     @Data
