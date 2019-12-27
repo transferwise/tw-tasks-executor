@@ -1,7 +1,7 @@
 package com.transferwise.tasks.handler.interfaces;
 
 public interface ITaskProcessor {
-    default boolean logErrors() {
+    default boolean doLogErrors() {
         return true;
     }
 }
