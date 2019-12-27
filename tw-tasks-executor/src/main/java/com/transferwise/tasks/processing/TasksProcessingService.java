@@ -386,8 +386,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         long processingStartTimeMs = ClockHolder.getClock().millis();
         MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
 
+        ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
         processWithInterceptors(0, task, () -> {
-            ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
             log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
             if (taskProcessor instanceof ISyncTaskProcessor) {
                 try {
@@ -432,14 +432,18 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             return null;
                         });
                     } catch (Throwable t) {
-                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                        if (taskProcessor.logErrors()) {
+                            log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                                LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                        }
                         processingResultHolder.setValue(ProcessingResult.ERROR);
                         setRetriesOrError(bucketId, taskHandler, task, t);
                     }
                 } catch (Throwable t) {
-                    log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                        LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                    if (taskProcessor.logErrors()) {
+                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                    }
                     processingResultHolder.setValue(ProcessingResult.ERROR);
                     setRetriesOrError(bucketId, taskHandler, task, t);
                 } finally {
@@ -465,7 +469,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
                         });
                 } catch (Throwable t) {
-                    log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+                    if (taskProcessor.logErrors()) {
+                        log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+                    }
                     if (taskMarkedAsFinished.compareAndSet(false, true)) {
                         taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
                     }
