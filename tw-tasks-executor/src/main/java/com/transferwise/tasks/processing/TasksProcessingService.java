@@ -377,21 +377,20 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
     @Trace(dispatcher = true)
     protected void processTask(ITaskHandler taskHandler, ITaskConcurrencyPolicy concurrencyPolicy, String bucketId, Task task) {
+        ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
+        ITaskProcessor.TaskProcessorContext ctx = new ITaskProcessor.TaskProcessorContext(task, bucketId, tasksProperties, log);
         UUID taskId = task.getId();
-        NewRelic.addCustomParameter(tasksProperties.getTwTaskVersionIdMdcKey(), String.valueOf(task.getVersionId()));
-        NewRelic.addCustomParameter("twTaskType", task.getType());
-        NewRelic.addCustomParameter("twTaskSubType", task.getSubType());
-        NewRelic.setTransactionName("TwTasks", "Processing_" + task.getType());
+
+        taskProcessor.preProcess(ctx);
 
         long processingStartTimeMs = ClockHolder.getClock().millis();
         MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
 
         processWithInterceptors(0, task, () -> {
-            ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
             log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
             if (taskProcessor instanceof ISyncTaskProcessor) {
+                ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
                 try {
-                    ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
                     MutableObject<ISyncTaskProcessor.ProcessResult> resultHolder = new MutableObject<>();
                     boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
                     if (!isProcessorTransactional) {
@@ -432,14 +431,12 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             return null;
                         });
                     } catch (Throwable t) {
-                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                        syncTaskProcessor.onError(ctx, t);
                         processingResultHolder.setValue(ProcessingResult.ERROR);
                         setRetriesOrError(bucketId, taskHandler, task, t);
                     }
                 } catch (Throwable t) {
-                    log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                        LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                    syncTaskProcessor.onError(ctx, t);
                     processingResultHolder.setValue(ProcessingResult.ERROR);
                     setRetriesOrError(bucketId, taskHandler, task, t);
                 } finally {
@@ -448,9 +445,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             }
             if (taskProcessor instanceof IAsyncTaskProcessor) {
                 AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
+                IAsyncTaskProcessor asyncTaskProcessor = (IAsyncTaskProcessor)taskProcessor;
                 try {
                     meterHelper.registerTaskProcessingStart(bucketId, task.getType());
-                    ((IAsyncTaskProcessor) taskProcessor).process(
+                    asyncTaskProcessor.process(
                         task,
                         () -> {
                             if (taskMarkedAsFinished.compareAndSet(false, true)) {
@@ -465,7 +463,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
                         });
                 } catch (Throwable t) {
-                    log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+                    asyncTaskProcessor.onError(ctx, t);
                     if (taskMarkedAsFinished.compareAndSet(false, true)) {
                         taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
                     }
