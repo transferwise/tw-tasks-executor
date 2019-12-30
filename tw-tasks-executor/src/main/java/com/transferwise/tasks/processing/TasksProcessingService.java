@@ -440,10 +440,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                         setRetriesOrError(bucketId, taskHandler, task, t);
                     }
                 } catch (Throwable t) {
-                    if (taskProcessor.doLogErrors()) {
-                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
-                    }
+                    log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                        LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
                     processingResultHolder.setValue(ProcessingResult.ERROR);
                     setRetriesOrError(bucketId, taskHandler, task, t);
                 } finally {
