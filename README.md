@@ -132,7 +132,7 @@ tw-tasks:
 `twTasks.MyFancyServiceName.executeTask.default`
 - partitions count should be usually the service nodes count + canaries count.
 
-##### Configure Zookeeper access by providing CuratorFramerwork bean.
+##### Configure Zookeeper access by providing CuratorFramework bean.
 
 ```java
 @Bean(destroyMethod = "close")
