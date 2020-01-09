@@ -127,7 +127,7 @@ tw-tasks:
 ```
 
 ##### Create Kafka topic
-You need to [create kafka topic](https://octopus.tw.ee/kafka/topic/create) according to following naming pattern
+(If your server does not support auto topic creation)
 
 `twTasks.MyFancyServiceName.executeTask.default`
 - partitions count should be usually the service nodes count + canaries count.
