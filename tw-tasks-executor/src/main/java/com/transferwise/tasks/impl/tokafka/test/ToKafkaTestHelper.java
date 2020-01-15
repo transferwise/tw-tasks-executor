@@ -2,6 +2,7 @@ package com.transferwise.tasks.impl.tokafka.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.impl.tokafka.ToKafkaMessages;
@@ -12,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +23,7 @@ public class ToKafkaTestHelper implements IToKafkaTestHelper {
     @Autowired
     private ITestTasksService testTasksService;
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
+    private TwTaskKafkaConfiguration kafkaConfiguration;
     @Autowired
     private ObjectMapper objectMapper;
 
@@ -102,7 +102,7 @@ public class ToKafkaTestHelper implements IToKafkaTestHelper {
 
     @Override
     public void sendDirectKafkaMessage(ProducerRecord<String, String> producerRecord) {
-        kafkaTemplate.send(producerRecord)
+        kafkaConfiguration.getKafkaTemplate().send(producerRecord)
             .addCallback(
                 result -> log.debug("Sent and acked Kafka message to topic '{}'.", producerRecord.topic()),
                 exception -> log.error("Sending message to Kafka topic '{}'.", producerRecord.topic(), exception));
