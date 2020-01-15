@@ -1,14 +1,13 @@
 package com.transferwise.tasks.testappa
 
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService
 import com.transferwise.tasks.test.BaseIntSpec
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties
-import org.springframework.kafka.core.KafkaTemplate
 import spock.lang.Unroll
 
 import java.time.Duration
@@ -20,11 +19,9 @@ import static org.awaitility.Awaitility.await
 @Slf4j
 class KafkaIntSpec extends BaseIntSpec {
     @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate
+    TwTasksKafkaConfiguration kafkaConfiguration
     @Autowired
     private IToKafkaSenderService toKafkaSenderService
-    @Autowired
-    private KafkaProperties kafkaProperties
     @Autowired
     private ITransactionsHelper transactionsHelper
     @Autowired
@@ -54,7 +51,7 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setShouldFinishPredicate({
                     messagesReceivedCount.get() == 1 || System.currentTimeMillis() - start > 30000
                 })
-                .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
+                .setKafkaPropertiesSupplier({ kafkaConfiguration.getKafkaProperties().buildConsumerProperties() })
                 .setRecordConsumer({ record ->
                     if (record.value() == payload) {
                         messagesReceivedCount.incrementAndGet()
@@ -92,7 +89,7 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setShouldFinishPredicate({
                     messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
                 })
-                .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
+                .setKafkaPropertiesSupplier({ kafkaConfiguration.getKafkaProperties().buildConsumerProperties() })
                 .setRecordConsumer({ record ->
                     if (record.offset() < iteration * 1000 || record.offset() > (iteration + 1) * 1000 - 1) {
                         throw new IllegalStateException("Unexpected offset detected for iteration " + iteration + ": " + iteration)
@@ -140,7 +137,7 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setShouldFinishPredicate({
                     messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
                 })
-                .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
+                .setKafkaPropertiesSupplier({ kafkaConfiguration.getKafkaProperties().buildConsumerProperties() })
                 .setRecordConsumer({ record ->
                     if (record.value() != 'Warmup') {
                         messagesMap.get(record.value()).incrementAndGet()
@@ -187,7 +184,7 @@ class KafkaIntSpec extends BaseIntSpec {
                 .setShouldFinishPredicate({
                     messagesMap.find({ k, v -> v.get() != 1 }) == null || System.currentTimeMillis() - start > 30000
                 })
-                .setKafkaPropertiesSupplier({ kafkaProperties.buildConsumerProperties() })
+                .setKafkaPropertiesSupplier({ kafkaConfiguration.kafkaProperties.buildConsumerProperties() })
                 .setRecordConsumer({ record ->
                     if (Math.random() < 0.5) {
                         throw new RuntimeException("Unlucky!")

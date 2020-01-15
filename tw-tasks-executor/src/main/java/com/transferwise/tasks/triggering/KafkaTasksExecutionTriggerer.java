@@ -10,7 +10,7 @@ import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
-import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -74,7 +74,7 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 @SuppressWarnings("checkstyle:MultipleStringLiterals")
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy {
     @Autowired
-    private TwTaskKafkaConfiguration kafkaConfiguration;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private ITasksProcessingService tasksProcessingService;
     @Autowired

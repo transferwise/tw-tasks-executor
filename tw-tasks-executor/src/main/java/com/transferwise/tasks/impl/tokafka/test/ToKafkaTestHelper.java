@@ -2,7 +2,7 @@ package com.transferwise.tasks.impl.tokafka.test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.impl.tokafka.ToKafkaMessages;
@@ -23,7 +23,7 @@ public class ToKafkaTestHelper implements IToKafkaTestHelper {
     @Autowired
     private ITestTasksService testTasksService;
     @Autowired
-    private TwTaskKafkaConfiguration kafkaConfiguration;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private ObjectMapper objectMapper;
 

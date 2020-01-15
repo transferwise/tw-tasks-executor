@@ -2,7 +2,7 @@ package com.transferwise.tasks.impl.tokafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.handler.ExponentialTaskRetryPolicy;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
@@ -28,7 +28,7 @@ public class ToKafkaTaskHandlerConfiguration {
     private MeterRegistry meterRegistry;
 
     @Bean
-    public ITaskHandler toKafkaTaskHandler(TwTaskKafkaConfiguration kafkaConfiguration,
+    public ITaskHandler toKafkaTaskHandler(TwTasksKafkaConfiguration kafkaConfiguration,
                                            ObjectMapper objectMapper, ToKafkaProperties toKafkaProperties) {
         return new TaskHandlerAdapter(
             (task) -> ToKafkaTaskType.VALUE.equals(task.getType()),

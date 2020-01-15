@@ -4,7 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
@@ -23,7 +23,7 @@ public class AdminClientTopicPartitionsManager implements ITopicPartitionsManage
     private static final int COMMANDS_TIMEOUT_S = 30;
 
     @Autowired
-    private TwTaskKafkaConfiguration kafkaConfiguration;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private TasksProperties tasksProperties;
 

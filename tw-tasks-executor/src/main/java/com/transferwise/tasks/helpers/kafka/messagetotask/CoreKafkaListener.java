@@ -2,7 +2,7 @@ package com.transferwise.tasks.helpers.kafka.messagetotask;
 
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
@@ -26,7 +26,7 @@ import java.util.concurrent.ExecutorService;
 @Slf4j
 public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     @Autowired
-    private TwTaskKafkaConfiguration kafkaConfiguration;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private IExecutorsHelper executorsHelper;
     @Autowired

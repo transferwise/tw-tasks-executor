@@ -5,7 +5,6 @@ import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper
 import com.transferwise.tasks.test.BaseIntSpec
 import io.micrometer.core.instrument.MeterRegistry
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 import spock.util.concurrent.PollingConditions
 
 import java.util.concurrent.atomic.AtomicInteger
@@ -16,9 +15,6 @@ class CoreKafkaListenerIntSpec extends BaseIntSpec {
 
     @Autowired
     private IToKafkaTestHelper toKafkaTestHelper
-
-    @Autowired
-    private KafkaProperties kafkaProperties
 
     @Autowired
     private MeterRegistry meterRegistry

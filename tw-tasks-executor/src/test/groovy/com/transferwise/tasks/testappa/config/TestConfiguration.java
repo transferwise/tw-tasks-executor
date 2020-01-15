@@ -2,6 +2,7 @@ package com.transferwise.tasks.testappa.config;
 
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
 import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
@@ -14,7 +15,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -32,7 +32,7 @@ public class TestConfiguration {
     private IBucketsManager bucketsManager;
 
     @Autowired
-    private KafkaProperties kafkaProperties;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
 
     @PostConstruct
     @SuppressWarnings("checkstyle:MagicNumber")
@@ -40,7 +40,7 @@ public class TestConfiguration {
         bucketsManager.registerBucketProperties("manualStart", new BucketProperties()
             .setAutoStartProcessing(false));
 
-        AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties());
+        AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
 
         List<NewTopic> newTopics = Arrays.asList(new NewTopic("twTasks.test-mysql.executeTask.manualStart", 1, (short) 1),
             new NewTopic("twTasks.test-mysql.executeTask.default", 1, (short) 1),
@@ -97,4 +97,3 @@ public class TestConfiguration {
         };
     }
 }
-

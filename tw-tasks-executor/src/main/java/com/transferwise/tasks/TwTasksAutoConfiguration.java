@@ -7,7 +7,7 @@ import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.IExecutorServicesProvider;
-import com.transferwise.tasks.config.TwTaskKafkaConfiguration;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
@@ -258,8 +258,8 @@ public class TwTasksAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public TwTaskKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
-        return new TwTaskKafkaConfiguration(kafkaProperties, kafkaTemplate);
+    public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
+        return new TwTasksKafkaConfiguration(kafkaProperties, kafkaTemplate);
     }
 
     public static class TwTasksDataSourceProvider {
