@@ -447,6 +447,18 @@ And one topic for each additional bucket:
 
 Reference application where a configuration can be basically copied from is `demoapp`.
 
+### Custom Kafka Configuration
+`tw-tasks` library can be configured with custom Kafka config by defining `TwTasksKafkaConfiguration` bean in your application:
+```java
+@Bean
+public TwTasksKafkaConfiguration twTaskKafkaConfiguration() {
+    KafkaProperties props = ...;
+    KafkaTemplate<String, String> template = ...;
+
+    return new TwTasksKafkaConfiguration(props, template);
+}
+```
+
 ## Algorithms Used
 Some engineers want to understand how the engine actually works and which algorithms and tricks are used.
 

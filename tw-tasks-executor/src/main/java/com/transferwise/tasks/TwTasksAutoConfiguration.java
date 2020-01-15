@@ -7,6 +7,7 @@ import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.IExecutorServicesProvider;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
@@ -45,6 +46,7 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -52,6 +54,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
 import org.springframework.format.support.DefaultFormattingConversionService;
 import org.springframework.format.support.FormattingConversionService;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import javax.sql.DataSource;
 
@@ -253,6 +256,12 @@ public class TwTasksAutoConfiguration {
         return new ClusterWideTasksStateMonitor();
     }
 
+    @Bean
+    @ConditionalOnMissingBean
+    public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
+        return new TwTasksKafkaConfiguration(kafkaProperties, kafkaTemplate);
+    }
+
     public static class TwTasksDataSourceProvider {
         private final DataSource dataSource;
 
@@ -264,5 +273,4 @@ public class TwTasksAutoConfiguration {
             return dataSource;
         }
     }
-
 }

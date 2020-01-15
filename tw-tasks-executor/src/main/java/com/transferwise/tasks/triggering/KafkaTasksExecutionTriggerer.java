@@ -10,6 +10,7 @@ import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -42,9 +43,7 @@ import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RetriableException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,13 +74,11 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 @SuppressWarnings("checkstyle:MultipleStringLiterals")
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy {
     @Autowired
-    private KafkaProperties kafkaProperties;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private ITasksProcessingService tasksProcessingService;
     @Autowired
     private ITaskDao taskDao;
-    @Autowired
-    private KafkaTemplate<String, String> kafkaTemplate;
     @Autowired
     private TasksProperties tasksProperties;
     @Autowired
@@ -118,7 +115,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         executorService = executorsHelper.newCachedExecutor("ktet");
         triggerTopic = "twTasks." + tasksProperties.getGroupId() + ".executeTask";
 
-        kafkaConsumerProps = kafkaProperties.buildConsumerProperties();
+        kafkaConsumerProps = kafkaConfiguration.getKafkaProperties().buildConsumerProperties();
 
         tasksProcessingService.addTaskTriggeringFinishedListener(taskTriggering -> {
             if (taskTriggering.isSameProcessTrigger()) {
@@ -175,7 +172,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         // TODO: Future improvement: try to also trigger in the same node, if there is room or more specifically if it is idle (for min latency)
         // TODO: Maybe needs another concurrency control for that. E.g. only trigger in node, when conc < 5, even max conc is 10.
 
-        kafkaTemplate.send(getTopic(processingBucketId), UUID.randomUUID().toString(), taskSt).addCallback(
+        kafkaConfiguration.getKafkaTemplate().send(getTopic(processingBucketId), UUID.randomUUID().toString(), taskSt).addCallback(
             result -> {
                 if (log.isDebugEnabled()) {
                     MdcContext.with(() -> {

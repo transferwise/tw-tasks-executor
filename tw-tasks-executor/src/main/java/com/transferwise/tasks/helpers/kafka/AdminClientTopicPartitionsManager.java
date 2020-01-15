@@ -4,6 +4,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
@@ -12,7 +13,6 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.admin.TopicDescription;
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
@@ -23,14 +23,14 @@ public class AdminClientTopicPartitionsManager implements ITopicPartitionsManage
     private static final int COMMANDS_TIMEOUT_S = 30;
 
     @Autowired
-    private KafkaProperties kafkaProperties;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private TasksProperties tasksProperties;
 
     @Override
     public void setPartitionsCount(String topic, int partitionsCount) {
         ExceptionUtils.doUnchecked(() -> {
-            AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties());
+            AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
             try {
                 DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Arrays.asList(topic));
                 TopicDescription topicDescription = null;

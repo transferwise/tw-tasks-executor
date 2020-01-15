@@ -2,6 +2,7 @@ package com.transferwise.tasks.impl.tokafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.handler.ExponentialTaskRetryPolicy;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
@@ -15,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,11 +23,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Slf4j
 @Configuration
 public class ToKafkaTaskHandlerConfiguration {
+
     @Autowired(required = false)
     private MeterRegistry meterRegistry;
 
     @Bean
-    public ITaskHandler toKafkaTaskHandler(KafkaTemplate<String, String> kafkaTemplate,
+    public ITaskHandler toKafkaTaskHandler(TwTasksKafkaConfiguration kafkaConfiguration,
                                            ObjectMapper objectMapper, ToKafkaProperties toKafkaProperties) {
         return new TaskHandlerAdapter(
             (task) -> ToKafkaTaskType.VALUE.equals(task.getType()),
@@ -38,7 +39,7 @@ public class ToKafkaTaskHandlerConfiguration {
 
                 String topic = toKafkaMessages.getTopic();
                 for (ToKafkaMessages.Message message : toKafkaMessages.getMessages()) {
-                    kafkaTemplate
+                    kafkaConfiguration.getKafkaTemplate()
                         .send(topic, message.getKey(), message.getMessage())
                         .addCallback(
                             result -> {

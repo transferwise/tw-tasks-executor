@@ -1,11 +1,11 @@
 package com.transferwise.tasks.testappa
 
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer
 import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper
 import com.transferwise.tasks.test.BaseIntSpec
 import groovy.util.logging.Slf4j
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties
 
 import java.util.concurrent.atomic.AtomicInteger
 
@@ -16,7 +16,7 @@ class ConsistentKafkaConsumerIntSpec extends BaseIntSpec {
     @Autowired
     private IToKafkaTestHelper toKafkaTestHelper
     @Autowired
-    private KafkaProperties kafkaProperties
+    private TwTasksKafkaConfiguration kafkaConfiguration
 
     def "all messages will be received once on rebalancing"() {
         given:
@@ -34,7 +34,7 @@ class ConsistentKafkaConsumerIntSpec extends BaseIntSpec {
             boolean shouldFinish = false
 
             ConsistentKafkaConsumer consumer = new ConsistentKafkaConsumer().setKafkaPropertiesSupplier({
-                kafkaProperties.buildConsumerProperties()
+                kafkaConfiguration.getKafkaProperties().buildConsumerProperties()
             })
                 .setTopics([testTopic]).setShouldFinishPredicate({ shouldFinish })
                 .setShouldPollPredicate({ !shouldFinish })

@@ -2,6 +2,7 @@ package com.transferwise.tasks.helpers.kafka.messagetotask;
 
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
@@ -14,7 +15,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 
 import javax.annotation.PostConstruct;
 import java.util.ArrayList;
@@ -26,7 +26,7 @@ import java.util.concurrent.ExecutorService;
 @Slf4j
 public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     @Autowired
-    private KafkaProperties kafkaProperties;
+    private TwTasksKafkaConfiguration kafkaConfiguration;
     @Autowired
     private IExecutorsHelper executorsHelper;
     @Autowired
@@ -65,7 +65,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     }
 
     public void poll(List<String> addresses) {
-        Map<String, Object> kafkaConsumerProps = kafkaProperties.buildConsumerProperties();
+        Map<String, Object> kafkaConsumerProps = kafkaConfiguration.getKafkaProperties().buildConsumerProperties();
         kafkaConsumerProps.put(
             ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.core-listener");
 
