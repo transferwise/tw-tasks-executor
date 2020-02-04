@@ -5,10 +5,8 @@ import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.utils.TriConsumer;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.stereotype.Component;
 
 /** Factory for ready to use {@link IKafkaMessageHandler kafka message handlers}. */
-@Component
 @RequiredArgsConstructor
 public class KafkaMessageHandlerFactory {
 
