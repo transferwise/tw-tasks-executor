@@ -25,6 +25,7 @@ import com.transferwise.tasks.helpers.kafka.AdminClientTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.NoOpTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CoreKafkaListener;
+import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerFactory;
 import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerRegistry;
 import com.transferwise.tasks.impl.tokafka.ToKafkaProperties;
 import com.transferwise.tasks.impl.tokafka.ToKafkaSenderService;
@@ -260,6 +261,11 @@ public class TwTasksAutoConfiguration {
     @ConditionalOnMissingBean
     public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
         return new TwTasksKafkaConfiguration(kafkaProperties, kafkaTemplate);
+    }
+
+    @Bean
+    public KafkaMessageHandlerFactory kafkaMessageHandlerFactory(ITasksService tasksService, ObjectMapper objectMapper) {
+        return new KafkaMessageHandlerFactory(tasksService, objectMapper);
     }
 
     public static class TwTasksDataSourceProvider {
