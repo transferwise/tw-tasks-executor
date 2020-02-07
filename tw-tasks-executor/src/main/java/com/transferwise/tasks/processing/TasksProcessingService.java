@@ -432,10 +432,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             return null;
                         });
                     } catch (Throwable t) {
-                        if (taskProcessor.doLogErrors()) {
-                            log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                                LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
-                        }
+                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
                         processingResultHolder.setValue(ProcessingResult.ERROR);
                         setRetriesOrError(bucketId, taskHandler, task, t);
                     }
@@ -467,9 +465,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                             setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
                         });
                 } catch (Throwable t) {
-                    if (taskProcessor.doLogErrors()) {
-                        log.error("Processing task '" + task.getVersionId() + "' failed.", t);
-                    }
+                    log.error("Processing task '" + task.getVersionId() + "' failed.", t);
                     if (taskMarkedAsFinished.compareAndSet(false, true)) {
                         taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
                     }
