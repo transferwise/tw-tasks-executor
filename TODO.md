@@ -46,7 +46,8 @@ topics configurations. Could refactor the properties to more hierarhical structu
 
 18. Move everything to taskVersionId ,instead of just separate id and version. Also always log both out and set them both in MDC.
 
-
 20. Add metric for how long it takes a task from adding to processing. Or scheduling time to processing.
 
 23. Start using Avro or other binary messages for triggering queue. This Json crap is expensive?
+
+24. Try to remove id,version index and see if there is any perf hit at all.

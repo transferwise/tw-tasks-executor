@@ -5,7 +5,8 @@ import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class LogUtils {
-    public static String asParameter(ITaskVersionId taskVersionId) {
-        return "'" + taskVersionId.getId() + "-" + taskVersionId.getVersion() + "'";
-    }
+
+  public static String asParameter(ITaskVersionId taskVersionId) {
+    return "'" + taskVersionId.getId() + "-" + taskVersionId.getVersion() + "'";
+  }
 }

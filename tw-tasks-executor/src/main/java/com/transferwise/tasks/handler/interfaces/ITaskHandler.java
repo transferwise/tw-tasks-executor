@@ -3,13 +3,14 @@ package com.transferwise.tasks.handler.interfaces;
 import com.transferwise.tasks.domain.IBaseTask;
 
 public interface ITaskHandler {
-    ITaskProcessor getProcessor(IBaseTask task);
 
-    ITaskRetryPolicy getRetryPolicy(IBaseTask task);
+  ITaskProcessor getProcessor(IBaseTask task);
 
-    ITaskConcurrencyPolicy getConcurrencyPolicy(IBaseTask task);
+  ITaskRetryPolicy getRetryPolicy(IBaseTask task);
 
-    ITaskProcessingPolicy getProcessingPolicy(IBaseTask task);
+  ITaskConcurrencyPolicy getConcurrencyPolicy(IBaseTask task);
 
-    boolean handles(IBaseTask task);
+  ITaskProcessingPolicy getProcessingPolicy(IBaseTask task);
+
+  boolean handles(IBaseTask task);
 }

@@ -9,6 +9,6 @@ import org.springframework.kafka.core.KafkaTemplate;
 @RequiredArgsConstructor
 public class TwTasksKafkaConfiguration {
 
-    private final KafkaProperties kafkaProperties;
-    private final KafkaTemplate<String, String> kafkaTemplate;
+  private final KafkaProperties kafkaProperties;
+  private final KafkaTemplate<String, String> kafkaTemplate;
 }

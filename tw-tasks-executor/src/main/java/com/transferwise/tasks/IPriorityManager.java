@@ -1,9 +1,10 @@
 package com.transferwise.tasks;
 
 public interface IPriorityManager {
-    int getMinPriority();
 
-    int getMaxPriority();
+  int getMinPriority();
 
-    int normalize(Integer priority);
+  int getMaxPriority();
+
+  int normalize(Integer priority);
 }

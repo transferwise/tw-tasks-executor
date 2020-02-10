@@ -9,6 +9,10 @@ import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
 import com.transferwise.tasks.utils.LogUtils;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -18,82 +22,77 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import javax.annotation.PostConstruct;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 @Configuration
 @Slf4j
 public class TestConfiguration {
-    public static final String KAFKA_TEST_TOPIC_A = "myTopicA";
 
-    @Autowired
-    private IBucketsManager bucketsManager;
+  public static final String KAFKA_TEST_TOPIC_A = "myTopicA";
 
-    @Autowired
-    private TwTasksKafkaConfiguration kafkaConfiguration;
+  @Autowired
+  private IBucketsManager bucketsManager;
 
-    @PostConstruct
-    @SuppressWarnings("checkstyle:MagicNumber")
-    public void init() {
-        bucketsManager.registerBucketProperties("manualStart", new BucketProperties()
-            .setAutoStartProcessing(false));
+  @Autowired
+  private TwTasksKafkaConfiguration kafkaConfiguration;
 
-        AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
+  @PostConstruct
+  public void init() {
+    bucketsManager.registerBucketProperties("manualStart", new BucketProperties()
+        .setAutoStartProcessing(false));
 
-        List<NewTopic> newTopics = Arrays.asList(new NewTopic("twTasks.test-mysql.executeTask.manualStart", 1, (short) 1),
-            new NewTopic("twTasks.test-mysql.executeTask.default", 1, (short) 1),
-            new NewTopic("ToKafkaTest", 100, (short) 1),
-            new NewTopic("toKafkaBatchTestTopic", 1, (short) 1),
-            new NewTopic("toKafkaBatchTestTopic5Partitions", 5, (short) 1));
+    AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
 
-        adminClient.createTopics(newTopics);
-        adminClient.close();
-    }
+    List<NewTopic> newTopics = Arrays.asList(new NewTopic("twTasks.test-mysql.executeTask.manualStart", 1, (short) 1),
+        new NewTopic("twTasks.test-mysql.executeTask.default", 1, (short) 1),
+        new NewTopic("ToKafkaTest", 100, (short) 1),
+        new NewTopic("toKafkaBatchTestTopic", 1, (short) 1),
+        new NewTopic("toKafkaBatchTestTopic5Partitions", 5, (short) 1));
 
-    @Bean
-    public TestTasksService testTasksService() {
-        return new TestTasksService();
-    }
+    adminClient.createTopics(newTopics);
+    adminClient.close();
+  }
 
-    @Bean
-    public ITaskProcessingInterceptor taskProcessingInterceptor() {
-        return (task, processor) -> {
-            if (log.isDebugEnabled()) {
-                log.debug("Task {} got intercepted.", LogUtils.asParameter(task.getVersionId()));
-            }
-            processor.run();
-        };
-    }
+  @Bean
+  public TestTasksService testTasksService() {
+    return new TestTasksService();
+  }
 
-    @Bean
-    @ConditionalOnProperty(value = "testcontainers.enabled", matchIfMissing = true)
-    public TestContainersManager testContainersManager() {
-        return new TestContainersManager();
-    }
+  @Bean
+  public ITaskProcessingInterceptor taskProcessingInterceptor() {
+    return (task, processor) -> {
+      if (log.isDebugEnabled()) {
+        log.debug("Task {} got intercepted.", LogUtils.asParameter(task.getVersionId()));
+      }
+      processor.run();
+    };
+  }
 
-    @Bean
-    public IToKafkaTestHelper toKafkaTestHelper() {
-        return new ToKafkaTestHelper();
-    }
+  @Bean
+  @ConditionalOnProperty(value = "testcontainers.enabled", matchIfMissing = true)
+  public TestContainersManager testContainersManager() {
+    return new TestContainersManager();
+  }
 
-    @Bean
-    IKafkaMessageHandler aHandlerForTopicA() {
-        return new IKafkaMessageHandler() {
-            @Override
-            public List<Topic> getTopics() {
-                return Collections.singletonList(new IKafkaMessageHandler.Topic().setAddress(KAFKA_TEST_TOPIC_A));
-            }
+  @Bean
+  public IToKafkaTestHelper toKafkaTestHelper() {
+    return new ToKafkaTestHelper();
+  }
 
-            @Override
-            public boolean handles(String topic) {
-                return topic.equals(KAFKA_TEST_TOPIC_A);
-            }
+  @Bean
+  IKafkaMessageHandler newHandlerForTopicA() {
+    return new IKafkaMessageHandler() {
+      @Override
+      public List<Topic> getTopics() {
+        return Collections.singletonList(new IKafkaMessageHandler.Topic().setAddress(KAFKA_TEST_TOPIC_A));
+      }
 
-            @Override
-            public void handle(ConsumerRecord record) {
-            }
-        };
-    }
+      @Override
+      public boolean handles(String topic) {
+        return topic.equals(KAFKA_TEST_TOPIC_A);
+      }
+
+      @Override
+      public void handle(ConsumerRecord record) {
+      }
+    };
+  }
 }

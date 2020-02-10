@@ -8,13 +8,14 @@ import org.apache.kafka.common.TopicPartition;
 @Data
 @Accessors(chain = true)
 public class TaskTriggering {
-    private BaseTask task;
-    private long offset;
-    private long sequence;
-    private TopicPartition topicPartition;
-    private String bucketId;
 
-    public boolean isSameProcessTrigger() {
-        return topicPartition == null;
-    }
+  private BaseTask task;
+  private long offset;
+  private long sequence;
+  private TopicPartition topicPartition;
+  private String bucketId;
+
+  public boolean isSameProcessTrigger() {
+    return topicPartition == null;
+  }
 }

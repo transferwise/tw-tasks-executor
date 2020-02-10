@@ -20,58 +20,58 @@ class ClusterWideTasksStateMonitorIntSpec extends BaseIntSpec {
 
     def "metrics are correctly registered"() {
         when:
-            def hlGauges = meterRegistry.get("twTasks.health.tasksHistoryLengthSeconds").gauges()
+        def hlGauges = meterRegistry.get("twTasks.health.tasksHistoryLengthSeconds").gauges()
         then:
-            hlGauges.size() == 2
-            hlGauges.find { it.getId().getTag("taskStatus") == "DONE" }
-            hlGauges.find { it.getId().getTag("taskStatus") == "ERROR" }
+        hlGauges.size() == 2
+        hlGauges.find { it.getId().getTag("taskStatus") == "DONE" }
+        hlGauges.find { it.getId().getTag("taskStatus") == "ERROR" }
         when:
-            def tasksInErrorCountGauge = meterRegistry.get("twTasks.health.tasksInErrorCount").gauge()
-            def stuckTasksGauge = meterRegistry.get("twTasks.health.stuckTasksCount").gauge()
+        def tasksInErrorCountGauge = meterRegistry.get("twTasks.health.tasksInErrorCount").gauge()
+        def stuckTasksGauge = meterRegistry.get("twTasks.health.stuckTasksCount").gauge()
         then:
-            await().atMost(30, TimeUnit.SECONDS).until { tasksInErrorCountGauge.value() == 0 }
-            await().until { stuckTasksGauge.value() == 0 }
+        await().atMost(30, TimeUnit.SECONDS).until { tasksInErrorCountGauge.value() == 0 }
+        await().until { stuckTasksGauge.value() == 0 }
         when:
-            clusterWideTasksStateMonitor.leaderSelector.stop()
-            await().until({ meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 0 })
+        clusterWideTasksStateMonitor.leaderSelector.stop()
+        await().until({ meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 0 })
         then: 'metrics get unregistered'
-            meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 0
-            meterRegistry.find("twTasks.health.stuckTasksCount").gauges().size() == 0
-            meterRegistry.find("twTasks.health.tasksHistoryLengthSeconds").gauges().size() == 0
+        meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 0
+        meterRegistry.find("twTasks.health.stuckTasksCount").gauges().size() == 0
+        meterRegistry.find("twTasks.health.tasksHistoryLengthSeconds").gauges().size() == 0
         when: 'everything works when the node gets leader back'
-            clusterWideTasksStateMonitor.leaderSelector.start()
-            await().until({ meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 1 })
+        clusterWideTasksStateMonitor.leaderSelector.start()
+        await().until({ meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 1 })
         then:
-            1 == 1
+        1 == 1
 
         when:
-            testTaskHandlerAdapter.setProcessor(new ISyncTaskProcessor() {
-                @Override
-                ISyncTaskProcessor.ProcessResult process(ITask task) {
-                    throw new IllegalStateException("We want an error!")
-                }
-            })
-            transactionsHelper.withTransaction().asNew().call({
-                testTasksService.addTask(new ITasksService.AddTaskRequest()
+        testTaskHandlerAdapter.setProcessor(new ISyncTaskProcessor() {
+            @Override
+            ISyncTaskProcessor.ProcessResult process(ITask task) {
+                throw new IllegalStateException("We want an error!")
+            }
+        })
+        transactionsHelper.withTransaction().asNew().call({
+            testTasksService.addTask(new ITasksService.AddTaskRequest()
                     .setDataString("Hello World!")
                     .setType("test"))
-            })
-            await().until({ testTasksService.getTasks("test", null, TaskStatus.ERROR).size() == 1 })
+        })
+        await().until({ testTasksService.getTasks("test", null, TaskStatus.ERROR).size() == 1 })
         and:
-            clusterWideTasksStateMonitor.check()
+        clusterWideTasksStateMonitor.check()
         then:
-            meterRegistry.find("twTasks.health.tasksInErrorCount").gauge().value() == 1
+        meterRegistry.find("twTasks.health.tasksInErrorCount").gauge().value() == 1
 
         when:
-            transactionsHelper.withTransaction().asNew().call({
-                testTasksService.resetAndDeleteTasksWithTypes("test")
-            })
+        transactionsHelper.withTransaction().asNew().call({
+            testTasksService.resetAndDeleteTasksWithTypes("test")
+        })
         and:
-            clusterWideTasksStateMonitor.check()
+        clusterWideTasksStateMonitor.check()
         then:
-            meterRegistry.find("twTasks.health.tasksInErrorCount").gauge().value() == 0
-            meterRegistry.getMeters().findAll({ it ->
-                it.getId().getName() == "twTasks.health.tasksInErrorCountPerType"
-            }).isEmpty()
+        meterRegistry.find("twTasks.health.tasksInErrorCount").gauge().value() == 0
+        meterRegistry.getMeters().findAll({ it ->
+            it.getId().getName() == "twTasks.health.tasksInErrorCountPerType"
+        }).isEmpty()
     }
 }

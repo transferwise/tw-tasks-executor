@@ -1,59 +1,13 @@
-import com.github.spotbugs.SpotBugsTask
+ext.projectName = "Transferwise Tasks Executor"
+ext.projectDescription = "Transferwise Tasks Executor - Fire and forget until Alert."
+ext.projectArtifactName = "tw-tasks-executor"
 
-plugins{
-    id 'java-library'
-    id 'maven-publish'
-    id 'signing'
-    id 'groovy'
-    id 'com.github.spotbugs'
-    id 'io.spring.dependency-management'
-    id 'checkstyle'
-}
+apply plugin: 'groovy'
 
-group = 'com.transferwise.tasks'
-
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
-
-ext.projectName = 'Transferwise Tasks Executor'
-ext.projectDescription = 'Transferwise Tasks Executor - Fire and forget until Alert.'
-ext.projectGitHubRepoName = 'tw-tasks-executor'
-ext.projectArtifactName = 'tw-tasks-executor'
-
-jar {
-    manifest {
-        attributes(
-            "Implementation-Title": "$projectName",
-            "Implementation-Version": version
-        )
-    }
-}
-
-compileJava {
-    options.encoding = 'utf-8'
-    options.compilerArgs << '-parameters'
-}
-
-repositories {
-    mavenCentral()
-    maven {
-        url 'https://arti.tw.ee/artifactory/libs-release'
-    }
-    mavenLocal()
-}
-
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.boot:spring-boot-dependencies:2.1.9.RELEASE"
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:Greenwich.SR3"
-    }
-}
+apply from: '../build.common.gradle'
 
 dependencies {
-    annotationProcessor 'org.projectlombok:lombok'
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-
-    compileOnly 'org.projectlombok:lombok'
 
     // Optional begin
     compileOnly 'org.springframework:spring-tx'
@@ -62,26 +16,26 @@ dependencies {
     compileOnly 'org.springframework.boot:spring-boot-actuator'
     compileOnly 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.springframework.boot:spring-boot-starter-jdbc'
-    compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
     compileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
     // Optional end
 
     implementation 'com.transferwise.common:tw-leader-selector:1.1.2'
-    implementation 'com.transferwise.common:tw-base-utils:1.2.5'
+    implementation 'com.transferwise.common:tw-base-utils:1.2.7'
     implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.4'
     implementation 'com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2'
     implementation 'com.transferwise.common:tw-incidents:1.0.1'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'commons-io:commons-io:2.6'
-    implementation 'com.newrelic.agent.java:newrelic-api:5.7.0'
+    implementation 'com.newrelic.agent.java:newrelic-api:5.10.0'
     implementation 'io.micrometer:micrometer-core'
-    implementation 'com.google.guava:guava:28.1-jre'
-    implementation 'org.apache.curator:curator-recipes'
+    implementation 'com.google.guava:guava:28.2-jre'
+    implementation 'org.apache.curator:curator-recipes:4.2.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
     implementation 'org.springframework.kafka:spring-kafka'
+    implementation 'com.transferwise.common:tw-context:0.0.3'
 
-    testAnnotationProcessor 'org.projectlombok:lombok'
-    testCompileOnly 'org.projectlombok:lombok'
+    runtimeOnly 'com.transferwise.common:tw-context-starter:0.0.3'
+
     testCompileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
 
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
@@ -89,131 +43,17 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
     testImplementation 'org.liquibase:liquibase-core'
     testImplementation 'org.postgresql:postgresql'
-    testImplementation 'mysql:mysql-connector-java'
+    testImplementation 'org.mariadb.jdbc:mariadb-java-client'
     testImplementation 'org.springframework.kafka:spring-kafka'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'uk.co.datumedge:hamcrest-json:0.2'
     testImplementation 'org.skyscreamer:jsonassert:1.5.0'
     testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
     testImplementation 'org.spockframework:spock-spring:1.3-groovy-2.5'
-    testImplementation 'org.testcontainers:testcontainers:1.12.3'
-    testImplementation 'org.awaitility:awaitility:4.0.1'
-}
-
-ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
-ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
-
-task sourcesJar(type: Jar) {
-    from sourceSets.main.allJava
-    archiveClassifier = 'sources'
-}
-
-task javadocJar(type: Jar) {
-    from javadoc
-    archiveClassifier = 'javadoc'
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            artifactId = projectArtifactName
-            artifact sourcesJar
-            artifact javadocJar
-            versionMapping {
-                usage('java-api') {
-                    fromResolutionOf('runtimeClasspath')
-                }
-                usage('java-runtime') {
-                    fromResolutionResult()
-                }
-            }
-
-            pom {
-                name = projectName
-                description = projectDescription
-                url = "https://github.com/transferwise/${projectGitHubRepoName}"
-                packaging = "jar"
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0, Copyright 2019 TransferWise Ltd'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'onukristo'
-                        name = 'Kristo Kuusküll'
-                        email = "kristo.kuuskull@transferwise.com"
-                        organization = "Transferwise Ltd"
-                        organizationUrl = "https://github.com/transferwise"
-                    }
-                }
-                scm {
-                    connection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
-                    developerConnection = "scm:git:ssh://github.com:transferwise/${projectGitHubRepoName}.git"
-                    url = "https://github.com/transferwise/${projectGitHubRepoName}"
-                }
-            }
-        }
-    }
-
-    signing {
-        sign publishing.publications.mavenJava
-    }
-
-    javadoc {
-        if (JavaVersion.current().isJava9Compatible()) {
-            options.addBooleanOption('html5', true)
-        }
-    }
-
-    repositories {
-        maven {
-            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-            credentials {
-                username = artifactoryUser
-                password = artifactoryPassword
-            }
-        }
-        /*
-        maven {
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-            credentials {
-                username sonatypeUsername
-                password sonatypePassword
-            }
-        }*/
-    }
+    testImplementation 'org.testcontainers:testcontainers:1.12.5'
+    testImplementation 'org.awaitility:awaitility:4.0.2'
 }
 
 test {
     systemProperty("spring.profiles.include", System.getProperty("spring.profiles.include"))
-
-    testLogging {
-        events "passed", "skipped", "failed", "standardError"
-        showStackTraces = true
-        exceptionFormat = 'full'
-    }
 }
-
-spotbugs{
-    sourceSets = [sourceSets.main]
-    effort = "max"
-}
-
-tasks.withType(SpotBugsTask) {
-    reports {
-        xml.enabled false
-        html.enabled true
-    }
-}
-
-
-task addTag(type: Exec) {
-    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
-}
-task pushTag(type: Exec) {
-    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
-}
-pushTag.dependsOn addTag

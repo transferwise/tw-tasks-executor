@@ -3,13 +3,14 @@ package com.transferwise.tasks.buckets;
 import java.util.List;
 
 public interface IBucketsManager {
-    String DEFAULT_ID = "default";
 
-    BucketProperties getBucketProperties(String bucketId);
+  String DEFAULT_ID = "default";
 
-    void registerBucketProperties(String bucketId, BucketProperties bucketProperties);
+  BucketProperties getBucketProperties(String bucketId);
 
-    List<String> getBucketIds();
+  void registerBucketProperties(String bucketId, BucketProperties bucketProperties);
 
-    boolean isConfiguredBucket(String bucketId);
+  List<String> getBucketIds();
+
+  boolean isConfiguredBucket(String bucketId);
 }

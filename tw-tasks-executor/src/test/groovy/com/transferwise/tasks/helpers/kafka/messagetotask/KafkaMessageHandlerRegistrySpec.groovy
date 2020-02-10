@@ -18,24 +18,24 @@ class KafkaMessageHandlerRegistrySpec extends BaseSpec {
 
     def "should successfully register autowire handlers"() {
         expect:
-            kafkaMessageHandlerRegistry.isEmpty() == false
+        kafkaMessageHandlerRegistry.isEmpty() == false
     }
 
     def "should return collection of handlers for topic"() {
         expect:
-            kafkaMessageHandlerRegistry.getForTopic(TOPIC_A).size() == 2
+        kafkaMessageHandlerRegistry.getForTopic(TOPIC_A).size() == 2
     }
 
     def "should return empty collection for non existent topic"() {
         expect:
-            kafkaMessageHandlerRegistry.getForTopic("UNKNOWN").size() == 0
+        kafkaMessageHandlerRegistry.getForTopic("UNKNOWN").size() == 0
     }
 
     def "should throw IllegalStateException for non existent topic"() {
         when:
-            kafkaMessageHandlerRegistry.getForTopicOrFail("UNKNOWN")
+        kafkaMessageHandlerRegistry.getForTopicOrFail("UNKNOWN")
         then:
-            thrown(IllegalStateException)
+        thrown(IllegalStateException)
     }
 
     static class KafkaMessageHandlerConfiguration {

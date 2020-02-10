@@ -28,54 +28,54 @@ class ManualStartIntSpec extends BaseIntSpec {
     @Autowired
     private ITaskDao taskDao
 
-    def setup(){
+    def setup() {
         testClock = TestClock.createAndRegister()
     }
 
     def "task processing in a specific bucket is not automatically started"() {
         given:
-            String st = "Hello World!"
-            testTaskHandlerAdapter.setProcessor(new ISyncTaskProcessor() {
-                @Override
-                ISyncTaskProcessor.ProcessResult process(ITask task) {
-                    assert st == task.getData()
-                }
-            })
-            testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setProcessingBucket(BUCKET_ID))
+        String st = "Hello World!"
+        testTaskHandlerAdapter.setProcessor(new ISyncTaskProcessor() {
+            @Override
+            ISyncTaskProcessor.ProcessResult process(ITask task) {
+                assert st == task.getData()
+            }
+        })
+        testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setProcessingBucket(BUCKET_ID))
         expect: 'Default bucket is auto started'
-            testTasksService.getTasksProcessingState(IBucketsManager.DEFAULT_ID) == ITasksService.TasksProcessingState.STARTED
+        testTasksService.getTasksProcessingState(IBucketsManager.DEFAULT_ID) == ITasksService.TasksProcessingState.STARTED
         when:
-            log.info("Submitting a task.")
-            UUID taskId = transactionsHelper.withTransaction().asNew().call({
-                testTasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString(st))
-            }).getTaskId()
+        log.info("Submitting a task.")
+        UUID taskId = transactionsHelper.withTransaction().asNew().call({
+            testTasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString(st))
+        }).getTaskId()
         then:
-            testTasksService.getTasksProcessingState(BUCKET_ID) == ITasksService.TasksProcessingState.STOPPED
+        testTasksService.getTasksProcessingState(BUCKET_ID) == ITasksService.TasksProcessingState.STOPPED
         and:
-            taskDao.getTask(taskId, Task.class).status == TaskStatus.SUBMITTED.name()
+        taskDao.getTask(taskId, Task.class).status == TaskStatus.SUBMITTED.name()
         when: 'lets assume task was stuck in processing'
-            assert taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0l)
-            log.info("Moving clock forward 2 hours.")
-            testClock.tick(Duration.ofHours(2))
+        assert taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0l)
+        log.info("Moving clock forward 2 hours.")
+        testClock.tick(Duration.ofHours(2))
         and: 'task gets stuck-handled'
-            await().until {
-                taskDao.getTask(taskId, Task.class).getStatus() == TaskStatus.ERROR.name()
-            }
+        await().until {
+            taskDao.getTask(taskId, Task.class).getStatus() == TaskStatus.ERROR.name()
+        }
         then:
-            1 == 1
+        1 == 1
         when:
-            testTasksService.startTasksProcessing(BUCKET_ID)
-            testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId)
+        testTasksService.startTasksProcessing(BUCKET_ID)
+        testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId)
                 .setVersion(taskDao.getTaskVersion(taskId)).setForce(true))
-            await().timeout(30, TimeUnit.SECONDS).until {
-                return testTasksService.getFinishedTasks("test", null).size() == 1
-            }
+        await().timeout(30, TimeUnit.SECONDS).until {
+            return testTasksService.getFinishedTasks("test", null).size() == 1
+        }
         then:
-            testTasksService.getTasksProcessingState(BUCKET_ID) == ITasksService.TasksProcessingState.STARTED
+        testTasksService.getTasksProcessingState(BUCKET_ID) == ITasksService.TasksProcessingState.STARTED
         when:
-            Future<Void> result = testTasksService.stopTasksProcessing(BUCKET_ID)
-            result.get()
+        Future<Void> result = testTasksService.stopTasksProcessing(BUCKET_ID)
+        result.get()
         then:
-            testTasksService.getTasksProcessingState(BUCKET_ID) == ITasksService.TasksProcessingState.STOPPED
+        testTasksService.getTasksProcessingState(BUCKET_ID) == ITasksService.TasksProcessingState.STOPPED
     }
 }

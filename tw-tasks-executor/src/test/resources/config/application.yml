@@ -62,7 +62,7 @@ testcontainers.enabled: false
 spring:
   profiles: mysql
   datasource:
-    url: jdbc:mysql://${testenv.mysql.host:localhost}:${testenv.mysql.port}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
+    url: jdbc:mariadb://${testenv.mysql.host:localhost}:${testenv.mysql.port}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
     username: root
     password: example-password-change-me
   kafka:

@@ -24,25 +24,25 @@ class CoreKafkaListenerIntSpec extends BaseIntSpec {
 
     def "should track the number of messages consumed per topic"() {
         given:
-            Thread thread
-            int N = 10
-            Map<String, AtomicInteger> messagesReceivedCounts = [:]
+        Thread thread
+        int N = 10
+        Map<String, AtomicInteger> messagesReceivedCounts = [:]
 
-            for (int i = 0; i < N; i++) {
-                String message = "Message" + i
-                messagesReceivedCounts[message] = new AtomicInteger(0)
-                toKafkaTestHelper.sendDirectKafkaMessage(KAFKA_TEST_TOPIC_A, message)
-            }
+        for (int i = 0; i < N; i++) {
+            String message = "Message" + i
+            messagesReceivedCounts[message] = new AtomicInteger(0)
+            toKafkaTestHelper.sendDirectKafkaMessage(KAFKA_TEST_TOPIC_A, message)
+        }
         when:
-            kafkaListener.kafkaDataCenterPrefixes = []
-            thread = new Thread({ kafkaListener.poll([KAFKA_TEST_TOPIC_A]) as Runnable })
-            thread.start()
+        kafkaListener.kafkaDataCenterPrefixes = []
+        thread = new Thread({ kafkaListener.poll([KAFKA_TEST_TOPIC_A]) as Runnable })
+        thread.start()
         then:
-            new PollingConditions(timeout: 10, delay: 0.5).eventually {
-                meterRegistry.find("twTasks.coreKafka.processedMessagesCount")
+        new PollingConditions(timeout: 10, delay: 0.5).eventually {
+            meterRegistry.find("twTasks.coreKafka.processedMessagesCount")
                     .tag("topic", KAFKA_TEST_TOPIC_A).counter().count() == N
-            }
+        }
         cleanup:
-            thread.interrupt()
+        thread.interrupt()
     }
 }

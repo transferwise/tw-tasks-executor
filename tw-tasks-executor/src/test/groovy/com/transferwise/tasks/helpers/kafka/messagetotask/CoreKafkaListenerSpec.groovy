@@ -8,19 +8,19 @@ class CoreKafkaListenerSpec extends BaseSpec {
     @Unroll
     def "topic prefixes are correctly removed"() {
         given:
-            CoreKafkaListener listener = new CoreKafkaListener()
-            listener.tasksProperties = new TasksProperties()
-            listener.tasksProperties.kafkaTopicsNamespace = namespace
-            listener.kafkaDataCenterPrefixes = ["aws.", "fra."]
+        CoreKafkaListener listener = new CoreKafkaListener()
+        listener.tasksProperties = new TasksProperties()
+        listener.tasksProperties.kafkaTopicsNamespace = namespace
+        listener.kafkaDataCenterPrefixes = ["aws.", "fra."]
         when:
-            String result = listener.removeTopicPrefixes(topic)
+        String result = listener.removeTopicPrefixes(topic)
         then:
-            result == nakedTopic
+        result == nakedTopic
         where:
-            namespace | topic             | nakedTopic
-            ""        | "MyTopic"         | "MyTopic"
-            ""        | "fra.MyTopic"     | "MyTopic"
-            "dev"     | "dev.MyTopic"     | "MyTopic"
-            "dev"     | "dev.fra.MyTopic" | "MyTopic"
+        namespace | topic             | nakedTopic
+        ""        | "MyTopic"         | "MyTopic"
+        ""        | "fra.MyTopic"     | "MyTopic"
+        "dev"     | "dev.MyTopic"     | "MyTopic"
+        "dev"     | "dev.fra.MyTopic" | "MyTopic"
     }
 }

@@ -1,4 +1,14 @@
-rootProject.name = 'tw-tasks-executor-parent'
+pluginManagement {
+    repositories {
+        maven {
+            setUrl("https://arti.tw.ee/artifactory/plugins-release")
+        }
+        mavenLocal()
+    }
+}
 
-include 'demoapp'
+rootProject.name = 'tw-tasks-executor-root'
+
+include 'tw-tasks-executor-demoapp'
 include 'tw-tasks-executor'
+

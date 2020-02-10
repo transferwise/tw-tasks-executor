@@ -1,0 +1,190 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
+ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
+group = "com.transferwise.tasks"
+ext.projectGitHubRepoName = "tw-tasks-executor"
+ext.projectScmUrl = "https://github.com/transferwise/${projectGitHubRepoName}"
+ext.projectScmConnection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
+ext.springBootVersion = "2.2.4.RELEASE"
+
+buildscript {
+    repositories {
+        maven {
+            setUrl("https://arti.tw.ee/artifactory/plugins-release")
+        }
+        mavenLocal()
+    }
+}
+
+apply plugin: "java-library"
+apply plugin: "maven-publish"
+apply plugin: "checkstyle"
+apply plugin: "idea"
+apply plugin: "com.github.spotbugs"
+
+repositories {
+    maven {
+        setUrl("https://arti.tw.ee/artifactory/libs-release")
+    }
+    mavenLocal()
+}
+
+dependencies {
+    annotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    compileOnly(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    implementation(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    testAnnotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+
+    annotationProcessor("org.projectlombok:lombok")
+
+    compileOnly("org.projectlombok:lombok")
+
+    testAnnotationProcessor("org.projectlombok:lombok")
+
+    testImplementation("org.projectlombok:lombok")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
+}
+
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title": "Transferwise Base Utils",
+                "Implementation-Version": archiveVersion
+        )
+    }
+}
+
+compileJava {
+    options.encoding = 'utf-8'
+    options.compilerArgs << '-parameters'
+    options.compilerArgs << '-Xlint'
+    options.compilerArgs << '-Xlint:-processing'
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            afterEvaluate {
+                artifactId = projectArtifactName
+            }
+
+            pom {
+                name = projectName
+                description = projectDescription
+                url = projectScmUrl
+                packaging = "jar"
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0, Copyright 2019 TransferWise Ltd'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'onukristo'
+                        name = 'Kristo Kuusküll'
+                        email = "kristo.kuuskull@transferwise.com"
+                        organization = "Transferwise Ltd"
+                        organizationUrl = "https://github.com/transferwise"
+                    }
+                }
+                scm {
+                    connection = projectScmConnection
+                    developerConnection = projectScmConnection
+                    url = projectScmUrl
+                }
+            }
+        }
+    }
+
+/*
+    signing {
+        sign publishing.publications.mavenJava
+    }
+*/
+
+    javadoc {
+        if (JavaVersion.current().isJava9Compatible()) {
+            options.addBooleanOption('html5', true)
+        }
+    }
+
+    repositories {
+        maven {
+            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
+            credentials {
+                username = artifactoryUser
+                password = artifactoryPassword
+            }
+        }
+        /*maven {
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }*/
+    }
+}
+
+test {
+    testLogging {
+        events TestLogEvent.STARTED, TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.PASSED,
+                TestLogEvent.STANDARD_ERROR
+        showExceptions = true
+        showStackTraces = true
+        exceptionFormat = TestExceptionFormat.FULL
+    }
+}
+
+tasks.findAll { it.name.startsWith("spotbugs") }*.configure {
+    effort = "max"
+
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
+}
+
+spotbugs {
+    spotbugsTest.enabled = false
+}
+
+tasks.withType(Checkstyle) {
+    //Unfortunately it does not allow to suppress javadoc issues.
+    //config = getCheckstyleConfig()
+    config = resources.text.fromFile(file('../google_checks.xml'))
+
+    maxWarnings = 0
+
+    reports {
+        xml.enabled false
+        html.enabled true
+    }
+}
+
+private def getCheckstyleConfig() {
+    def checkstyleJar = project.configurations.checkstyle.find({
+        return it.name.contains("checkstyle")
+    })
+
+    return resources.text.fromArchiveEntry(checkstyleJar, "google_checks.xml")
+}
+
+task addTag(type: Exec) {
+    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
+}
+task pushTag(type: Exec) {
+    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
+}
+
+pushTag.dependsOn addTag

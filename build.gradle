@@ -1,20 +1,37 @@
-plugins {
-    id "idea"
-    id 'com.github.spotbugs' version '2.0.0' apply false
-    id 'io.spring.dependency-management' version '1.0.8.RELEASE' apply false
+buildscript {
+    repositories {
+        maven {
+            setUrl("https://arti.tw.ee/artifactory/plugins-release")
+        }
+        mavenLocal()
+    }
 }
 
-idea {
-    module {
-        downloadJavadoc = false
-        downloadSources = true
-        excludeDirs += file('logs')
-        excludeDirs += file('gradle')
-        excludeDirs += file('build')
-        excludeDirs += file('target')
-        excludeDirs += file('.idea')
-        excludeDirs += file('.gradle')
-        excludeDirs += file('logs2')
-    }
+plugins {
+    id "com.github.spotbugs" version "3.0.0" apply false
+    id "idea"
+    id 'org.springframework.boot' version '2.2.4.RELEASE' apply false
+}
+
+idea.project {
+    vcs = 'Git'
+    languageLevel = JavaVersion.VERSION_1_8
+    targetBytecodeVersion = JavaVersion.VERSION_1_8
+}
+
+idea.module {
+    downloadJavadoc = false
+    downloadSources = true
+    excludeDirs += file('logs')
+    excludeDirs += file('gradle')
+    excludeDirs += file('build')
+    excludeDirs += file('target')
+    excludeDirs += file('.idea')
+    excludeDirs += file('.gradle')
+    excludeDirs += file('logs2')
+}
+
+task clean {
+
 }
 

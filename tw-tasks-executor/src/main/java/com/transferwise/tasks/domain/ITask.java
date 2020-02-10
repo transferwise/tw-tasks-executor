@@ -1,13 +1,14 @@
 package com.transferwise.tasks.domain;
 
 public interface ITask extends IBaseTask {
-    String getType();
 
-    String getSubType();
+  String getType();
 
-    String getData();
+  String getSubType();
 
-    String getStatus();
+  String getData();
 
-    long getProcessingTriesCount();
+  String getStatus();
+
+  long getProcessingTriesCount();
 }

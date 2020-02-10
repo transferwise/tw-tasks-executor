@@ -1,5 +1,6 @@
 package com.transferwise.tasks.test
 
+import com.transferwise.common.baseutils.clock.ClockHolder
 import com.transferwise.common.baseutils.clock.TestClock
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper
 import com.transferwise.tasks.testappa.IResultRegisteringSyncTaskProcessor
@@ -7,6 +8,7 @@ import com.transferwise.tasks.testappa.TestTaskHandler
 import com.transferwise.tasks.testappa.config.TestApplication
 import com.transferwise.tasks.testappa.config.TestConfiguration
 import com.transferwise.tasks.testappa.config.TestContainersInitializer
+import groovy.util.logging.Slf4j
 import org.awaitility.Awaitility
 import org.junit.Rule
 import org.mockito.junit.MockitoJUnit
@@ -25,6 +27,7 @@ import java.util.concurrent.TimeUnit
 @ActiveProfiles(profiles = ["test", "mysql"], resolver = SystemPropertyActiveProfilesResolver)
 @SpringBootTest(classes = [TestConfiguration, TestApplication], webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(loader = SpringBootContextLoader, initializers = [TestContainersInitializer])
+@Slf4j
 abstract class BaseIntSpec extends Specification {
     @Autowired
     protected ITestTasksService testTasksService
@@ -45,8 +48,15 @@ abstract class BaseIntSpec extends Specification {
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule()
 
+    private long startTimeMs = ClockHolder.clock.millis()
+
     static {
         Awaitility.setDefaultPollInterval(5, TimeUnit.MILLISECONDS)
+    }
+
+    def setup() {
+        startTimeMs = System.currentTimeMillis()
+        log.info("Setting up for '" + specificationContext.currentIteration.getDescription() + "'.")
     }
 
     def cleanup() {
@@ -56,5 +66,8 @@ abstract class BaseIntSpec extends Specification {
         }
         resultRegisteringSyncTaskProcessor.reset()
         testTaskHandlerAdapter.reset()
+
+        long stopTimeMs = System.currentTimeMillis()
+        log.info("Cleaning up for '" + specificationContext.currentIteration.getDescription() + "' It took ${stopTimeMs - startTimeMs} ms.")
     }
 }

@@ -6,139 +6,147 @@ import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.tuple.Pair;
 
-import java.time.Duration;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.UUID;
-
 public interface ITaskDao {
 
-    ZonedDateTime getEarliestTaskNextEventTime(TaskStatus status);
+  ZonedDateTime getEarliestTaskNextEventTime(TaskStatus status);
 
-    @Data
-    @Accessors(chain = true)
-    class StuckTask implements IBaseTask {
-        private TaskVersionId versionId;
-        private int priority;
-        private String type;
-        private String status;
-    }
+  @Data
+  @Accessors(chain = true)
+  class StuckTask implements IBaseTask {
 
-    List<StuckTask> prepareStuckOnProcessingTasksForResuming(String clientId, ZonedDateTime maxStuckTime);
+    private TaskVersionId versionId;
+    private int priority;
+    private String type;
+    private String status;
+  }
 
-    boolean scheduleTaskForImmediateExecution(UUID taskId, long version);
+  List<StuckTask> prepareStuckOnProcessingTasksForResuming(String clientId, ZonedDateTime maxStuckTime);
 
-    GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus... statuses);
+  boolean scheduleTaskForImmediateExecution(UUID taskId, long version);
 
-    @Data
-    @Accessors(chain = true)
-    class GetStuckTasksResponse {
-        private List<StuckTask> stuckTasks;
-        private boolean hasMore;
-    }
+  GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus... statuses);
 
-    InsertTaskResponse insertTask(InsertTaskRequest request);
+  List<DaoTask2> getStuckTasks(int maxCount, Duration delta);
 
-    int getTasksCountInStatus(int maxCount, TaskStatus... statuses);
+  @Data
+  @Accessors(chain = true)
+  class GetStuckTasksResponse {
 
-    List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount);
+    private List<StuckTask> stuckTasks;
+    private boolean hasMore;
+  }
 
-    int getStuckTasksCount(ZonedDateTime age, int maxCount);
+  InsertTaskResponse insertTask(InsertTaskRequest request);
 
-    <T> T getTask(UUID taskId, Class<T> clazz);
+  int getTasksCountInStatus(int maxCount, TaskStatus... statuses);
 
-    void deleteTasks(String type, String subType, TaskStatus... statuses);
+  List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount);
 
-    DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize);
+  int getStuckTasksCount(ZonedDateTime age, int maxCount);
 
-    @Data
-    @Accessors(chain = true)
-    class DeleteFinishedOldTasksResult {
-        private int foundTasksCount;
-        private int deletedTasksCount;
-        private int deletedUniqueKeysCount;
-        private UUID firstDeletedTaskId;
-        private ZonedDateTime firstDeletedTaskNextEventTime;
-        private ZonedDateTime deletedBeforeTime;
-    }
+  <T> T getTask(UUID taskId, Class<T> clazz);
 
-    boolean deleteTask(UUID taskId, long version);
+  void deleteTasks(String type, String subType, TaskStatus... statuses);
 
-    List<DaoTask1> getTasksInErrorStatus(int maxCount);
+  DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize);
 
-    List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount);
+  @Data
+  @Accessors(chain = true)
+  class DeleteFinishedOldTasksResult {
 
-    boolean clearPayloadAndMarkDone(UUID taskId, long version);
+    private int foundTasksCount;
+    private int deletedTasksCount;
+    private int deletedUniqueKeysCount;
+    private UUID firstDeletedTaskId;
+    private ZonedDateTime firstDeletedTaskNextEventTime;
+    private ZonedDateTime deletedBeforeTime;
+  }
 
-    @Data
-    @Accessors(chain = true)
-    class DaoTask1 {
-        private UUID id;
-        private long version;
-        private String type;
-        private String subType;
-        private ZonedDateTime stateTime;
-    }
+  boolean deleteTask(UUID taskId, long version);
 
-    List<DaoTask2> getStuckTasks(int maxCount, Duration delta);
+  List<DaoTask1> getTasksInErrorStatus(int maxCount);
 
-    @Data
-    @Accessors(chain = true)
-    class DaoTask2 {
-        private UUID id;
-        private long version;
-        private ZonedDateTime nextEventTime;
-    }
+  List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount);
 
-    @Data
-    @Accessors(chain = true)
-    class DaoTask3 {
-        private UUID id;
-        private long version;
-        private String type;
-        private String subType;
-        private String status;
-        private ZonedDateTime stateTime;
-    }
+  boolean clearPayloadAndMarkDone(UUID taskId, long version);
 
-    @Data
-    @Accessors(chain = true)
-    class InsertTaskRequest {
-        private String type;
-        private String subType;
-        private String data;
-        private UUID taskId;
-        private String key;
-        private ZonedDateTime runAfterTime;
-        private TaskStatus status;
-        private ZonedDateTime maxStuckTime;
-        private Integer priority;
-    }
+  @Data
+  @Accessors(chain = true)
+  class DaoTask1 {
 
-    @Data
-    @Accessors(chain = true)
-    class InsertTaskResponse {
-        private UUID taskId;
-        private boolean inserted;
-    }
+    private UUID id;
+    private long version;
+    private String type;
+    private String subType;
+    private ZonedDateTime stateTime;
+  }
 
-    boolean setToBeRetried(UUID id, ZonedDateTime retryTime, long version, boolean resetTriesCount);
+  @Data
+  @Accessors(chain = true)
+  class DaoTask2 {
 
-    Task grabForProcessing(BaseTask task, String nodeId, ZonedDateTime maxProcessingEndTime);
+    private UUID id;
+    private long version;
+    private ZonedDateTime nextEventTime;
+  }
 
-    boolean setStatus(UUID taskId, TaskStatus status, long version);
+  @Data
+  @Accessors(chain = true)
+  class DaoTask3 {
 
-    boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime);
+    private UUID id;
+    private long version;
+    private String type;
+    private String subType;
+    private String status;
+    private ZonedDateTime stateTime;
+  }
 
-    List<Task> findTasksByTypeSubTypeAndStatus(String type, String subType, TaskStatus... statuses);
+  @Data
+  @Accessors(chain = true)
+  class InsertTaskRequest {
 
-    void deleteAllTasks();
+    private String type;
+    private String subType;
+    private String data;
+    private UUID taskId;
+    private String key;
+    private ZonedDateTime runAfterTime;
+    private TaskStatus status;
+    private ZonedDateTime maxStuckTime;
+    private Integer priority;
+  }
 
-    Long getTaskVersion(UUID id);
+  @Data
+  @Accessors(chain = true)
+  class InsertTaskResponse {
 
-    List<FullTaskRecord> getTasks(List<UUID> uuids);
+    private UUID taskId;
+    private boolean inserted;
+  }
+
+  boolean setToBeRetried(UUID id, ZonedDateTime retryTime, long version, boolean resetTriesCount);
+
+  Task grabForProcessing(BaseTask task, String nodeId, Instant maxProcessingEndTime);
+
+  boolean setStatus(UUID taskId, TaskStatus status, long version);
+
+  boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime);
+
+  List<Task> findTasksByTypeSubTypeAndStatus(String type, String subType, TaskStatus... statuses);
+
+  void deleteAllTasks();
+
+  Long getTaskVersion(UUID id);
+
+  List<FullTaskRecord> getTasks(List<UUID> uuids);
 }

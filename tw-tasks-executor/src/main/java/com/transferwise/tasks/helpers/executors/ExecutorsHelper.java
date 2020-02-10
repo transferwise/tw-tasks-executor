@@ -11,38 +11,36 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 public class ExecutorsHelper implements IExecutorsHelper {
-    @SuppressWarnings("checkstyle:magicnumber")
-    private static final long KEEP_ALIVE_TIMEOUT = 60L;
 
-    @Override
-    public ExecutorService newCachedExecutor(String groupName) {
-        return new ThreadPoolExecutor(
-            1,
-            Integer.MAX_VALUE, KEEP_ALIVE_TIMEOUT,
-            TimeUnit.SECONDS,
-            new SynchronousQueue<>(),
-            new ExecutorThreadFactory(groupName)
-        );
-    }
+  private static final long KEEP_ALIVE_TIMEOUT = 60L;
 
-    @Override
-    public ScheduledExecutorService newScheduledExecutorService(String groupName, int poolSize) {
-        return new ScheduledThreadPoolExecutor(poolSize, new ExecutorThreadFactory(groupName));
-    }
+  @Override
+  public ExecutorService newCachedExecutor(String groupName) {
+    return new ThreadPoolExecutor(
+        1,
+        Integer.MAX_VALUE, KEEP_ALIVE_TIMEOUT,
+        TimeUnit.SECONDS,
+        new SynchronousQueue<>(),
+        new ExecutorThreadFactory(groupName)
+    );
+  }
 
-    @Override
-    public ExecutorService newBoundedThreadPoolExecutor(String groupName, int maxThreads, int maxQueueSize, Duration maxWait) {
-        return new ThreadPoolExecutor(maxThreads, maxThreads, KEEP_ALIVE_TIMEOUT, TimeUnit.SECONDS, new LinkedBlockingQueue<>(maxQueueSize),
-            new ExecutorThreadFactory(groupName), (r, executor) -> {
-            try {
-                if (!executor.getQueue().offer(r, maxWait.toMillis(), TimeUnit.MILLISECONDS)) {
-                    throw new RejectedExecutionException("Task " + r.toString() +
-                        " rejected from " +
-                        executor.toString());
-                }
-            } catch (Throwable t) {
-                throw new RejectedExecutionException(t);
-            }
-        });
-    }
+  @Override
+  public ScheduledExecutorService newScheduledExecutorService(String groupName, int poolSize) {
+    return new ScheduledThreadPoolExecutor(poolSize, new ExecutorThreadFactory(groupName));
+  }
+
+  @Override
+  public ExecutorService newBoundedThreadPoolExecutor(String groupName, int maxThreads, int maxQueueSize, Duration maxWait) {
+    return new ThreadPoolExecutor(maxThreads, maxThreads, KEEP_ALIVE_TIMEOUT, TimeUnit.SECONDS, new LinkedBlockingQueue<>(maxQueueSize),
+        new ExecutorThreadFactory(groupName), (r, executor) -> {
+      try {
+        if (!executor.getQueue().offer(r, maxWait.toMillis(), TimeUnit.MILLISECONDS)) {
+          throw new RejectedExecutionException("Task " + r.toString() + " rejected from " + executor.toString());
+        }
+      } catch (Throwable t) {
+        throw new RejectedExecutionException(t);
+      }
+    });
+  }
 }

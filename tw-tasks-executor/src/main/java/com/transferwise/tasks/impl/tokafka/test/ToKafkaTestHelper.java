@@ -9,107 +9,109 @@ import com.transferwise.tasks.impl.tokafka.ToKafkaMessages;
 import com.transferwise.tasks.impl.tokafka.ToKafkaTaskType;
 import com.transferwise.tasks.test.ITestTasksService;
 import com.transferwise.tasks.test.TaskTrackerHandler;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Stream;
-
 @Slf4j
 public class ToKafkaTestHelper implements IToKafkaTestHelper {
-    @Autowired
-    private ITestTasksService testTasksService;
-    @Autowired
-    private TwTasksKafkaConfiguration kafkaConfiguration;
-    @Autowired
-    private ObjectMapper objectMapper;
 
-    @Override
-    public <T> List<T> getSentKafkaMessages(String topic, Class<T> clazz) {
-        return ExceptionUtils.doUnchecked(() -> {
-            List<T> result = new ArrayList<>();
-            List<Task> finishedTasks = testTasksService.getFinishedTasks(ToKafkaTaskType.VALUE, topic);
-            if (finishedTasks.isEmpty()) {
-                return result;
-            }
+  @Autowired
+  private ITestTasksService testTasksService;
+  @Autowired
+  private TwTasksKafkaConfiguration kafkaConfiguration;
+  @Autowired
+  private ObjectMapper objectMapper;
 
-            for (Task task : finishedTasks) {
-                if (!TaskStatus.DONE.name().equals(task.getStatus())) {
-                    continue;
-                }
-                ToKafkaMessages toKafkaMessages = objectMapper.readValue(task.getData(), ToKafkaMessages.class);
-                for (ToKafkaMessages.Message toKafkaMessage : toKafkaMessages.getMessages()) {
-                    result.add(objectMapper.readValue(toKafkaMessage.getMessage(), clazz));
-                }
-            }
-            return result;
-        });
-    }
+  @Override
+  public <T> List<T> getSentKafkaMessages(String topic, Class<T> clazz) {
+    return ExceptionUtils.doUnchecked(() -> {
+      List<T> result = new ArrayList<>();
+      List<Task> finishedTasks = testTasksService.getFinishedTasks(ToKafkaTaskType.VALUE, topic);
+      if (finishedTasks.isEmpty()) {
+        return result;
+      }
 
-    @RequiredArgsConstructor
-    public static class SendKafkaEventHandler implements AutoCloseable {
-        private final TaskTrackerHandler interceptAddTasks;
-        private final ObjectMapper objectMapper;
-        private final ITestTasksService testTasksService;
-
-        public Stream<ToKafkaMessages.Message> getSentKafkaMessages() {
-            return interceptAddTasks
-                .getRequests()
-                .stream()
-                .map(it -> it.getData() != null ? (ToKafkaMessages) it.getData() : ExceptionUtils.doUnchecked(() ->
-                    objectMapper.readValue(it.getDataString(), ToKafkaMessages.class)))
-                .flatMap(it -> it.getMessages().stream());
+      for (Task task : finishedTasks) {
+        if (!TaskStatus.DONE.name().equals(task.getStatus())) {
+          continue;
         }
-
-        public Stream<ToKafkaMessages.Message> getSentKafkaMessages(String topic) {
-            return interceptAddTasks
-                .getRequests()
-                .stream()
-                .filter(it -> topic.equals(it.getSubType()))
-                .map(it -> it.getData() != null ? (ToKafkaMessages) it.getData() : ExceptionUtils.doUnchecked(() ->
-                    objectMapper.readValue(it.getDataString(), ToKafkaMessages.class)))
-                .flatMap(it -> it.getMessages().stream());
+        ToKafkaMessages toKafkaMessages = objectMapper.readValue(task.getData(), ToKafkaMessages.class);
+        for (ToKafkaMessages.Message toKafkaMessage : toKafkaMessages.getMessages()) {
+          result.add(objectMapper.readValue(toKafkaMessage.getMessage(), clazz));
         }
+      }
+      return result;
+    });
+  }
 
-        public <T> Stream<T> getSentKafkaMessages(String topic, Class<T> messageClass) {
-            return getSentKafkaMessages(topic).map(it -> ExceptionUtils.doUnchecked(() -> objectMapper.readValue(it.getMessage(), messageClass)));
-        }
+  @RequiredArgsConstructor
+  public static class SendKafkaEventHandler implements AutoCloseable {
 
-        public void close() {
-            testTasksService.stopTracking(interceptAddTasks);
-        }
+    private final TaskTrackerHandler interceptAddTasks;
+    private final ObjectMapper objectMapper;
+    private final ITestTasksService testTasksService;
+
+    public Stream<ToKafkaMessages.Message> getSentKafkaMessages() {
+      return interceptAddTasks
+          .getRequests()
+          .stream()
+          .map(it -> it.getData() != null ? (ToKafkaMessages) it.getData() : ExceptionUtils.doUnchecked(() ->
+              objectMapper.readValue(it.getDataString(), ToKafkaMessages.class)))
+          .flatMap(it -> it.getMessages().stream());
     }
 
-    @Override
-    public SendKafkaEventHandler trackKafkaMessagesEvents() {
-        return new SendKafkaEventHandler(testTasksService.startTrackingAddTasks(it -> ToKafkaTaskType.VALUE.equals(it.getType())), objectMapper, testTasksService);
+    public Stream<ToKafkaMessages.Message> getSentKafkaMessages(String topic) {
+      return interceptAddTasks
+          .getRequests()
+          .stream()
+          .filter(it -> topic.equals(it.getSubType()))
+          .map(it -> it.getData() != null ? (ToKafkaMessages) it.getData() : ExceptionUtils.doUnchecked(() ->
+              objectMapper.readValue(it.getDataString(), ToKafkaMessages.class)))
+          .flatMap(it -> it.getMessages().stream());
     }
 
-    @Override
-    public void sendDirectKafkaMessage(String topic, Object data) {
-        sendDirectKafkaMessage(topic, null, null, data);
+    public <T> Stream<T> getSentKafkaMessages(String topic, Class<T> messageClass) {
+      return getSentKafkaMessages(topic).map(it -> ExceptionUtils.doUnchecked(() -> objectMapper.readValue(it.getMessage(), messageClass)));
     }
 
-    @Override
-    public void sendDirectKafkaMessage(String topic, Long timestamp, String key, Object data) {
-        String dataAsString = data instanceof String ? (String) data : ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsString(data));
-        ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, null, timestamp, key, dataAsString);
-        sendDirectKafkaMessage(producerRecord);
+    public void close() {
+      testTasksService.stopTracking(interceptAddTasks);
     }
+  }
 
-    @Override
-    public void sendDirectKafkaMessage(ProducerRecord<String, String> producerRecord) {
-        kafkaConfiguration.getKafkaTemplate().send(producerRecord)
-            .addCallback(
-                result -> log.debug("Sent and acked Kafka message to topic '{}'.", producerRecord.topic()),
-                exception -> log.error("Sending message to Kafka topic '{}'.", producerRecord.topic(), exception));
-    }
+  @Override
+  public SendKafkaEventHandler trackKafkaMessagesEvents() {
+    return new SendKafkaEventHandler(testTasksService.startTrackingAddTasks(it -> ToKafkaTaskType.VALUE.equals(it.getType())), objectMapper,
+        testTasksService);
+  }
 
-    @Override
-    public void cleanFinishedTasks(String topic) {
-        testTasksService.cleanFinishedTasks(ToKafkaTaskType.VALUE, topic);
-    }
+  @Override
+  public void sendDirectKafkaMessage(String topic, Object data) {
+    sendDirectKafkaMessage(topic, null, null, data);
+  }
+
+  @Override
+  public void sendDirectKafkaMessage(String topic, Long timestamp, String key, Object data) {
+    String dataAsString = data instanceof String ? (String) data : ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsString(data));
+    ProducerRecord<String, String> producerRecord = new ProducerRecord<>(topic, null, timestamp, key, dataAsString);
+    sendDirectKafkaMessage(producerRecord);
+  }
+
+  @Override
+  public void sendDirectKafkaMessage(ProducerRecord<String, String> producerRecord) {
+    kafkaConfiguration.getKafkaTemplate().send(producerRecord)
+        .addCallback(
+            result -> log.debug("Sent and acked Kafka message to topic '{}'.", producerRecord.topic()),
+            exception -> log.error("Sending message to Kafka topic '{}'.", producerRecord.topic(), exception));
+  }
+
+  @Override
+  public void cleanFinishedTasks(String topic) {
+    testTasksService.cleanFinishedTasks(ToKafkaTaskType.VALUE, topic);
+  }
 }

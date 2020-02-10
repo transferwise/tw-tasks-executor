@@ -29,23 +29,23 @@ class KafkaIntSpec extends BaseIntSpec {
 
     def "sending a message to Kafka works"() {
         given:
-            String topic = "ToKafkaTest"
-            StringBuilder sb = new StringBuilder()
-            // 10MB, We want to see what happens to big message.
-            for (int i = 0; i < 999 * 1000; i++) {
-                sb.append("Hello Worl")
-            }
-            String payload = sb.toString()
+        String topic = "ToKafkaTest"
+        StringBuilder sb = new StringBuilder()
+        // 10MB, We want to see what happens to big message.
+        for (int i = 0; i < 999 * 1000; i++) {
+            sb.append("Hello Worl")
+        }
+        String payload = sb.toString()
         when:
-            transactionsHelper.withTransaction().asNew().call({
-                toKafkaSenderService.sendMessage(
+        transactionsHelper.withTransaction().asNew().call({
+            toKafkaSenderService.sendMessage(
                     new IToKafkaSenderService.SendMessageRequest()
-                        .setTopic(topic).setPayloadString(payload))
-            })
+                            .setTopic(topic).setPayloadString(payload))
+        })
 
-            AtomicInteger messagesReceivedCount = new AtomicInteger()
-            long start = System.currentTimeMillis()
-            new ConsistentKafkaConsumer().setTopics([topic])
+        AtomicInteger messagesReceivedCount = new AtomicInteger()
+        long start = System.currentTimeMillis()
+        new ConsistentKafkaConsumer().setTopics([topic])
                 .setDelayTimeout(Duration.ofSeconds(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
@@ -58,32 +58,32 @@ class KafkaIntSpec extends BaseIntSpec {
                     }
                 }).consume()
         then:
-            messagesReceivedCount.get() == 1
+        messagesReceivedCount.get() == 1
     }
 
     @Unroll
     def "sending batch messages to Kafka works"() {
         given:
-            String topic = "toKafkaBatchTestTopic"
-            int N = 1000
+        String topic = "toKafkaBatchTestTopic"
+        int N = 1000
         when:
-            Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
-            for (int i = 0; i < N; i++) {
-                messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
-            }
+        Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
+        for (int i = 0; i < N; i++) {
+            messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
+        }
 
-            transactionsHelper.withTransaction().asNew().call({
-                def messages = new IToKafkaSenderService.SendMessagesRequest()
+        transactionsHelper.withTransaction().asNew().call({
+            def messages = new IToKafkaSenderService.SendMessagesRequest()
                     .setTopic(topic)
-                for (int i = 0; i < N; i++) {
-                    messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
+            for (int i = 0; i < N; i++) {
+                messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
                         .setPayloadString("Message " + iteration + ":" + i).setKey(String.valueOf(i)))
-                }
-                toKafkaSenderService.sendMessages(messages)
-            })
+            }
+            toKafkaSenderService.sendMessages(messages)
+        })
 
-            long start = System.currentTimeMillis()
-            new ConsistentKafkaConsumer().setTopics([topic])
+        long start = System.currentTimeMillis()
+        new ConsistentKafkaConsumer().setTopics([topic])
                 .setDelayTimeout(Duration.ofSeconds(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
@@ -99,39 +99,39 @@ class KafkaIntSpec extends BaseIntSpec {
                     }
                 }).consume()
         then:
-            await().until {
-                messagesMap.find({ k, v -> v.get() != 1 }) == null
-            }
+        await().until {
+            messagesMap.find({ k, v -> v.get() != 1 }) == null
+        }
         where:
-            // We test is commiting offsets is working correctly and is able to finish before closing consumer.
-            iteration << [0, 1, 2, 3]
+        // We test is commiting offsets is working correctly and is able to finish before closing consumer.
+        iteration << [0, 1, 2, 3]
     }
 
     @Unroll
     def "sending batch messages to Kafka works with 5 partitions"() {
         given:
-            String topic = "toKafkaBatchTestTopic5Partitions"
-            int N = 1000
+        String topic = "toKafkaBatchTestTopic5Partitions"
+        int N = 1000
         when:
-            Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
-            for (int i = 0; i < N; i++) {
-                messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
-            }
+        Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
+        for (int i = 0; i < N; i++) {
+            messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
+        }
 
-            Map<Integer, AtomicInteger> partitionsMap = new ConcurrentHashMap<>()
+        Map<Integer, AtomicInteger> partitionsMap = new ConcurrentHashMap<>()
 
-            transactionsHelper.withTransaction().asNew().call({
-                def messages = new IToKafkaSenderService.SendMessagesRequest()
+        transactionsHelper.withTransaction().asNew().call({
+            def messages = new IToKafkaSenderService.SendMessagesRequest()
                     .setTopic(topic)
-                for (int i = 0; i < N; i++) {
-                    messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
+            for (int i = 0; i < N; i++) {
+                messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
                         .setPayloadString("Message " + iteration + ":" + i))
-                }
-                toKafkaSenderService.sendMessages(messages)
-            })
+            }
+            toKafkaSenderService.sendMessages(messages)
+        })
 
-            long start = System.currentTimeMillis()
-            new ConsistentKafkaConsumer().setTopics([topic])
+        long start = System.currentTimeMillis()
+        new ConsistentKafkaConsumer().setTopics([topic])
                 .setDelayTimeout(Duration.ofSeconds(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
@@ -145,40 +145,40 @@ class KafkaIntSpec extends BaseIntSpec {
                     partitionsMap.computeIfAbsent(record.partition(), { k -> new AtomicInteger() }).incrementAndGet()
                 }).consume()
         then:
-            await().until {
-                messagesMap.find({ k, v -> v.get() != 1 }) == null
-            }
-            5.times{
-                assert partitionsMap.get(it).get() > 0
-            }
+        await().until {
+            messagesMap.find({ k, v -> v.get() != 1 }) == null
+        }
+        5.times {
+            assert partitionsMap.get(it).get() > 0
+        }
         where:
-            // We test is commiting offsets is working correctly and is able to finish before closing consumer.
-            iteration << [0, 1, 2, 3]
+        // We test is commiting offsets is working correctly and is able to finish before closing consumer.
+        iteration << [0, 1, 2, 3]
     }
 
     @Unroll
     def "flaky messages accepter will not stop the processing"() {
         given:
-            String topic = "toKafkaBatchTestTopic2"
-            int N = 10
+        String topic = "toKafkaBatchTestTopic2"
+        int N = 10
         when:
-            Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
-            for (int i = 0; i < N; i++) {
-                messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
-            }
+        Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>()
+        for (int i = 0; i < N; i++) {
+            messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger())
+        }
 
-            transactionsHelper.withTransaction().asNew().call({
-                def messages = new IToKafkaSenderService.SendMessagesRequest()
+        transactionsHelper.withTransaction().asNew().call({
+            def messages = new IToKafkaSenderService.SendMessagesRequest()
                     .setTopic(topic)
-                for (int i = 0; i < N; i++) {
-                    messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
+            for (int i = 0; i < N; i++) {
+                messages.add(new IToKafkaSenderService.SendMessagesRequest.Message()
                         .setPayloadString("Message " + iteration + ":" + i).setKey(String.valueOf(i)))
-                }
-                toKafkaSenderService.sendMessages(messages)
-            })
+            }
+            toKafkaSenderService.sendMessages(messages)
+        })
 
-            long start = System.currentTimeMillis()
-            new ConsistentKafkaConsumer().setTopics([topic])
+        long start = System.currentTimeMillis()
+        new ConsistentKafkaConsumer().setTopics([topic])
                 .setDelayTimeout(Duration.ofMillis(1))
                 .setShouldPollPredicate({ true })
                 .setShouldFinishPredicate({
@@ -194,11 +194,11 @@ class KafkaIntSpec extends BaseIntSpec {
                     }
                 }).consume()
         then:
-            await().until {
-                messagesMap.find({ k, v -> v.get() != 1 }) == null
-            }
+        await().until {
+            messagesMap.find({ k, v -> v.get() != 1 }) == null
+        }
         where:
-            // We test is commiting offsets is working correctly and is able to finish before closing consumer.
-            iteration << [0, 1, 2, 3]
+        // We test is commiting offsets is working correctly and is able to finish before closing consumer.
+        iteration << [0, 1, 2, 3]
     }
 }

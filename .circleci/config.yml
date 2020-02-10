@@ -5,13 +5,13 @@ references:
     docker:
     - image: arti.tw.ee/circle_openjdk8:latest
       user: circleci
-    - image: circleci/mysql:5.7
+    - image: circleci/mariadb:10.3
       name: mysql1
       command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
       environment:
         MYSQL_ROOT_PASSWORD: example-password-change-me
         MYSQL_DATABASE: tw-tasks-test
-    - image: circleci/postgres:9.6
+    - image: circleci/postgres:10
       name: postgres1
       environment:
         POSTGRES_USER: postgres

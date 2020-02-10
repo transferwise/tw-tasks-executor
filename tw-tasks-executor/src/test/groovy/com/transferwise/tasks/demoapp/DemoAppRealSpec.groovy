@@ -8,118 +8,114 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.MediaType
 import org.springframework.http.RequestEntity
 import org.springframework.web.client.RestTemplate
-import spock.lang.Ignore
 
 import java.time.Duration
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.RejectedExecutionHandler
-import java.util.concurrent.ThreadPoolExecutor
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
 import java.util.concurrent.atomic.AtomicLong
 
 @Slf4j
-@Ignore("Not meant to be automatically run.")
+//@Ignore("Not meant to be automatically run.")
 class DemoAppRealSpec extends BaseSpec {
     private RestTemplate restTemplate = new RestTemplate()
 
     def "bounded executor works"() {
         when:
-            AtomicLong idx = new AtomicLong()
-            ExecutorsHelper executorsHelper = new ExecutorsHelper()
-            ExecutorService executorService = executorsHelper.newBoundedThreadPoolExecutor("test", 10, 100, Duration.ofHours(1))
+        AtomicLong idx = new AtomicLong()
+        ExecutorsHelper executorsHelper = new ExecutorsHelper()
+        ExecutorService executorService = executorsHelper.newBoundedThreadPoolExecutor("test", 10, 100, Duration.ofHours(1))
 
-            for (int i = 0; i < 150; i++) {
-                executorService.submit {
-                    Thread.sleep(1000)
-                    println idx.incrementAndGet()
-                }
-                if (i > 140) {
-                    println executorService
-                }
+        for (int i = 0; i < 150; i++) {
+            executorService.submit {
+                Thread.sleep(1000)
+                println idx.incrementAndGet()
             }
+            if (i > 140) {
+                println executorService
+            }
+        }
 
-            executorService.shutdown()
-            executorService.awaitTermination(1, TimeUnit.DAYS)
+        executorService.shutdown()
+        executorService.awaitTermination(1, TimeUnit.DAYS)
         then:
-            1 == 1
+        1 == 1
     }
 
+    // 78000 tasks have to be finised < 50s.
     def "all works"() {
         given:
-            int SUBMIT_THREADS = 30
-            int CYCLES = 100
-            int LHV_CNT = 10
-            int TRUSTLY_CNT = 10
-            int ACH_CNT = 5
-            int EMAILS_CNT = 5
+        int SUBMIT_THREADS = 30
+        int CYCLES = 100
+        int LHV_CNT = 10
+        int TRUSTLY_CNT = 10
+        int ACH_CNT = 5
+        int EMAILS_CNT = 5
 
-            ExecutorService executor = new ThreadPoolExecutor(SUBMIT_THREADS, SUBMIT_THREADS,
+        ExecutorService executor = new ThreadPoolExecutor(SUBMIT_THREADS, SUBMIT_THREADS,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(SUBMIT_THREADS * 10), new RejectedExecutionHandler() {
-                @Override
-                void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                    executor.getQueue().offer(r, 1, TimeUnit.DAYS)
-                }
-            })
+            @Override
+            void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                executor.getQueue().offer(r, 1, TimeUnit.DAYS)
+            }
+        })
 
         when:
-            AtomicLong id = new AtomicLong()
-            for (int j = 0; j < CYCLES; j++) {
-                for (int i = 0; i < LHV_CNT; i++) {
-                    executor.submit {
-                        submitPayout(id.incrementAndGet(), "Hey", "LHV")
-                    }
-                }
-                for (int i = 0; i < TRUSTLY_CNT; i++) {
-                    executor.submit {
-                        submitPayout(id.incrementAndGet(), "Hoy", "TRUSTLY")
-                    }
-                }
-                for (int i = 0; i < ACH_CNT; i++) {
-                    executor.submit {
-                        submitPayout(id.incrementAndGet(), "Hoy", "ACH", 1)
-                    }
-                }
-                for (int i = 0; i < EMAILS_CNT; i++) {
-                    executor.submit {
-                        sendEmail(id.incrementAndGet())
-                    }
+        AtomicLong id = new AtomicLong()
+        for (int j = 0; j < CYCLES; j++) {
+            for (int i = 0; i < LHV_CNT; i++) {
+                executor.submit {
+                    submitPayout(id.incrementAndGet(), "Hey", "LHV")
                 }
             }
+            for (int i = 0; i < TRUSTLY_CNT; i++) {
+                executor.submit {
+                    submitPayout(id.incrementAndGet(), "Hoy", "TRUSTLY")
+                }
+            }
+            for (int i = 0; i < ACH_CNT; i++) {
+                executor.submit {
+                    submitPayout(id.incrementAndGet(), "Hoy", "ACH", 1)
+                }
+            }
+            for (int i = 0; i < EMAILS_CNT; i++) {
+                executor.submit {
+                    sendEmail(id.incrementAndGet())
+                }
+            }
+        }
 
-            executor.shutdown()
-            executor.awaitTermination(1, TimeUnit.DAYS)
+        executor.shutdown()
+        executor.awaitTermination(1, TimeUnit.DAYS)
         then:
-            1 == 1
+        1 == 1
     }
 
     def "slow tasks work"() {
         given:
-            int SUBMIT_THREADS = 30
-            int CYCLES = 10000
+        int SUBMIT_THREADS = 30
+        int CYCLES = 10000
 
-            ExecutorService executor = new ThreadPoolExecutor(SUBMIT_THREADS, SUBMIT_THREADS,
+        ExecutorService executor = new ThreadPoolExecutor(SUBMIT_THREADS, SUBMIT_THREADS,
                 0L, TimeUnit.MILLISECONDS,
                 new LinkedBlockingQueue<Runnable>(SUBMIT_THREADS * 10), new RejectedExecutionHandler() {
-                @Override
-                void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
-                    executor.getQueue().offer(r, 1, TimeUnit.DAYS)
-                }
-            })
+            @Override
+            void rejectedExecution(Runnable r, ThreadPoolExecutor executor) {
+                executor.getQueue().offer(r, 1, TimeUnit.DAYS)
+            }
+        })
 
         when:
-            AtomicLong id = new AtomicLong()
-            for (int j = 0; j < CYCLES; j++) {
-                executor.submit {
-                    submitSlowTask(id.incrementAndGet())
-                }
+        AtomicLong id = new AtomicLong()
+        for (int j = 0; j < CYCLES; j++) {
+            executor.submit {
+                submitSlowTask(id.incrementAndGet())
             }
+        }
 
-            executor.shutdown()
-            executor.awaitTermination(1, TimeUnit.DAYS)
+        executor.shutdown()
+        executor.awaitTermination(1, TimeUnit.DAYS)
         then:
-            1 == 1
+        1 == 1
     }
 
     private void submitSlowTask(Long poiId) {
@@ -156,7 +152,7 @@ class DemoAppRealSpec extends BaseSpec {
         int port = (id % 2 == 0) ? 12222 : 12223
 
         HttpHeaders headers = new HttpHeaders()
-        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE)
+        headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
 
         RequestEntity<String> requestEntity = new RequestEntity<>(body, headers, HttpMethod.POST, new URI("http://localhost:${port}" + url))
 

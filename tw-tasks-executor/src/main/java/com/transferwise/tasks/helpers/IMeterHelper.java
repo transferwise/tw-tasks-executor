@@ -1,59 +1,59 @@
 package com.transferwise.tasks.helpers;
 
 import com.transferwise.tasks.domain.TaskStatus;
-
 import java.util.Map;
 import java.util.function.Supplier;
 
 public interface IMeterHelper {
-    String METRIC_PREFIX = "twTasks.";
 
-    void registerTaskMarkedAsError(String bucketId, String taskType);
+  String METRIC_PREFIX = "twTasks.";
 
-    void registerTaskProcessingStart(String bucketId, String taskType);
+  void registerTaskMarkedAsError(String bucketId, String taskType);
 
-    void registerFailedTaskGrabbing(String bucketId, String taskType);
+  void registerTaskProcessingStart(String bucketId, String taskType);
 
-    void registerTaskRetryOnError(String bucketId, String taskType);
+  void registerFailedTaskGrabbing(String bucketId, String taskType);
 
-    void registerTaskRetry(String bucketId, String taskType);
+  void registerTaskRetryOnError(String bucketId, String taskType);
 
-    void registerTaskResuming(String bucketId, String taskType);
+  void registerTaskRetry(String bucketId, String taskType);
 
-    void registerTaskMarkedAsFailed(String bucketId, String taskType);
+  void registerTaskResuming(String bucketId, String taskType);
 
-    default Object registerGauge(String name, Supplier<Number> valueSupplier) {
-        return registerGauge(name, null, valueSupplier);
-    }
+  void registerTaskMarkedAsFailed(String bucketId, String taskType);
 
-    Object registerGauge(String name, Map<String, String> tags, Supplier<Number> valueSupplier);
+  default Object registerGauge(String name, Supplier<Number> valueSupplier) {
+    return registerGauge(name, null, valueSupplier);
+  }
 
-    void unregisterMetric(Object handle);
+  Object registerGauge(String name, Map<String, String> tags, Supplier<Number> valueSupplier);
 
-    default void incrementCounter(String name, long delta) {
-        incrementCounter(name, null, delta);
-    }
+  void unregisterMetric(Object handle);
 
-    void incrementCounter(String name, Map<String, String> tags, long delta);
+  default void incrementCounter(String name, long delta) {
+    incrementCounter(name, null, delta);
+  }
 
-    void registerTaskProcessingEnd(String bucketId, String type, long processingStartTimeMs, String processingResult);
+  void incrementCounter(String name, Map<String, String> tags, long delta);
 
-    void registerKafkaCoreMessageProcessing(String topic);
+  void registerTaskProcessingEnd(String bucketId, String type, long processingStartTimeMs, String processingResult);
 
-    void registerDuplicateTask(String taskType, boolean expected);
+  void registerKafkaCoreMessageProcessing(String topic);
 
-    void registerScheduledTaskResuming(String taskType);
+  void registerDuplicateTask(String taskType, boolean expected);
 
-    void registerStuckTaskMarkedAsFailed(String taskType);
+  void registerScheduledTaskResuming(String taskType);
 
-    void registerStuckTaskAsIgnored(String taskType);
+  void registerStuckTaskMarkedAsFailed(String taskType);
 
-    void registerStuckTaskResuming(String taskType);
+  void registerStuckTaskAsIgnored(String taskType);
 
-    void registerStuckTaskMarkedAsError(String taskType);
+  void registerStuckTaskResuming(String taskType);
 
-    void registerStuckClientTaskResuming(String taskType);
+  void registerStuckTaskMarkedAsError(String taskType);
 
-    void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
+  void registerStuckClientTaskResuming(String taskType);
+
+  void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
 
 }

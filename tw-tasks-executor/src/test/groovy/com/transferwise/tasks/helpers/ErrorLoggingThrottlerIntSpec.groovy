@@ -12,13 +12,13 @@ class ErrorLoggingThrottlerIntSpec extends BaseIntSpec {
     // Very basic test to check, if the component is correctly initialized and set up.
     def "throttling should work"() {
         when:
-            await().until({ errorLoggingThrottler.canLogError() })
+        await().until({ errorLoggingThrottler.canLogError() })
 
-            int cnt = 0
-            for (int i = 0; i < 10; i++) {
-                cnt = errorLoggingThrottler.canLogError() ? 1 : 0
-            }
+        int cnt = 0
+        for (int i = 0; i < 10; i++) {
+            cnt = errorLoggingThrottler.canLogError() ? 1 : 0
+        }
         then:
-            cnt == 0;
+        cnt == 0;
     }
 }

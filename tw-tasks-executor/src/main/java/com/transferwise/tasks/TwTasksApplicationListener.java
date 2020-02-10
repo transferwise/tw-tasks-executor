@@ -12,43 +12,45 @@ import org.springframework.format.support.FormattingConversionService;
 import org.springframework.stereotype.Component;
 
 @Component
+@FeatureBloat
 public class TwTasksApplicationListener implements ApplicationListener<ApplicationEvent> {
-    @Override
-    public void onApplicationEvent(ApplicationEvent event) {
-        if (event instanceof ApplicationPreparedEvent) {
-            ApplicationPreparedEvent ape = (ApplicationPreparedEvent) event;
 
-            Boolean allowDurationConfig = ape.getApplicationContext().getEnvironment().getProperty("tw-tasks.core.allow-durations-config", Boolean.class);
-            if (Boolean.TRUE.equals(allowDurationConfig)) {
-                FormattingConversionService conversionService = new DefaultFormattingConversionService();
-                new DateTimeFormatterRegistrar().registerFormatters(conversionService);
-                ape.getApplicationContext().getBeanFactory().setConversionService(conversionService);
-            }
-        } else if (event instanceof ApplicationEnvironmentPreparedEvent) {
-            ApplicationEnvironmentPreparedEvent aepe = (ApplicationEnvironmentPreparedEvent) event;
+  @Override
+  public void onApplicationEvent(ApplicationEvent event) {
+    if (event instanceof ApplicationPreparedEvent) {
+      ApplicationPreparedEvent ape = (ApplicationPreparedEvent) event;
 
-            //noinspection unchecked
-            aepe.getEnvironment().getPropertySources().addFirst(new PropertySource("tw-tasks", new Object()) {
-                private volatile String clientIdFromHostname;
+      Boolean allowDurationConfig = ape.getApplicationContext().getEnvironment().getProperty("tw-tasks.core.allow-durations-config", Boolean.class);
+      if (Boolean.TRUE.equals(allowDurationConfig)) {
+        FormattingConversionService conversionService = new DefaultFormattingConversionService();
+        new DateTimeFormatterRegistrar().registerFormatters(conversionService);
+        ape.getApplicationContext().getBeanFactory().setConversionService(conversionService);
+      }
+    } else if (event instanceof ApplicationEnvironmentPreparedEvent) {
+      ApplicationEnvironmentPreparedEvent aepe = (ApplicationEnvironmentPreparedEvent) event;
 
-                @Override
-                public Object getProperty(String name) {
-                    if (!name.startsWith("tw-tasks.core")) {
-                        return null;
-                    } else if (name.endsWith("clientIdFromHostname")) {
-                        if (clientIdFromHostname == null) {
-                            synchronized (this) {
-                                if (clientIdFromHostname == null) {
-                                    clientIdFromHostname = ClientIdUtils.clientIdFromHostname();
-                                }
-                            }
-                        }
-                        return clientIdFromHostname;
-                    } else {
-                        return null;
-                    }
+      //noinspection unchecked
+      aepe.getEnvironment().getPropertySources().addFirst(new PropertySource<Object>("tw-tasks", new Object()) {
+        private volatile String clientIdFromHostname;
+
+        @Override
+        public Object getProperty(String name) {
+          if (!name.startsWith("tw-tasks.core")) {
+            return null;
+          } else if (name.endsWith("clientIdFromHostname")) {
+            if (clientIdFromHostname == null) {
+              synchronized (this) {
+                if (clientIdFromHostname == null) {
+                  clientIdFromHostname = ClientIdUtils.clientIdFromHostname();
                 }
-            });
+              }
+            }
+            return clientIdFromHostname;
+          } else {
+            return null;
+          }
         }
+      });
     }
+  }
 }

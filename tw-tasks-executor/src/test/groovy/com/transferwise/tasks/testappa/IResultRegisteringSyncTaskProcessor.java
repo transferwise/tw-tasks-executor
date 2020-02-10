@@ -2,19 +2,19 @@ package com.transferwise.tasks.testappa;
 
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Predicate;
 
 public interface IResultRegisteringSyncTaskProcessor extends ISyncTaskProcessor {
-    void reset();
 
-    void setTaskResults(Map<UUID, Boolean> taskResults);
+  void reset();
 
-    Map<UUID, Boolean> getTaskResults();
+  void setTaskResults(Map<UUID, Boolean> taskResults);
 
-    void setResultPredicate(Predicate<ITask> resultPredicate);
+  Map<UUID, Boolean> getTaskResults();
 
-    Predicate<ITask> getResultPredicate();
+  void setResultPredicate(Predicate<ITask> resultPredicate);
+
+  Predicate<ITask> getResultPredicate();
 }
