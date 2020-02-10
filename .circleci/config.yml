@@ -83,6 +83,6 @@ jobs:
 
 workflows:
   version: 2
-  test_and_publish:
+  test:
     jobs:
     - test
