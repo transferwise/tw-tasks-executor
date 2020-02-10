@@ -8,7 +8,7 @@ ext.projectGitHubRepoName = "tw-tasks-executor"
 ext.projectScmUrl = "https://github.com/transferwise/${projectGitHubRepoName}"
 ext.projectScmConnection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
 ext.springBootVersion = "2.2.4.RELEASE"
-ext.twContextVersion = "0.0.4"
+ext.twContextVersion = "0.0.5"
 
 buildscript {
     repositories {
