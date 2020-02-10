@@ -399,7 +399,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
     Instant deadline = taskHandler.getProcessingPolicy(task).getProcessingDeadline(task);
 
-    unitOfWorkFactory.asEntryPoint("TwTasks", "Processing_" + task.getType()).criticality(Criticality.SCHEDDABLE).deadline(deadline)
+    unitOfWorkFactory.asEntryPoint("TwTasks", "Processing_" + task.getType()).criticality(Criticality.SHEDDABLE_PLUS).deadline(deadline)
         .execute(() -> MdcContext.with(() -> {
           MdcContext.put("twTaskType", task.getType());
           MdcContext.put("twTaskSubType", task.getSubType());

@@ -32,9 +32,9 @@ dependencies {
     implementation 'org.apache.curator:curator-recipes:4.2.0'
     implementation 'org.apache.commons:commons-collections4:4.4'
     implementation 'org.springframework.kafka:spring-kafka'
-    implementation 'com.transferwise.common:tw-context:0.0.3'
+    implementation "com.transferwise.common:tw-context:${twContextVersion}"
 
-    runtimeOnly 'com.transferwise.common:tw-context-starter:0.0.3'
+    runtimeOnly "com.transferwise.common:tw-context-starter:${twContextVersion}"
 
     testCompileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
 
