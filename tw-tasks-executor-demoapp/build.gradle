@@ -15,7 +15,7 @@ dependencies {
     implementation 'com.transferwise.common:tw-gaffer-jta:1.3.1'
     implementation 'org.apache.tomcat:tomcat-jdbc'
     implementation project(':tw-tasks-executor')
-    implementation 'com.transferwise.common:tw-base-utils:1.2.7'
+    implementation 'com.transferwise.common:tw-base-utils:1.2.8'
     implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.4'
     implementation 'com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2'
     implementation 'org.apache.curator:curator-recipes:4.2.0'

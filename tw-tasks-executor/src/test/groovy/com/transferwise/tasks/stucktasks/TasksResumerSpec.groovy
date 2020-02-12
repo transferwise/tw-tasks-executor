@@ -1,8 +1,8 @@
 package com.transferwise.tasks.stucktasks
 
 import com.transferwise.common.baseutils.clock.ClockHolder
+import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider
 import com.transferwise.tasks.TasksProperties
-import com.transferwise.tasks.config.IExecutorServicesProvider
 import com.transferwise.tasks.dao.ITaskDao
 import com.transferwise.tasks.domain.BaseTask
 import com.transferwise.tasks.domain.TaskStatus

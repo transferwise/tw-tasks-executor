@@ -4,12 +4,12 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.common.leaderselector.LeaderSelector;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.config.IExecutorServicesProvider;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.IMeterHelper;

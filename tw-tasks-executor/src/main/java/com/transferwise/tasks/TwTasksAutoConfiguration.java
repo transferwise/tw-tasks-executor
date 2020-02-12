@@ -1,12 +1,13 @@
 package com.transferwise.tasks;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProvider;
+import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
 import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.cleaning.TasksCleaner;
-import com.transferwise.tasks.config.IExecutorServicesProvider;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
@@ -19,7 +20,6 @@ import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.MicrometerMeterHelper;
 import com.transferwise.tasks.helpers.NoOpMeterHelper;
-import com.transferwise.tasks.helpers.executors.DefaultExecutorServiceProvider;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.AdminClientTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
@@ -237,7 +237,7 @@ public class TwTasksAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(IExecutorServicesProvider.class)
   public IExecutorServicesProvider twTasksExecutorServicesProvider() {
-    return new DefaultExecutorServiceProvider();
+    return new DefaultExecutorServicesProvider();
   }
 
   @Bean

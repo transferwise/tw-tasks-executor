@@ -20,7 +20,7 @@ dependencies {
     // Optional end
 
     implementation 'com.transferwise.common:tw-leader-selector:1.1.2'
-    implementation 'com.transferwise.common:tw-base-utils:1.2.7'
+    implementation 'com.transferwise.common:tw-base-utils:1.2.8'
     implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.4'
     implementation 'com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2'
     implementation 'com.transferwise.common:tw-incidents:1.0.1'
