@@ -9,7 +9,7 @@ import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.Criticality;
-import com.transferwise.common.context.UnitOfWorkFactory;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.TasksProperties;
@@ -92,7 +92,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   @Autowired
   private IMeterHelper meterHelper;
   @Autowired
-  private UnitOfWorkFactory unitOfWorkFactory;
+  private UnitOfWorkManager unitOfWorkManager;
 
   private AtomicInteger runningTasksCount = new AtomicInteger();
 
@@ -399,119 +399,124 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
     Instant deadline = taskHandler.getProcessingPolicy(task).getProcessingDeadline(task);
 
-    unitOfWorkFactory.asEntryPoint("TwTasks", "Processing_" + task.getType()).criticality(Criticality.SHEDDABLE_PLUS).deadline(deadline)
-        .toContext().execute(() -> MdcContext.with(() -> {
-          MdcContext.put("twTaskType", task.getType());
-          MdcContext.put("twTaskSubType", task.getSubType());
+    unitOfWorkManager.createEntryPoint("TwTasks", "Processing_" + task.getType())
+        .criticality(Criticality.SHEDDABLE_PLUS).deadline(deadline).toContext()
+        .execute(
+            () -> MdcContext.with(
+                () -> {
+                  MdcContext.put("twTaskType", task.getType());
+                  MdcContext.put("twTaskSubType", task.getSubType());
 
-          long processingStartTimeMs = ClockHolder.getClock().millis();
-          MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
+                  long processingStartTimeMs = ClockHolder.getClock().millis();
+                  MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
 
-          ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
-          processWithInterceptors(0, task, () -> {
-            log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
-            if (taskProcessor instanceof ISyncTaskProcessor) {
-              try {
-                ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
-                MutableObject<ISyncTaskProcessor.ProcessResult> resultHolder = new MutableObject<>();
-                boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
+                  ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
+                  processWithInterceptors(0, task, () -> {
+                    log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
+                    if (taskProcessor instanceof ISyncTaskProcessor) {
+                      try {
+                        ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
+                        MutableObject<ISyncTaskProcessor.ProcessResult> resultHolder = new MutableObject<>();
+                        boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
 
-                Runnable process = () -> {
-                  meterHelper.registerTaskProcessingStart(bucketId, task.getType());
-                  LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.add(Thread.currentThread()));
-                  try {
-                    resultHolder.setValue(syncTaskProcessor.process(task));
-                  } finally {
-                    LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.remove(Thread.currentThread()));
-                  }
-                };
+                        Runnable process = () -> {
+                          meterHelper.registerTaskProcessingStart(bucketId, task.getType());
+                          LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.add(Thread.currentThread()));
+                          try {
+                            resultHolder.setValue(syncTaskProcessor.process(task));
+                          } finally {
+                            LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.remove(Thread.currentThread()));
+                          }
+                        };
 
-                if (!isProcessorTransactional) {
-                  process.run();
-                }
+                        if (!isProcessorTransactional) {
+                          process.run();
+                        }
 
-                transactionsHelper.withTransaction().asNew().call(() -> {
-                  if (isProcessorTransactional) {
-                    process.run();
-                  }
-                  ISyncTaskProcessor.ProcessResult result = resultHolder.getValue();
-                  if (transactionsHelper.isRollbackOnly()) {
-                    log.debug("Task processor for task '{}' has crappy code. Fixing it with a rollback exception.", task.getVersionId());
-                    throw new SyncProcessingRolledbackException(result);
-                  }
-                  if (result == null || result.getResultCode() == null
-                      || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
-                    markTaskAsDone(task);
-                  } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
-                    processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
-                    setRepeatOnSuccess(bucketId, taskHandler, task);
-                  } else {
-                    processingResultHolder.setValue(ProcessingResult.ERROR);
-                    setRetriesOrError(bucketId, taskHandler, task, null);
-                  }
-                  return null;
-                });
-              } catch (SyncProcessingRolledbackException e) {
-                try {
-                  transactionsHelper.withTransaction().asNew().call(() -> {
-                    ISyncTaskProcessor.ProcessResult result = e.getProcessResult();
-                    if (result == null || result.getResultCode() == null
-                        || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
-                      markTaskAsDone(task);
+                        transactionsHelper.withTransaction().asNew().call(() -> {
+                          if (isProcessorTransactional) {
+                            process.run();
+                          }
+                          ISyncTaskProcessor.ProcessResult result = resultHolder.getValue();
+                          if (transactionsHelper.isRollbackOnly()) {
+                            log.debug("Task processor for task '{}' has crappy code. Fixing it with a rollback exception.", task.getVersionId());
+                            throw new SyncProcessingRolledbackException(result);
+                          }
+                          if (result == null || result.getResultCode() == null
+                              || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
+                            markTaskAsDone(task);
+                          } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
+                            processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
+                            setRepeatOnSuccess(bucketId, taskHandler, task);
+                          } else {
+                            processingResultHolder.setValue(ProcessingResult.ERROR);
+                            setRetriesOrError(bucketId, taskHandler, task, null);
+                          }
+                          return null;
+                        });
+                      } catch (SyncProcessingRolledbackException e) {
+                        try {
+                          transactionsHelper.withTransaction().asNew().call(() -> {
+                            ISyncTaskProcessor.ProcessResult result = e.getProcessResult();
+                            if (result == null || result.getResultCode() == null
+                                || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
+                              markTaskAsDone(task);
+                            } else {
+                              setRetriesOrError(bucketId, taskHandler, task, null);
+                            }
+                            return null;
+                          });
+                        } catch (Throwable t) {
+                          log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                              LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                          processingResultHolder.setValue(ProcessingResult.ERROR);
+                          setRetriesOrError(bucketId, taskHandler, task, t);
+                        }
+                      } catch (Throwable t) {
+                        // Clear the interrupted flag.
+                        if (Thread.interrupted()) {
+                          log.debug("Task {} got interrupted.", LogUtils.asParameter(task.getVersionId()));
+                        }
+                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                        processingResultHolder.setValue(ProcessingResult.ERROR);
+                        setRetriesOrError(bucketId, taskHandler, task, t);
+                      } finally {
+                        taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, processingResultHolder.getValue());
+                      }
+                    } else if (taskProcessor instanceof IAsyncTaskProcessor) {
+                      AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
+                      try {
+                        meterHelper.registerTaskProcessingStart(bucketId, task.getType());
+                        ((IAsyncTaskProcessor) taskProcessor).process(
+                            task,
+                            () -> {
+                              if (taskMarkedAsFinished.compareAndSet(false, true)) {
+                                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.SUCCESS);
+                              }
+                              markTaskAsDoneFromAsync(task);
+                            },
+                            (t) -> {
+                              if (taskMarkedAsFinished.compareAndSet(false, true)) {
+                                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
+                              }
+                              setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
+                            });
+                      } catch (Throwable t) {
+                        log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+                        if (taskMarkedAsFinished.compareAndSet(false, true)) {
+                          taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
+                        }
+                        setRetriesOrError(bucketId, taskHandler, task, t);
+                      }
                     } else {
-                      setRetriesOrError(bucketId, taskHandler, task, null);
+                      log.error(
+                          "Marking task {} as ERROR, because No suitable processor found for task " + LogUtils.asParameter(task.getVersionId())
+                              + ".");
+                      markAsError(task, bucketId);
                     }
-                    return null;
                   });
-                } catch (Throwable t) {
-                  log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                      LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
-                  processingResultHolder.setValue(ProcessingResult.ERROR);
-                  setRetriesOrError(bucketId, taskHandler, task, t);
-                }
-              } catch (Throwable t) {
-                // Clear the interrupted flag.
-                if (Thread.interrupted()) {
-                  log.debug("Task {} got interrupted.", LogUtils.asParameter(task.getVersionId()));
-                }
-                log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                    LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
-                processingResultHolder.setValue(ProcessingResult.ERROR);
-                setRetriesOrError(bucketId, taskHandler, task, t);
-              } finally {
-                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, processingResultHolder.getValue());
-              }
-            } else if (taskProcessor instanceof IAsyncTaskProcessor) {
-              AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
-              try {
-                meterHelper.registerTaskProcessingStart(bucketId, task.getType());
-                ((IAsyncTaskProcessor) taskProcessor).process(
-                    task,
-                    () -> {
-                      if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                        taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.SUCCESS);
-                      }
-                      markTaskAsDoneFromAsync(task);
-                    },
-                    (t) -> {
-                      if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                        taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
-                      }
-                      setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
-                    });
-              } catch (Throwable t) {
-                log.error("Processing task '" + task.getVersionId() + "' failed.", t);
-                if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                  taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
-                }
-                setRetriesOrError(bucketId, taskHandler, task, t);
-              }
-            } else {
-              log.error("Marking task {} as ERROR, because No suitable processor found for task " + LogUtils.asParameter(task.getVersionId()) + ".");
-              markAsError(task, bucketId);
-            }
-          });
-        }));
+                }));
   }
 
   @Trace(dispatcher = true)
