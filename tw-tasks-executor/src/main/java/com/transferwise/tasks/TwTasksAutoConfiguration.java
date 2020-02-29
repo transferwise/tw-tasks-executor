@@ -15,16 +15,20 @@ import com.transferwise.tasks.dao.PostgresTaskDao;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
+import com.transferwise.tasks.health.ITasksStateMonitor;
 import com.transferwise.tasks.health.TasksIncidentGenerator;
 import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
+import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.MicrometerMeterHelper;
 import com.transferwise.tasks.helpers.NoOpMeterHelper;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
+import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.AdminClientTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.NoOpTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CoreKafkaListener;
+import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandlerRegistry;
 import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerFactory;
 import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerRegistry;
 import com.transferwise.tasks.impl.tokafka.ToKafkaProperties;
@@ -180,8 +184,8 @@ public class TwTasksAutoConfiguration {
   }
 
   @Bean
-  public TasksIncidentGenerator twTasksStuckTasksIncidentGenerator() {
-    return new TasksIncidentGenerator();
+  public TasksIncidentGenerator twTasksStuckTasksIncidentGenerator(TasksProperties tasksProperties, ITasksStateMonitor tasksStateMonitor) {
+    return new TasksIncidentGenerator(tasksProperties, tasksStateMonitor);
   }
 
   @Bean
@@ -212,9 +216,25 @@ public class TwTasksAutoConfiguration {
   }
 
   @Bean
-  @SuppressWarnings("rawtypes")
-  public CoreKafkaListener twTasksCoreKafkaListener() {
-    return new CoreKafkaListener();
+  @SuppressWarnings({"rawtypes", "unchecked"})
+  public CoreKafkaListener twTasksCoreKafkaListener(
+      TwTasksKafkaConfiguration twTasksKafkaConfiguration,
+      IExecutorsHelper iExecutorsHelper,
+      TasksProperties tasksProperties,
+      IKafkaMessageHandlerRegistry kafkaMessageHandlerRegistry,
+      ITopicPartitionsManager topicPartitionsManager,
+      IErrorLoggingThrottler errorLoggingThrottler,
+      IMeterHelper meterHelper
+  ) {
+    return new CoreKafkaListener(
+        twTasksKafkaConfiguration,
+        iExecutorsHelper,
+        tasksProperties,
+        kafkaMessageHandlerRegistry,
+        topicPartitionsManager,
+        errorLoggingThrottler,
+        meterHelper
+    );
   }
 
   @Bean

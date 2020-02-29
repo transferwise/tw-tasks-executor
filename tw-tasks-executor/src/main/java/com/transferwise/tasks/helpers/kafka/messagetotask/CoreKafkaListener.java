@@ -16,29 +16,23 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import javax.annotation.PostConstruct;
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
+@RequiredArgsConstructor
 public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
 
-  @Autowired
-  private TwTasksKafkaConfiguration kafkaConfiguration;
-  @Autowired
-  private IExecutorsHelper executorsHelper;
-  @Autowired
-  private TasksProperties tasksProperties;
-  @Autowired
-  private IKafkaMessageHandlerRegistry<T> kafkaMessageHandlerRegistry;
-  @Autowired
-  private ITopicPartitionsManager topicPartitionsManager;
-  @Autowired
-  private IErrorLoggingThrottler errorLoggingThrottler;
-  @Autowired
-  private IMeterHelper meterHelper;
+  private final TwTasksKafkaConfiguration kafkaConfiguration;
+  private final IExecutorsHelper executorsHelper;
+  private final TasksProperties tasksProperties;
+  private final IKafkaMessageHandlerRegistry<T> kafkaMessageHandlerRegistry;
+  private final ITopicPartitionsManager topicPartitionsManager;
+  private final IErrorLoggingThrottler errorLoggingThrottler;
+  private final IMeterHelper meterHelper;
 
   private ExecutorService executorService;
   private boolean shuttingDown;
