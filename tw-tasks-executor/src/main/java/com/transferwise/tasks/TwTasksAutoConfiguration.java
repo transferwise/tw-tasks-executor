@@ -219,7 +219,7 @@ public class TwTasksAutoConfiguration {
   @SuppressWarnings({"rawtypes", "unchecked"})
   public CoreKafkaListener twTasksCoreKafkaListener(
       TwTasksKafkaConfiguration twTasksKafkaConfiguration,
-      IExecutorsHelper iExecutorsHelper,
+      IExecutorsHelper executorsHelper,
       TasksProperties tasksProperties,
       IKafkaMessageHandlerRegistry kafkaMessageHandlerRegistry,
       ITopicPartitionsManager topicPartitionsManager,
@@ -228,7 +228,7 @@ public class TwTasksAutoConfiguration {
   ) {
     return new CoreKafkaListener(
         twTasksKafkaConfiguration,
-        iExecutorsHelper,
+        executorsHelper,
         tasksProperties,
         kafkaMessageHandlerRegistry,
         topicPartitionsManager,

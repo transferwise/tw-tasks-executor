@@ -2,8 +2,6 @@ ext.projectName = "Transferwise Tasks Executor Demo App"
 ext.projectDescription = "Transferwise Tasks Executor Demo App - Used for performance testing"
 ext.projectArtifactName = "tw-tasks-executor-demoapp"
 
-apply plugin: 'groovy'
-
 apply from: '../build.common.gradle'
 
 apply plugin: "org.springframework.boot"

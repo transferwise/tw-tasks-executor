@@ -4,7 +4,6 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.BaseTest;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -20,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
-@Disabled("Not meant to be automatically run.")
+//@Disabled("Not meant to be automatically run.")
 class DemoAppRealTest extends BaseTest {
 
   private RestTemplate restTemplate = new RestTemplate();
@@ -34,10 +33,10 @@ class DemoAppRealTest extends BaseTest {
     for (int i = 0; i < 150; i++) {
       executorService.submit(() -> {
         ExceptionUtils.doUnchecked(() -> Thread.sleep(1000));
-        System.out.println(idx.incrementAndGet());
+        log.info("{}", idx.incrementAndGet());
       });
       if (i > 140) {
-        System.out.println(executorService);
+        log.info("{}", executorService);
       }
     }
 

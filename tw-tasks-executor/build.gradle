@@ -2,8 +2,6 @@ ext.projectName = "Transferwise Tasks Executor"
 ext.projectDescription = "Transferwise Tasks Executor - Fire and forget until Alert."
 ext.projectArtifactName = "tw-tasks-executor"
 
-apply plugin: 'groovy'
-
 apply from: '../build.common.gradle'
 
 dependencies {
@@ -48,8 +46,6 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'uk.co.datumedge:hamcrest-json:0.2'
     testImplementation 'org.skyscreamer:jsonassert:1.5.0'
-    testImplementation 'org.spockframework:spock-core:1.3-groovy-2.5'
-    testImplementation 'org.spockframework:spock-spring:1.3-groovy-2.5'
     testImplementation 'org.testcontainers:testcontainers:1.12.5'
     testImplementation 'org.awaitility:awaitility:4.0.2'
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
