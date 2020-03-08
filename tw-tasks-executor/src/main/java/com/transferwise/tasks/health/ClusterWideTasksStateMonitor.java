@@ -48,7 +48,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   @Autowired
   private CuratorFramework curatorFramework;
 
-  private LeaderSelector leaderSelector;
+  LeaderSelector leaderSelector;
 
   private List<Pair<String, Integer>> erroneousTasksCountPerType;
   private Map<String, AtomicInteger> erroneousTasksCounts;

@@ -194,7 +194,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  protected ConsumerBucket getConsumerBucket(String bucketId) {
+  public ConsumerBucket getConsumerBucket(String bucketId) {
     return ExceptionUtils.doUnchecked(() -> {
       ConsumerBucket consumerBucket = consumerBuckets.get(bucketId);
       if (consumerBucket == null) {
