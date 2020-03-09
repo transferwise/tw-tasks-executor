@@ -1,5 +1,9 @@
 package com.transferwise.tasks.testapp;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
@@ -12,19 +16,14 @@ import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 class ManualStartIntTest extends BaseIntTest {
@@ -79,7 +78,7 @@ class ManualStartIntTest extends BaseIntTest {
             .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
     );
     await().timeout(30, TimeUnit.SECONDS).until(() ->
-       testTasksService.getFinishedTasks("test", null).size() == 1
+        testTasksService.getFinishedTasks("test", null).size() == 1
     );
 
     assertEquals(TasksProcessingState.STARTED, testTasksService.getTasksProcessingState(BUCKET_ID));

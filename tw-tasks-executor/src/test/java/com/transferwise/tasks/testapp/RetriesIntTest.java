@@ -47,7 +47,7 @@ class RetriesIntTest extends BaseIntTest {
   @Test
   void after5RetriesTasksGoToErrorState() {
     AtomicInteger processingCount = new AtomicInteger();
-    int N = 5;
+    int n = 5;
 
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
       log.info("Task retry nr: " + task.getProcessingTriesCount());
@@ -58,7 +58,7 @@ class RetriesIntTest extends BaseIntTest {
     testTaskHandlerAdapter.setRetryPolicy(
         new ExponentialTaskRetryPolicy()
             .setDelay(Duration.ofMillis(0))
-            .setMaxCount(N)
+            .setMaxCount(n)
             .setMultiplier(1)
     );
 
@@ -68,7 +68,7 @@ class RetriesIntTest extends BaseIntTest {
             .setType("test"))
     );
 
-    await().until(() -> processingCount.get() == N);
+    await().until(() -> processingCount.get() == n);
   }
 
   @ParameterizedTest(name = "Repeating cron task getProcessingTriesCount resetting {0} works, tries {1}")
@@ -119,7 +119,7 @@ class RetriesIntTest extends BaseIntTest {
   @Test
   void after5RetriesAsynchronousTasksGoToErrorState() {
     AtomicInteger processingCount = new AtomicInteger();
-    int N = 5;
+    int n = 5;
 
     testTaskHandlerAdapter.setProcessor((IAsyncTaskProcessor) (task, successCallback, errorCallback) -> {
       log.info("Task retry nr: " + task.getProcessingTriesCount());
@@ -134,7 +134,7 @@ class RetriesIntTest extends BaseIntTest {
     testTaskHandlerAdapter.setRetryPolicy(
         new ExponentialTaskRetryPolicy()
             .setDelay(Duration.ofMillis(0))
-            .setMaxCount(N)
+            .setMaxCount(n)
             .setMultiplier(1)
     );
 
@@ -146,14 +146,14 @@ class RetriesIntTest extends BaseIntTest {
         )
     );
 
-    await().until(() -> processingCount.get() == N);
+    await().until(() -> processingCount.get() == n);
   }
 
   @Test
   void exponentialRetriesWorkEachRetryShouldTakeLonger() {
     TestClock clock = TestClock.createAndRegister();
     AtomicInteger processingCount = new AtomicInteger();
-    int N = 5;
+    int n = 5;
 
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
       log.info("Task try #" + task.getProcessingTriesCount());
@@ -164,7 +164,7 @@ class RetriesIntTest extends BaseIntTest {
     testTaskHandlerAdapter.setRetryPolicy(
         new ExponentialTaskRetryPolicy()
             .setDelay(Duration.ofMillis(1000))
-            .setMaxCount(N)
+            .setMaxCount(n)
             .setMultiplier(2)
     );
 
@@ -176,7 +176,7 @@ class RetriesIntTest extends BaseIntTest {
 
     await().until(() -> processingCount.get() == 1);
 
-    for (int i = 2; i <= N; i++) {
+    for (int i = 2; i <= n; i++) {
       final int iCopy = i;
       long delay = 1000 * (long) Math.pow(2, (i - 2));
 
@@ -190,7 +190,7 @@ class RetriesIntTest extends BaseIntTest {
       await().until(() -> processingCount.get() == iCopy);
     }
 
-    assertEquals(N, processingCount.get());
+    assertEquals(n, processingCount.get());
   }
 
   private static Stream<Arguments> casesForRepeatingCronTaskGetProcessingTriesWorks() {

@@ -1,22 +1,22 @@
 package com.transferwise.tasks.testapp;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.test.ITestTasksService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.ZonedDateTime;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.time.ZonedDateTime;
-import java.util.UUID;
-
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
 public class TaskResumingIntTest extends BaseIntTest {
@@ -43,7 +43,7 @@ public class TaskResumingIntTest extends BaseIntTest {
   }
 
   @Test
-  void aTaskCanBeSuccessfullyResumed() {
+  void taskCanBeSuccessfullyResumed() {
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     UUID taskId = UUID.randomUUID();
 
@@ -64,8 +64,8 @@ public class TaskResumingIntTest extends BaseIntTest {
   @Test
   void taskWillNotBeResumedIfVersionHasAlreadyChanged() {
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    long initialFailedStatusChangeCount = getFailedStatusChangeCount();
-    UUID taskId = UUID.randomUUID();
+    final long initialFailedStatusChangeCount = getFailedStatusChangeCount();
+    final UUID taskId = UUID.randomUUID();
 
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()

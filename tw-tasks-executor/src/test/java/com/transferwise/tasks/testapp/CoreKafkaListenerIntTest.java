@@ -40,21 +40,19 @@ class CoreKafkaListenerIntTest extends BaseIntTest {
 
   @Test
   void shouldTrackTheNumberOfMessagesConsumedPerTopic() {
-    int N = 10;
-    for (int i = 0; i < N; i++) {
+    int n = 10;
+    for (int i = 0; i < n; i++) {
       String message = "Message" + i;
       toKafkaTestHelper.sendDirectKafkaMessage(KAFKA_TEST_TOPIC_A, message);
     }
 
     pollingThread.start();
 
-    await().pollDelay(Duration.ofMillis(500)).until(() ->
-        {
-          Counter counter = meterRegistry.find("twTasks.coreKafka.processedMessagesCount")
-              .tag("topic", KAFKA_TEST_TOPIC_A)
-              .counter();
-          return counter != null && counter.count() == N;
-        }
-    );
+    await().pollDelay(Duration.ofMillis(500)).until(() -> {
+      Counter counter = meterRegistry.find("twTasks.coreKafka.processedMessagesCount")
+          .tag("topic", KAFKA_TEST_TOPIC_A)
+          .counter();
+      return counter != null && counter.count() == n;
+    });
   }
 }

@@ -1,28 +1,5 @@
 package com.transferwise.tasks.impl.tokafka;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
-import com.transferwise.tasks.ITasksService;
-import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessageRequest;
-import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessagesRequest;
-import com.transferwise.tasks.impl.tokafka.ToKafkaMessages.Message;
-import com.transferwise.tasks.BaseTest;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,6 +8,28 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
+import com.transferwise.tasks.BaseTest;
+import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessageRequest;
+import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessagesRequest;
+import com.transferwise.tasks.impl.tokafka.ToKafkaMessages.Message;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 class ToKafkaSenderServiceTest extends BaseTest {
 
@@ -130,19 +129,19 @@ class ToKafkaSenderServiceTest extends BaseTest {
   @ParameterizedTest(name = "batches are calculated correctly {0} produces {1}")
   @MethodSource("casesForBatchSizeSplit")
   void batchesAreCalculatedCorrectly(String messageDescriptor, String expectedBatch) {
-    int MB = 1024 * 1024;
+    int mb = 1024 * 1024;
 
     List<Message> messages = Arrays.stream(messageDescriptor.split(" "))
         .map(
             pairString -> {
               String[] pair = pairString.split(":");
               int size = Integer.parseInt(pair[1].replace("MB", ""));
-              return mockMessage(size * MB, pair[0]);
+              return mockMessage(size * mb, pair[0]);
             }
         )
         .collect(Collectors.toList());
 
-    String batchDescriptor = toKafkaSenderService.splitToBatches(messages, 10 * MB)
+    String batchDescriptor = toKafkaSenderService.splitToBatches(messages, 10 * mb)
         .stream()
         .map(it -> it.stream().map(Message::getMessage).collect(Collectors.joining(", ", "[", "]")))
         .collect(Collectors.joining());

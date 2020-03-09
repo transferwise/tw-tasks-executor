@@ -5,4 +5,5 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("postgres")
 class TaskResumingPostgresIntTest extends TaskResumingIntTest {
+
 }

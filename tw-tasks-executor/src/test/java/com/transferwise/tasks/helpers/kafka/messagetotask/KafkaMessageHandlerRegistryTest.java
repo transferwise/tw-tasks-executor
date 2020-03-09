@@ -1,19 +1,19 @@
 package com.transferwise.tasks.helpers.kafka.messagetotask;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.transferwise.tasks.BaseTest;
+import java.util.Collections;
+import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.annotation.Bean;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class KafkaMessageHandlerRegistryTest extends BaseTest {
 
@@ -55,7 +55,7 @@ class KafkaMessageHandlerRegistryTest extends BaseTest {
     }
 
     @Bean
-    IKafkaMessageHandler<String> aHandlerForTopicA() {
+    IKafkaMessageHandler<String> handlerForTopicA() {
       return new IKafkaMessageHandler<String>() {
 
         @Override
@@ -75,7 +75,7 @@ class KafkaMessageHandlerRegistryTest extends BaseTest {
     }
 
     @Bean
-    IKafkaMessageHandler<String> aSecondHandlerForTopicA() {
+    IKafkaMessageHandler<String> secondHandlerForTopicA() {
       return new IKafkaMessageHandler<String>() {
 
         @Override

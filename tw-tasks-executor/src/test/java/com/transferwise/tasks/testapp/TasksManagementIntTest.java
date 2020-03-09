@@ -1,5 +1,10 @@
 package com.transferwise.tasks.testapp;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.TaskTestBuilder;
@@ -12,6 +17,9 @@ import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorRes
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse.TaskStuck;
 import com.transferwise.tasks.stucktasks.TasksResumer;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -19,14 +27,6 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TasksManagementIntTest extends BaseIntTest {
 
@@ -54,7 +54,7 @@ public class TasksManagementIntTest extends BaseIntTest {
             .build()
     );
 
-    UUID task1Id = transactionsHelper.withTransaction().asNew().call(() ->
+    final UUID task1Id = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.ERROR)
             .withType("T1")
@@ -86,7 +86,7 @@ public class TasksManagementIntTest extends BaseIntTest {
       TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now()).build();
       return null;
     });
-    UUID task1Id = transactionsHelper.withTransaction().asNew().call(() ->
+    final UUID task1Id = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.SUBMITTED)
             .withMaxStuckTime(ZonedDateTime.now().minusDays(1))
@@ -121,7 +121,7 @@ public class TasksManagementIntTest extends BaseIntTest {
   void findATaskInAGivenStatus(TaskStatus status) {
     pauseResumer();
 
-    UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
+    final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(status)
             .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
@@ -142,11 +142,11 @@ public class TasksManagementIntTest extends BaseIntTest {
 
   @Test
   void markingATaskAsFailedWorks() {
-    UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
-      TaskTestBuilder.newTask()
-          .inStatus(TaskStatus.ERROR)
-          .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-          .build()
+    final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .inStatus(TaskStatus.ERROR)
+            .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
+            .build()
     );
 
     ResponseEntity<ITasksManagementPort.MarkTasksAsFailedResponse> response = testRestTemplate.postForEntity(
@@ -164,11 +164,11 @@ public class TasksManagementIntTest extends BaseIntTest {
 
   @Test
   void immediatelyResumingATaskWorks() {
-    UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
-      TaskTestBuilder.newTask()
-          .inStatus(TaskStatus.ERROR)
-          .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-          .build()
+    final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .inStatus(TaskStatus.ERROR)
+            .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
+            .build()
     );
 
     pauseResumer();
@@ -190,11 +190,11 @@ public class TasksManagementIntTest extends BaseIntTest {
 
   @Test
   void immediatelyResumingAllTasksWorks() {
-    UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
-      TaskTestBuilder.newTask()
-          .inStatus(TaskStatus.ERROR)
-          .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-          .build()
+    final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .inStatus(TaskStatus.ERROR)
+            .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
+            .build()
     );
 
     pauseResumer();

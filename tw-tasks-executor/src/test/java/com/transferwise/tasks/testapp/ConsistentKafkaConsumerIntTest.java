@@ -1,20 +1,20 @@
 package com.transferwise.tasks.testapp;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 class ConsistentKafkaConsumerIntTest extends BaseIntTest {
@@ -26,11 +26,11 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
 
   @Test
   void allMessagesWillBeReceivedOnceOnRebalancing() throws Exception {
-    int N = 10;
+    int n = 10;
     Map<String, AtomicInteger> messagesReceivedCounts = new HashMap<>();
 
     String testTopic = "ConsistentKafkaConsumerIntSpec";
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       String message = "Message" + i;
       messagesReceivedCounts.put(message, new AtomicInteger(0));
       toKafkaTestHelper.sendDirectKafkaMessage(testTopic, message);
@@ -51,19 +51,19 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     consumerThread.start();
 
     await().until(() ->
-        messagesReceivedCounts.values().stream().mapToInt(AtomicInteger::get).sum() >= N
+        messagesReceivedCounts.values().stream().mapToInt(AtomicInteger::get).sum() >= n
     );
 
     shouldFinish.set(true);
     consumerThread.join();
 
     // we received all messages and only once
-    for (AtomicInteger value: messagesReceivedCounts.values()) {
+    for (AtomicInteger value : messagesReceivedCounts.values()) {
       assertEquals(1, value.get());
     }
 
     // another kafka consumer starts up
-    String message = "Message" + N;
+    String message = "Message" + n;
     messagesReceivedCounts.put(message, new AtomicInteger(0));
     toKafkaTestHelper.sendDirectKafkaMessage(testTopic, message);
 
@@ -73,7 +73,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     consumerThread.start();
 
     await().until(() ->
-        messagesReceivedCounts.values().stream().mapToInt(AtomicInteger::get).sum() > N
+        messagesReceivedCounts.values().stream().mapToInt(AtomicInteger::get).sum() > n
     );
 
     shouldFinish.set(true);
@@ -83,7 +83,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     for (AtomicInteger value : messagesReceivedCounts.values()) {
       assertEquals(1, value.get());
     }
-    for (int i = 0; i < N + 1; i++) {
+    for (int i = 0; i < n + 1; i++) {
       assertEquals(1, messagesReceivedCounts.get("Message" + i).get());
     }
   }

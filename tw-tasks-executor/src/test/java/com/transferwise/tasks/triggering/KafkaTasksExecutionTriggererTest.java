@@ -1,11 +1,11 @@
 package com.transferwise.tasks.triggering;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer.ConsumerBucket;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer.ConsumerTopicPartition;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class KafkaTasksExecutionTriggererTest {
 

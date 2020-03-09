@@ -3,13 +3,6 @@ package com.transferwise.tasks.demoapp;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.BaseTest;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.RequestEntity;
-import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +10,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.RequestEntity;
+import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 //@Disabled("Not meant to be automatically run.")
@@ -47,33 +47,33 @@ class DemoAppRealTest extends BaseTest {
   // 78000 tasks have to be finised < 50s.
   @Test
   void allWorks() throws Exception {
-    int SUBMIT_THREADS = 30;
-    int CYCLES = 100;
-    int LHV_CNT = 10;
-    int TRUSTLY_CNT = 10;
-    int ACH_CNT = 5;
-    int EMAILS_CNT = 5;
+    int submitThreads = 30;
+    int cycles = 100;
+    int lhvCnt = 10;
+    int trustlyCnt = 10;
+    int achCnt = 5;
+    int emailsCnt = 5;
 
     ExecutorService executor = new ThreadPoolExecutor(
-        SUBMIT_THREADS,
-        SUBMIT_THREADS,
+        submitThreads,
+        submitThreads,
         0L, TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<>(SUBMIT_THREADS * 10),
+        new LinkedBlockingQueue<>(submitThreads * 10),
         (r, ex) -> ExceptionUtils.doUnchecked(() -> ex.getQueue().offer(r, 1, TimeUnit.DAYS))
     );
 
     AtomicLong id = new AtomicLong();
-    for (int j = 0; j < CYCLES; j++) {
-      for (int i = 0; i < LHV_CNT; i++) {
+    for (int j = 0; j < cycles; j++) {
+      for (int i = 0; i < lhvCnt; i++) {
         executor.submit(() -> submitPayout(id.incrementAndGet(), "Hey", "LHV"));
       }
-      for (int i = 0; i < TRUSTLY_CNT; i++) {
+      for (int i = 0; i < trustlyCnt; i++) {
         executor.submit(() -> submitPayout(id.incrementAndGet(), "Hoy", "TRUSTLY"));
       }
-      for (int i = 0; i < ACH_CNT; i++) {
+      for (int i = 0; i < achCnt; i++) {
         executor.submit(() -> submitPayout(id.incrementAndGet(), "Hoy", "ACH", 1));
       }
-      for (int i = 0; i < EMAILS_CNT; i++) {
+      for (int i = 0; i < emailsCnt; i++) {
         executor.submit(() -> sendEmail(id.incrementAndGet()));
       }
     }
@@ -84,19 +84,19 @@ class DemoAppRealTest extends BaseTest {
 
   @Test
   void slowTasksWork() throws Exception {
-    int SUBMIT_THREADS = 30;
-    int CYCLES = 10000;
+    int submitThreads = 30;
+    int cycles = 10000;
 
     ExecutorService executor = new ThreadPoolExecutor(
-        SUBMIT_THREADS,
-        SUBMIT_THREADS,
+        submitThreads,
+        submitThreads,
         0L, TimeUnit.MILLISECONDS,
-        new LinkedBlockingQueue<>(SUBMIT_THREADS * 10),
+        new LinkedBlockingQueue<>(submitThreads * 10),
         (r, ex) -> ExceptionUtils.doUnchecked(() -> ex.getQueue().offer(r, 1, TimeUnit.DAYS))
     );
 
     AtomicLong id = new AtomicLong();
-    for (int j = 0; j < CYCLES; j++) {
+    for (int j = 0; j < cycles; j++) {
       executor.submit(() -> submitSlowTask(id.incrementAndGet()));
     }
 
@@ -120,11 +120,11 @@ class DemoAppRealTest extends BaseTest {
     try {
       exchange(
           poiId, "/v1/payout/submit", "{\n"
-          + "    \"id\": " + poiId + ",\n"
-          + "    \"payload\": \"" + payload + "\",\n"
-          + "    \"type\": \"" + type + "\",\n"
-          + "    \"priority\": \"" + priority + "\"\n"
-          + "}");
+              + "    \"id\": " + poiId + ",\n"
+              + "    \"payload\": \"" + payload + "\",\n"
+              + "    \"type\": \"" + type + "\",\n"
+              + "    \"priority\": \"" + priority + "\"\n"
+              + "}");
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
     }

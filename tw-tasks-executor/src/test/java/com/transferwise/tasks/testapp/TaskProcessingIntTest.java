@@ -1,5 +1,8 @@
 package com.transferwise.tasks.testapp;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.tasks.BaseIntTest;
@@ -20,20 +23,17 @@ import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.aop.framework.Advised;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.aop.framework.Advised;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 public class TaskProcessingIntTest extends BaseIntTest {
@@ -64,24 +64,24 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
   @Test
   void allUniqueTasksWillGetProcessed() throws Exception {
-    int initialProcessingsCount = counterSum("twTasks.tasks.processingsCount");
-    int initialProcessedCount = counterSum("twTasks.tasks.processedCount");
-    int initialDuplicatesCount = counterSum("twTasks.tasks.duplicatesCount");
-    long initialSummaryCount = timerSum("twTasks.tasks.processingTime");
+    final int initialProcessingsCount = counterSum("twTasks.tasks.processingsCount");
+    final int initialProcessedCount = counterSum("twTasks.tasks.processedCount");
+    final int initialDuplicatesCount = counterSum("twTasks.tasks.duplicatesCount");
+    final long initialSummaryCount = timerSum("twTasks.tasks.processingTime");
 
-    int DUPLICATES_MULTIPLIER = 2;
-    int UNIQUE_TASKS_COUNT = 500;
-    int SUBMITTING_THREADS_COUNT = 10;
-    int TASK_PROCESSING_CONCURRENCY = 100;
+    final int duplicatesMultiplier = 2;
+    final int uniqueTasksCount = 500;
+    final int submittingThreadsCount = 10;
+    final int taskProcessingConcurrency = 100;
 
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(TASK_PROCESSING_CONCURRENCY));
+    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
 
     // when
-    ExecutorService executorService = Executors.newFixedThreadPool(SUBMITTING_THREADS_COUNT);
+    ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
 
-    for (int j = 0; j < DUPLICATES_MULTIPLIER; j++) {
-      for (int i = 0; i < UNIQUE_TASKS_COUNT; i++) {
+    for (int j = 0; j < duplicatesMultiplier; j++) {
+      for (int i = 0; i < uniqueTasksCount; i++) {
         final int key = i;
         executorService.submit(() -> {
           try {
@@ -103,7 +103,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     log.info("All tasks have been registered.");
     long start = System.currentTimeMillis();
 
-    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().size() == UNIQUE_TASKS_COUNT);
+    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().size() == uniqueTasksCount);
 
     long end = System.currentTimeMillis();
     log.info("Tasks execution took {} ms", end - start);
@@ -114,19 +114,19 @@ public class TaskProcessingIntTest extends BaseIntTest {
     assertEquals(0, consumerBucket.getUnprocessedFetchedRecordsCount());
 
     await().until(() -> consumerBucket.getOffsetsToBeCommitedCount() == 0);
-    assertEquals(UNIQUE_TASKS_COUNT, resultRegisteringSyncTaskProcessor.getTaskResults().size());
+    assertEquals(uniqueTasksCount, resultRegisteringSyncTaskProcessor.getTaskResults().size());
 
     // instrumentation assertion
-    assertEquals(UNIQUE_TASKS_COUNT + initialProcessingsCount, counterSum("twTasks.tasks.processingsCount"));
-    assertEquals(UNIQUE_TASKS_COUNT + initialProcessedCount, counterSum("twTasks.tasks.processedCount"));
-    assertEquals(UNIQUE_TASKS_COUNT + initialDuplicatesCount, counterSum("twTasks.tasks.duplicatesCount"));
-    assertEquals(UNIQUE_TASKS_COUNT + initialSummaryCount, timerSum("twTasks.tasks.processingTime"));
+    assertEquals(uniqueTasksCount + initialProcessingsCount, counterSum("twTasks.tasks.processingsCount"));
+    assertEquals(uniqueTasksCount + initialProcessedCount, counterSum("twTasks.tasks.processedCount"));
+    assertEquals(uniqueTasksCount + initialDuplicatesCount, counterSum("twTasks.tasks.duplicatesCount"));
+    assertEquals(uniqueTasksCount + initialSummaryCount, timerSum("twTasks.tasks.processingTime"));
 
     assertEquals(ITasksService.TasksProcessingState.STARTED, tasksService.getTasksProcessingState(null));
   }
 
   @Test
-  void aTaskRunningForTooLongWillBeHandled() throws Exception {
+  void taskRunningForTooLongWillBeHandled() throws Exception {
     ResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor = new ResultRegisteringSyncTaskProcessor() {
       @Override
       public ISyncTaskProcessor.ProcessResult process(ITask task) {
@@ -161,7 +161,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
     await().atMost(30, TimeUnit.SECONDS).until(() -> {
       int proceessedTasksCount = resultRegisteringSyncTaskProcessor.getTaskResults().size();
-      if (proceessedTasksCount > 1) {// Will explode if we restarted stuck task above.
+      // Will explode if we restarted stuck task above.
+      if (proceessedTasksCount > 1) {
         throw new RuntimeException("We have more running tasks than we expect");
       }
 
@@ -174,8 +175,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
       if (proceessedTasksCount == 1) {
         throw new RuntimeException(
-            "Let's fail, as it means that task completed earlier, than was marked" +
-                " as error, which probably means that stuck task processor didn't work"
+            "Let's fail, as it means that task completed earlier, than was marked"
+                + " as error, which probably means that stuck task processor didn't work"
         );
       }
       return taskWasMarkedAsError;
@@ -189,7 +190,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
   }
 
   @Test
-  void aTaskWithHugeMessageCanBeHandled() {
+  void taskWithHugeMessageCanBeHandled() {
     StringBuilder sb = new StringBuilder();
     // 11MB
     for (int i = 0; i < 1000 * 1000; i++) {
@@ -216,7 +217,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
   }
 
   @Test
-  void aTaskWithUnknownBucketIsMovedToErrorState() {
+  void taskWithUnknownBucketIsMovedToErrorState() {
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setProcessingBucket("unknown-bucket"));
 

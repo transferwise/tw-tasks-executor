@@ -1,16 +1,16 @@
 package com.transferwise.tasks.utils;
 
-import org.apache.commons.lang3.RandomUtils;
-import org.junit.jupiter.api.Test;
-import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class UUIDUtilTest {
+import java.util.UUID;
+import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.Test;
+
+class UuidUtilTest {
 
   @Test
-  void convertingFromUUIDAndBackToBytesEndWithTheSameResult() {
+  void convertingFromUuidAndBackToBytesEndWithTheSameResult() {
     UUID expected = UUID.randomUUID();
 
     byte[] bytes = UuidUtils.toBytes(expected);
@@ -20,7 +20,7 @@ class UUIDUtilTest {
   }
 
   @Test
-  void convertingFromBytesAndBackToUUIDEndWithTheSameResult() {
+  void convertingFromBytesAndBackToUuidEndWithTheSameResult() {
     byte[] expected = RandomUtils.nextBytes(16);
 
     UUID uuid = UuidUtils.toUuid(expected);

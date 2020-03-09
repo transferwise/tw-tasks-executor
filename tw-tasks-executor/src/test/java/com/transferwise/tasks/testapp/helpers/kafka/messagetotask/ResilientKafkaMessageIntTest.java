@@ -1,5 +1,8 @@
 package com.transferwise.tasks.testapp.helpers.kafka.messagetotask;
 
+import static com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
@@ -7,17 +10,14 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.CorruptedKafkaMessage;
 import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
+import java.util.Collections;
+import java.util.List;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.util.Collections;
-import java.util.List;
-
-import static com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ResilientKafkaMessageIntTest extends BaseIntTest {
 

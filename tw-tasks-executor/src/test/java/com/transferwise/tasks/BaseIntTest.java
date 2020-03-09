@@ -9,6 +9,7 @@ import com.transferwise.tasks.testapp.TestTaskHandler;
 import com.transferwise.tasks.testapp.config.TestApplication;
 import com.transferwise.tasks.testapp.config.TestConfiguration;
 import com.transferwise.tasks.testapp.config.TestContainersInitializer;
+import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.Rule;
@@ -24,7 +25,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
-import java.util.concurrent.TimeUnit;
 
 @ActiveProfiles(profiles = {"test", "mysql"}, resolver = SystemPropertyActiveProfilesResolver.class)
 @SpringBootTest(classes = {TestConfiguration.class, TestApplication.class}, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)

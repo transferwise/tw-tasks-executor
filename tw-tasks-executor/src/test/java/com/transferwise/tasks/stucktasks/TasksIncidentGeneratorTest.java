@@ -1,20 +1,19 @@
 package com.transferwise.tasks.stucktasks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
+
 import com.transferwise.common.incidents.Incident;
+import com.transferwise.tasks.BaseTest;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.health.ITasksStateMonitor;
 import com.transferwise.tasks.health.TasksIncidentGenerator;
-import com.transferwise.tasks.BaseTest;
+import java.util.Arrays;
+import java.util.List;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 
 class TasksIncidentGeneratorTest extends BaseTest {
 

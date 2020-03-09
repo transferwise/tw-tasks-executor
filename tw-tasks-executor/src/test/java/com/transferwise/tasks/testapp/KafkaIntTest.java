@@ -1,5 +1,9 @@
 package com.transferwise.tasks.testapp;
 
+import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
@@ -7,20 +11,16 @@ import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessagesRequest;
-import lombok.extern.slf4j.Slf4j;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.awaitility.Awaitility.await;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 class KafkaIntTest extends BaseIntTest {
@@ -77,16 +77,16 @@ class KafkaIntTest extends BaseIntTest {
   @ValueSource(ints = {0, 1, 2, 3})
   void sendingBatchMessagesToKafkaWorks(int iteration) {
     String topic = "toKafkaBatchTestTopic";
-    int N = 1000;
+    int n = 1000;
 
     Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>();
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger());
     }
 
     transactionsHelper.withTransaction().asNew().call(() -> {
       SendMessagesRequest messages = new SendMessagesRequest().setTopic(topic);
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         messages.add(
             new IToKafkaSenderService.SendMessagesRequest.Message()
                 .setPayloadString("Message " + iteration + ":" + i)
@@ -125,10 +125,10 @@ class KafkaIntTest extends BaseIntTest {
   @ValueSource(ints = {0, 1, 2, 3})
   void sendingBatchMessagesToKafkaWorksWith5Partitions(int iteration) {
     String topic = "toKafkaBatchTestTopic5Partitions";
-    int N = 1000;
+    int n = 1000;
 
     Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>();
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger());
     }
 
@@ -136,7 +136,7 @@ class KafkaIntTest extends BaseIntTest {
 
     transactionsHelper.withTransaction().asNew().call(() -> {
       SendMessagesRequest messages = new IToKafkaSenderService.SendMessagesRequest().setTopic(topic);
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         messages.add(
             new IToKafkaSenderService.SendMessagesRequest.Message()
                 .setPayloadString("Message " + iteration + ":" + i)
@@ -175,16 +175,16 @@ class KafkaIntTest extends BaseIntTest {
   @ValueSource(ints = {0, 1, 2, 3})
   void flakyMessagesAccepterWillNotStopTheProcessing(int iteration) {
     String topic = "toKafkaBatchTestTopic2";
-    int N = 10;
+    int n = 10;
 
     Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>();
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < n; i++) {
       messagesMap.put("Message " + iteration + ":" + i, new AtomicInteger());
     }
 
     transactionsHelper.withTransaction().asNew().call(() -> {
       SendMessagesRequest messages = new IToKafkaSenderService.SendMessagesRequest().setTopic(topic);
-      for (int i = 0; i < N; i++) {
+      for (int i = 0; i < n; i++) {
         messages.add(
             new IToKafkaSenderService.SendMessagesRequest.Message()
                 .setPayloadString("Message " + iteration + ":" + i)

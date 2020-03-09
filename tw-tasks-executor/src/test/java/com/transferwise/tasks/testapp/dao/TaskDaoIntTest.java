@@ -1,5 +1,11 @@
 package com.transferwise.tasks.testapp.dao;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.google.common.collect.ImmutableSet;
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.clock.TestClock;
@@ -14,9 +20,6 @@ import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
-import org.apache.commons.lang3.tuple.Pair;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -26,12 +29,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 abstract class TaskDaoIntTest extends BaseIntTest {
 
@@ -226,10 +226,10 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void getStuckTasksReturnsAllTasksToRetry() {
-    TestClock testClock = TestClock.createAndRegister();
-    UUID taskId = UUID.randomUUID();
+    final TestClock testClock = TestClock.createAndRegister();
+    final UUID taskId = UUID.randomUUID();
     addTask(taskId, TaskStatus.SUBMITTED);
-    ZonedDateTime oldNextEventTime = taskDao.getTask(taskId, FullTaskRecord.class).getNextEventTime();
+    final ZonedDateTime oldNextEventTime = taskDao.getTask(taskId, FullTaskRecord.class).getNextEventTime();
     addRandomTask(TaskStatus.SUBMITTED);
     testClock.tick(Duration.ofMillis(1));
 
@@ -249,7 +249,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   @Test
-  void markAsSubmittedAndSetNextEventTimePutsTheTaskInSUBMITTEDStateAndUpdatesNextEventTime() {
+  void markAsSubmittedAndSetNextEventTimePutsTheTaskInSubmittedStateAndUpdatesNextEventTime() {
     ZonedDateTime maxStuckTime = ZonedDateTime.now().plusHours(2);
     UUID taskId = UUID.randomUUID();
     addTask(taskId, TaskStatus.NEW);
@@ -577,14 +577,14 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   @Test
-  void gettingTasksByUUIDListWorks() {
-    UUID taskId1 = UUID.randomUUID();
-    UUID taskId2 = UUID.randomUUID();
-    UUID taskId3 = UUID.randomUUID();
-    UUID taskId4 = UUID.randomUUID();
-    UUID taskId5 = UUID.randomUUID();
-    UUID taskId6 = UUID.randomUUID();
-    UUID taskId7 = UUID.randomUUID();
+  void gettingTasksByUuidListWorks() {
+    final UUID taskId1 = UUID.randomUUID();
+    final UUID taskId2 = UUID.randomUUID();
+    final UUID taskId3 = UUID.randomUUID();
+    final UUID taskId4 = UUID.randomUUID();
+    final UUID taskId5 = UUID.randomUUID();
+    final UUID taskId6 = UUID.randomUUID();
+    final UUID taskId7 = UUID.randomUUID();
 
     addTask(taskId1);
     addTask();

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
+import com.transferwise.tasks.BaseTest;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.StuckTask;
@@ -21,7 +22,6 @@ import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy.StuckTaskResolutionStrategy;
 import com.transferwise.tasks.helpers.IMeterHelper;
-import com.transferwise.tasks.BaseTest;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import java.time.Clock;
 import java.time.Duration;
@@ -81,9 +81,9 @@ class TasksResumerTest extends BaseTest {
         .setType("TEST")
         .setStatus(TaskStatus.SUBMITTED.name())
         .setVersionId(new TaskVersionId(UUID.randomUUID(), 0));
-    AtomicInteger nResumed = new AtomicInteger();
+    AtomicInteger numResumed = new AtomicInteger();
 
-    service.handleStuckTask(task, nResumed, null, null);
+    service.handleStuckTask(task, numResumed, null, null);
 
     verify(tasksExecutionTriggerer).trigger(argThat(
         baseTask -> 1 == baseTask.getVersion() && task.getVersionId().getId().equals(baseTask.getId())
@@ -106,14 +106,6 @@ class TasksResumerTest extends BaseTest {
     lenient().when(taskDao.markAsSubmitted(any(), anyLong(), any())).thenReturn(true);
     lenient().when(taskDao.setStatus(any(), any(), anyLong())).thenReturn(true);
 
-    StuckTask task = new ITaskDao.StuckTask()
-        .setType("TEST")
-        .setStatus(TaskStatus.PROCESSING.name())
-        .setVersionId(new TaskVersionId(UUID.randomUUID(), 0));
-    AtomicInteger nResumed = new AtomicInteger();
-    AtomicInteger nError = new AtomicInteger();
-    AtomicInteger nFailed = new AtomicInteger();
-
     ITaskProcessingPolicy processingPolicy = Mockito.mock(ITaskProcessingPolicy.class);
     when(processingPolicy.getStuckTaskResolutionStrategy(any())).thenReturn(resolutionStrategy);
     lenient().when(processingPolicy.getProcessingDeadline(any())).thenReturn(null);
@@ -122,7 +114,14 @@ class TasksResumerTest extends BaseTest {
     when(taskHandlerRegistry.getTaskHandler(null).getProcessingPolicy(any())).thenReturn(processingPolicy);
 
     // triggering tasks handling
-    service.handleStuckTask(task, nResumed, nError, nFailed);
+    AtomicInteger numResumed = new AtomicInteger();
+    AtomicInteger numError = new AtomicInteger();
+    AtomicInteger numFailed = new AtomicInteger();
+    StuckTask task = new ITaskDao.StuckTask()
+        .setType("TEST")
+        .setStatus(TaskStatus.PROCESSING.name())
+        .setVersionId(new TaskVersionId(UUID.randomUUID(), 0));
+    service.handleStuckTask(task, numResumed, numError, numFailed);
 
     verify(tasksExecutionTriggerer, times(resumed)).trigger(argThat(
         baseTask -> baseTask.getVersion() == 1 && baseTask.getId().equals(task.getVersionId().getId())
@@ -142,9 +141,9 @@ class TasksResumerTest extends BaseTest {
         TaskStatus.FAILED,
         task.getVersionId().getVersion()
     );
-    assertEquals(resumed, nResumed.get());
-    assertEquals(error, nError.get());
-    assertEquals(failed, nFailed.get());
+    assertEquals(resumed, numResumed.get());
+    assertEquals(error, numError.get());
+    assertEquals(failed, numFailed.get());
   }
 
   private static Stream<Arguments> resolutionCasesForHandleStuckTransfers() {
