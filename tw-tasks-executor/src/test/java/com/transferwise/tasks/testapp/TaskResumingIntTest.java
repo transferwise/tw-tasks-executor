@@ -26,12 +26,6 @@ public class TaskResumingIntTest extends BaseIntTest {
   @Autowired
   private ITestTasksService testTasksService;
   @Autowired
-  protected TestTaskHandler testTaskHandlerAdapter;
-  @Autowired
-  protected IResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor;
-  @Autowired
-  protected ITransactionsHelper transactionsHelper;
-  @Autowired
   protected MeterRegistry meterRegistry;
 
   @BeforeEach

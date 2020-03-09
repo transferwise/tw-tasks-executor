@@ -156,9 +156,6 @@ tasks.findAll { it.name.startsWith("spotbugs") }*.configure {
     }
 }
 
-spotbugs {
-    spotbugsTest.enabled = false
-}
 
 tasks.withType(Checkstyle) {
     //Unfortunately it does not allow to suppress javadoc issues.

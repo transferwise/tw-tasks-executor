@@ -15,6 +15,7 @@ import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse.TaskStuck;
 import com.transferwise.tasks.stucktasks.TasksResumer;
 import java.time.ZonedDateTime;
@@ -70,8 +71,9 @@ public class TasksManagementIntTest extends BaseIntTest {
     );
 
     assertEquals(200, response.getStatusCodeValue());
-    assertNotNull(response.getBody());
-    List<TaskInError> tasksInError = response.getBody().getTasksInError();
+    GetTasksInErrorResponse tasksInErrorResponse = response.getBody();
+    assertNotNull(tasksInErrorResponse);
+    List<TaskInError> tasksInError = tasksInErrorResponse.getTasksInError();
     assertEquals(1, tasksInError.size());
     assertEquals(task1Id, tasksInError.get(0).getTaskVersionId().getId());
     assertEquals("T1", tasksInError.get(0).getType());
@@ -100,8 +102,9 @@ public class TasksManagementIntTest extends BaseIntTest {
     );
 
     assertEquals(200, response.getStatusCodeValue());
-    assertNotNull(response.getBody());
-    List<TaskStuck> tasksStuck = response.getBody().getTasksStuck();
+    GetTasksStuckResponse stuckTasksResponse = response.getBody();
+    assertNotNull(stuckTasksResponse);
+    List<TaskStuck> tasksStuck = stuckTasksResponse.getTasksStuck();
     assertEquals(tasksStuck.size(), 1);
     assertEquals(tasksStuck.get(0).getTaskVersionId().getId(), task1Id);
 

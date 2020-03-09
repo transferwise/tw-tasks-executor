@@ -101,7 +101,7 @@ class ToKafkaSenderServiceTest extends BaseTest {
       // 1 MiB ~1 MB
       request.add(new SendMessagesRequest.Message().setPayloadString(String.join("", randomStrings)));
     }
-    System.out.printf("Created 50 MB of random strings in %d ms.\n", System.currentTimeMillis() - millis);
+    System.out.printf("Created 50 MB of random strings in %d ms.%n", System.currentTimeMillis() - millis);
 
     // sending it
     toKafkaSenderService.sendMessages(request);
@@ -118,7 +118,7 @@ class ToKafkaSenderServiceTest extends BaseTest {
     String s2 = RandomStringUtils.randomAlphabetic(1024 * 1024 * 6); // two 6 MiB strings
     request.add(new SendMessagesRequest.Message().setPayloadString(s1));
     request.add(new SendMessagesRequest.Message().setPayloadString(s2));
-    System.out.printf("Created 2 random 6 MB strings in %d ms.\n", System.currentTimeMillis() - millis);
+    System.out.printf("Created 2 random 6 MB strings in %d ms.%n", System.currentTimeMillis() - millis);
 
     // sending it
     toKafkaSenderService.sendMessages(request);

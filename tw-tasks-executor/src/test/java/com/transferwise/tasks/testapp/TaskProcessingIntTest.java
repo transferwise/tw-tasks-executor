@@ -41,15 +41,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
   @Autowired
   protected ITasksService tasksService;
   @Autowired
-  protected TestTaskHandler testTaskHandlerAdapter;
-  @Autowired
   protected ITaskDao taskDao;
-  @Autowired
-  protected IResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor;
-  @Autowired
-  protected ITestTasksService testTasksService;
-  @Autowired
-  protected ITransactionsHelper transactionsHelper;
   @Autowired
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
   @Autowired
