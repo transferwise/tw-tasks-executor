@@ -11,6 +11,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -19,7 +20,7 @@ import org.springframework.http.RequestEntity;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
-//@Disabled("Not meant to be automatically run.")
+@Disabled("Not meant to be automatically run.")
 class DemoAppRealTest extends BaseTest {
 
   private RestTemplate restTemplate = new RestTemplate();

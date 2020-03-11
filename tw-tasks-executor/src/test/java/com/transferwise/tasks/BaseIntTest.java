@@ -12,12 +12,9 @@ import com.transferwise.tasks.testapp.config.TestContainersInitializer;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.rules.TestName;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootContextLoader;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -47,12 +44,6 @@ public abstract class BaseIntTest {
   @Autowired
   protected TestTaskHandler testTaskHandlerAdapter;
 
-  @Rule
-  public TestName testName = new TestName();
-
-  @Rule
-  public MockitoRule mockitoRule = MockitoJUnit.rule();
-
   @Autowired
   void setApplicationContext(ApplicationContext applicationContext) {
     TestApplicationContextHolder.setApplicationContext(applicationContext);
@@ -61,13 +52,13 @@ public abstract class BaseIntTest {
   private long startTimeMs = ClockHolder.getClock().millis();
 
   @BeforeEach
-  void setupBaseTest() {
+  void setupBaseTest(TestInfo testInfo) {
     startTimeMs = System.currentTimeMillis();
-    log.info("Setting up for '{}'", testName.getMethodName());
+    testInfo.getTestMethod().ifPresent(name -> log.info("Setting up for '{}'", name));
   }
 
   @AfterEach
-  void cleanupBaseTest() {
+  void cleanupBaseTest(TestInfo testInfo) {
     TestClock.reset();
     transactionsHelper.withTransaction().asNew().call(() -> {
       testTasksService.reset();
@@ -76,7 +67,9 @@ public abstract class BaseIntTest {
     resultRegisteringSyncTaskProcessor.reset();
     testTaskHandlerAdapter.reset();
 
-    log.info("Cleaning up for '{}' It took {} ms", testName.getMethodName(), System.currentTimeMillis() - startTimeMs);
+    testInfo.getTestMethod().ifPresent(name ->
+        log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)
+    );
   }
 }
 
