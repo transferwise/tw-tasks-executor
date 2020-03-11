@@ -9,12 +9,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@RequiredArgsConstructor
 public class TasksIncidentGenerator implements IncidentGenerator {
 
   /**
@@ -22,8 +20,10 @@ public class TasksIncidentGenerator implements IncidentGenerator {
    */
   public static final String TASK_CNT_KEY = "cnt";
 
-  private final TasksProperties tasksProperties;
-  private final ITasksStateMonitor tasksStateMonitor;
+  @Autowired
+  private TasksProperties tasksProperties;
+  @Autowired
+  private ITasksStateMonitor tasksStateMonitor;
 
   private Incident errorIncident;
   private Incident stuckIncident;

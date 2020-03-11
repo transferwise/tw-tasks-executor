@@ -184,8 +184,8 @@ public class TwTasksAutoConfiguration {
   }
 
   @Bean
-  public TasksIncidentGenerator twTasksStuckTasksIncidentGenerator(TasksProperties tasksProperties, ITasksStateMonitor tasksStateMonitor) {
-    return new TasksIncidentGenerator(tasksProperties, tasksStateMonitor);
+  public TasksIncidentGenerator twTasksStuckTasksIncidentGenerator() {
+    return new TasksIncidentGenerator();
   }
 
   @Bean
@@ -216,25 +216,9 @@ public class TwTasksAutoConfiguration {
   }
 
   @Bean
-  @SuppressWarnings({"rawtypes", "unchecked"})
-  public CoreKafkaListener twTasksCoreKafkaListener(
-      TwTasksKafkaConfiguration twTasksKafkaConfiguration,
-      IExecutorsHelper executorsHelper,
-      TasksProperties tasksProperties,
-      IKafkaMessageHandlerRegistry kafkaMessageHandlerRegistry,
-      ITopicPartitionsManager topicPartitionsManager,
-      IErrorLoggingThrottler errorLoggingThrottler,
-      IMeterHelper meterHelper
-  ) {
-    return new CoreKafkaListener(
-        twTasksKafkaConfiguration,
-        executorsHelper,
-        tasksProperties,
-        kafkaMessageHandlerRegistry,
-        topicPartitionsManager,
-        errorLoggingThrottler,
-        meterHelper
-    );
+  @SuppressWarnings("rawtypes")
+  public CoreKafkaListener twTasksCoreKafkaListener() {
+    return new CoreKafkaListener();
   }
 
   @Bean
