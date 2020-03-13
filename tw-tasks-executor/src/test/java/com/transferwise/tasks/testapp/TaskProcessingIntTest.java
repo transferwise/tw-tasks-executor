@@ -4,7 +4,6 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.dao.ITaskDao;
@@ -17,10 +16,8 @@ import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
-import com.transferwise.tasks.test.ITestTasksService;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
@@ -119,6 +116,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
   @Test
   void taskRunningForTooLongWillBeHandled() throws Exception {
+    final long initialMarkedAsErrors = getCountOfMarkedAsErrorTasks();
+
     ResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor = new ResultRegisteringSyncTaskProcessor() {
       @Override
       public ISyncTaskProcessor.ProcessResult process(ITask task) {
@@ -178,7 +177,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
     log.info("Tasks execution took {} ms.", end - start);
 
-    assertEquals(1, getCountOfMarkedAsErrorTasks());
+    await().until(() -> 1 + initialMarkedAsErrors == getCountOfMarkedAsErrorTasks());
   }
 
   @Test
@@ -245,11 +244,10 @@ public class TaskProcessingIntTest extends BaseIntTest {
   }
 
   private long getCountOfMarkedAsErrorTasks() {
-    Counter counter = meterRegistry.find("twTasks.tasks.markedAsErrorCount").counter();
-    if (counter == null) {
-      return 0;
-    } else {
-      return (long) counter.count();
-    }
+    return meterRegistry.find("twTasks.tasks.markedAsErrorCount")
+        .counters()
+        .stream()
+        .mapToInt(c -> (int) c.count())
+        .sum();
   }
 }
