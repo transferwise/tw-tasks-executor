@@ -194,7 +194,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   }
 
   @SuppressWarnings({"rawtypes", "unchecked"})
-  protected ConsumerBucket getConsumerBucket(String bucketId) {
+  public ConsumerBucket getConsumerBucket(String bucketId) {
     return ExceptionUtils.doUnchecked(() -> {
       ConsumerBucket consumerBucket = consumerBuckets.get(bucketId);
       if (consumerBucket == null) {
@@ -368,7 +368,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
   }
 
-  private void registerPolledOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
+  void registerPolledOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
     ConsumerTopicPartition consumerTopicPartition = consumerBucket.getConsumerTopicPartitions().get(topicPartition);
     if (consumerTopicPartition == null) {
       consumerBucket.getConsumerTopicPartitions().put(topicPartition, consumerTopicPartition = new ConsumerTopicPartition());
@@ -383,7 +383,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
   }
 
-  private void releaseCompletedOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
+  void releaseCompletedOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
     consumerBucket.getOffsetsStorageLock().lock();
     try {
       ConsumerTopicPartition consumerTopicPartition = consumerBucket.getConsumerTopicPartitions().get(topicPartition);
