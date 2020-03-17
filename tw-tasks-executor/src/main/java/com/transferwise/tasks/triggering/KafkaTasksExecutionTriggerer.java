@@ -142,7 +142,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       meterHelper.registerTaskMarkedAsError(null, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
         meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
-        log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()));
+        log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
       return;
     }
@@ -155,7 +155,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       meterHelper.registerTaskMarkedAsError(processingBucketId, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
         meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
-        log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()));
+        log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
       return;
     }
