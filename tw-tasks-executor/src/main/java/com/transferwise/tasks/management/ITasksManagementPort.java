@@ -13,6 +13,7 @@ import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -23,7 +24,7 @@ public interface ITasksManagementPort {
 
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/markTasksAsFailed", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  MarkTasksAsFailedResponse markTasksAsFailed(@RequestBody MarkTasksAsFailedRequest request);
+  ResponseEntity<MarkTasksAsFailedResponse> markTasksAsFailed(@RequestBody MarkTasksAsFailedRequest request);
 
   @Data
   @Accessors(chain = true)
@@ -54,7 +55,7 @@ public interface ITasksManagementPort {
 
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/resumeTasksImmediately", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  ResumeTasksImmediatelyResponse resumeTasksImmediately(@RequestBody ResumeTasksImmediatelyRequest request);
+  ResponseEntity<ResumeTasksImmediatelyResponse> resumeTasksImmediately(@RequestBody ResumeTasksImmediatelyRequest request);
 
   @Data
   @Accessors(chain = true)
@@ -74,7 +75,7 @@ public interface ITasksManagementPort {
    */
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/resumeAllTasksImmediately", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  ResumeTasksImmediatelyResponse resumeAllTasksImmediately(@RequestBody ResumeAllTasksImmediatelyRequest request);
+  ResponseEntity<ResumeTasksImmediatelyResponse> resumeAllTasksImmediately(@RequestBody ResumeAllTasksImmediatelyRequest request);
 
   @Data
   @Accessors(chain = true)
@@ -104,21 +105,38 @@ public interface ITasksManagementPort {
 
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/getTasksInError", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  GetTasksInErrorResponse getTasksInError(@RequestBody(required = false) GetTasksInErrorRequest request);
+  ResponseEntity<GetTasksInErrorResponse> getTasksInError(@RequestBody(required = false) GetTasksInErrorRequest request);
 
   //TODO: Move to RPC form, REST sucks.
   //      add it to UI
   @GetMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/task/{taskId}/noData", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  TaskWithoutData getTask(@PathVariable final String taskId);
+  ResponseEntity<TaskWithoutData> getTask(@PathVariable final String taskId);
+
+  @GetMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/task/{taskId}/data", produces = {MediaType.APPLICATION_JSON_VALUE})
+  @ResponseBody
+  ResponseEntity<GetTaskDataResponse> getTaskData(@PathVariable final UUID taskId);
+
+  @Data
+  @Accessors(chain = true)
+  class GetTaskDataResponse {
+
+    private String data;
+    private ResultCode resultCode;
+
+    public enum ResultCode {
+      SUCCESS, NOT_FOUND
+    }
+  }
 
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/getTasksInProcessingOrWaiting", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  GetTasksInProcessingOrWaitingResponse getTasksInProcessingOrWaiting(@RequestBody(required = false) GetTasksInProcessingOrWaitingRequest request);
+  ResponseEntity<GetTasksInProcessingOrWaitingResponse> getTasksInProcessingOrWaiting(
+      @RequestBody(required = false) GetTasksInProcessingOrWaitingRequest request);
 
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/getTasksById", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  GetTasksByIdResponse getTasksById(@RequestBody GetTasksByIdRequest request);
+  ResponseEntity<GetTasksByIdResponse> getTasksById(@RequestBody GetTasksByIdRequest request);
 
   @Data
   @Accessors(chain = true)
@@ -151,7 +169,7 @@ public interface ITasksManagementPort {
   @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
   class TaskWithoutData {
 
-    // keep it without PII (task data) please, so devs can use it for debugging
+    // keep it without PII (task data)
     private String id;
     private long version;
     private String type;
@@ -215,7 +233,7 @@ public interface ITasksManagementPort {
 
   @PostMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/getTasksStuck", produces = MediaType.APPLICATION_JSON_VALUE)
   @ResponseBody
-  GetTasksStuckResponse getTasksStuck(@RequestBody(required = false) GetTasksStuckRequest request);
+  ResponseEntity<GetTasksStuckResponse> getTasksStuck(@RequestBody(required = false) GetTasksStuckRequest request);
 
   @Data
   @Accessors(chain = true)

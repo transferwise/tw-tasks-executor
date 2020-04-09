@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.tasks.BaseIntTest;
@@ -21,6 +23,7 @@ import com.transferwise.tasks.stucktasks.TasksResumer;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -28,8 +31,10 @@ import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-public class TasksManagementIntTest extends BaseIntTest {
+public class TasksManagementPortIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
@@ -119,6 +124,8 @@ public class TasksManagementIntTest extends BaseIntTest {
     assertEquals(2, response.getBody().getTasksStuck().size());
   }
 
+  @SneakyThrows
+  @WithMockUser(value = "a good user", authorities = {"RANDOM1", "NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY", "RANDOM2"})
   @ParameterizedTest(name = "find a task in {0} state")
   @EnumSource(value = TaskStatus.class, names = "UNKNOWN", mode = Mode.EXCLUDE)
   void findATaskInAGivenStatus(TaskStatus status) {
@@ -127,6 +134,7 @@ public class TasksManagementIntTest extends BaseIntTest {
     final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(status)
+            .withData("the payload")
             .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
             .build()
     );
@@ -141,6 +149,21 @@ public class TasksManagementIntTest extends BaseIntTest {
     assertEquals(taskId.toString(), response.getBody().getId());
     assertEquals("test", response.getBody().getType());
     assertEquals(status.name(), response.getBody().getStatus());
+
+    // test the endpoint with payload data
+    mockMvc.perform(MockMvcRequestBuilders.get("/v1/twTasks/task/" + taskId + "/data"))
+        .andExpect(status().isOk())
+        .andExpect(content().string("{\"data\":\"the payload\",\"resultCode\":\"SUCCESS\"}"))
+        .andExpect(content().contentType("application/json"));
+  }
+
+  @SneakyThrows
+  @Test
+  @WithMockUser(value = "a funky user", authorities = "READ_MINDS")
+  void wrongRoleCannotViewTaskData() {
+    mockMvc.perform(MockMvcRequestBuilders.get("/v1/twTasks/task/99e30d10-a085-4708-9591-d5159ff1056c/data"))
+        .andExpect(status().isForbidden())
+        .andExpect(content().string(""));
   }
 
   @Test

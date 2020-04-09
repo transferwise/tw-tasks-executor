@@ -19,8 +19,8 @@ public class KafkaMessageTypeIgnorantToTaskConverter implements IKafkaMessageHan
   protected ITasksService tasksService;
 
   private List<Topic> topics;
-  private BiConsumer<ConsumerRecord<String, String>, ITasksService.AddTaskRequest> consumer;
-  private Predicate<String> handlesPredicate = checkedTopic -> {
+  private final BiConsumer<ConsumerRecord<String, String>, ITasksService.AddTaskRequest> consumer;
+  private final Predicate<String> handlesPredicate = checkedTopic -> {
     for (Topic topic : topics) {
       if (checkedTopic.endsWith(topic.getAddress())) {
         return true;

@@ -42,7 +42,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
 
   private ExecutorService executorService;
   private boolean shuttingDown;
-  private List<MyTopic> topics = new ArrayList<>();
+  private final List<MyTopic> topics = new ArrayList<>();
   private List<String> kafkaDataCenterPrefixes;
 
   /**

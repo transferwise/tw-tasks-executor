@@ -42,7 +42,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
 
   private LeaderSelector leaderSelector;
 
-  private List<DeletableStatus> deletableStatuses = new ArrayList<>();
+  private final List<DeletableStatus> deletableStatuses = new ArrayList<>();
 
   @PostConstruct
   public void init() {

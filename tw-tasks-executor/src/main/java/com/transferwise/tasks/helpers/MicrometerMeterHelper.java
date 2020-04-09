@@ -23,16 +23,16 @@ import org.apache.commons.lang3.tuple.Triple;
 @Slf4j
 public class MicrometerMeterHelper implements IMeterHelper {
 
-  private static String TAG_BUCKET_ID = "bucketId";
-  private static String TAG_TASK_TYPE = "taskType";
-  private static String TAG_REASON = "reason";
+  private static final String TAG_BUCKET_ID = "bucketId";
+  private static final String TAG_TASK_TYPE = "taskType";
+  private static final String TAG_REASON = "reason";
   private static String TAG_PROCESSING_RESULT = "processingResult";
   private static String TAG_FROM_STATUS = "fromStatus";
   private static String TAG_TO_STATUS = "toStatus";
 
   private final MeterRegistry meterRegistry;
 
-  private Map<Triple<String, String, String>, AtomicInteger> gauges = new ConcurrentHashMap<>();
+  private final Map<Triple<String, String, String>, AtomicInteger> gauges = new ConcurrentHashMap<>();
 
   @Override
   public void registerTaskMarkedAsError(String bucketId, String taskType) {

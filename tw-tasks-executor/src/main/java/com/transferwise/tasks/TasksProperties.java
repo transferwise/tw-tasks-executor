@@ -2,7 +2,11 @@ package com.transferwise.tasks;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.Errors;
@@ -228,6 +232,8 @@ public class TasksProperties {
     MYSQL, POSTGRES
   }
 
+  private TasksManagement tasksManagement = new TasksManagement();
+
   public static class Validator implements org.springframework.validation.Validator {
 
     @Override
@@ -242,5 +248,14 @@ public class TasksProperties {
       ValidationUtils.rejectIfEmpty(errors, "zookeeperConnectString", "zookeeperConnectString.empty");
       ValidationUtils.rejectIfEmpty(errors, "dbType", "dbType.empty");
     }
+  }
+
+  @Data
+  public static class TasksManagement {
+
+    private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
+    // TODO: We move to = new HashSet<>(Arrays.asList("ROLE_DEVEL"));
+    //       with next PR. Needs to fix many tests.
+    private Set<String> roles;
   }
 }

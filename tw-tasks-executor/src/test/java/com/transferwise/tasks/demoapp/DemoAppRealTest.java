@@ -23,7 +23,7 @@ import org.springframework.web.client.RestTemplate;
 @Disabled("Not meant to be automatically run.")
 class DemoAppRealTest extends BaseTest {
 
-  private RestTemplate restTemplate = new RestTemplate();
+  private final RestTemplate restTemplate = new RestTemplate();
 
   @Test
   void boundedExecutorWorks() throws Exception {

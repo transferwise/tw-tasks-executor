@@ -54,8 +54,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private IMeterHelper meterHelper;
 
   private ExecutorService afterCommitExecutorService;
-  private AtomicInteger inProgressAfterCommitTasks = new AtomicInteger();
-  private AtomicInteger activeAfterCommitTasks = new AtomicInteger();
+  private final AtomicInteger inProgressAfterCommitTasks = new AtomicInteger();
+  private final AtomicInteger activeAfterCommitTasks = new AtomicInteger();
 
   @PostConstruct
   public void init() {

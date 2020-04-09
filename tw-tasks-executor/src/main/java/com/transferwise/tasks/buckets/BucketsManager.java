@@ -27,7 +27,7 @@ public class BucketsManager implements IBucketsManager {
   @Autowired
   private IMeterHelper meterHelper;
 
-  private Map<String, BucketProperties> bucketsProperties = new ConcurrentHashMap<>();
+  private final Map<String, BucketProperties> bucketsProperties = new ConcurrentHashMap<>();
   private List<String> bucketIds;
 
   @PostConstruct

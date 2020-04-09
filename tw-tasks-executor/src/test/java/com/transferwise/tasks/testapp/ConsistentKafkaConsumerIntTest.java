@@ -43,9 +43,8 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
         .setTopics(Collections.singletonList(testTopic))
         .setShouldFinishPredicate(shouldFinish::get)
         .setShouldPollPredicate(() -> !shouldFinish.get())
-        .setRecordConsumer(consumerRecord -> {
-          log.info("Received message '{}': {}.", consumerRecord.value(), messagesReceivedCounts.get(consumerRecord.value()).incrementAndGet());
-        });
+        .setRecordConsumer(consumerRecord -> log
+            .info("Received message '{}': {}.", consumerRecord.value(), messagesReceivedCounts.get(consumerRecord.value()).incrementAndGet()));
 
     Thread consumerThread = new Thread(consumer::consume);
     consumerThread.start();

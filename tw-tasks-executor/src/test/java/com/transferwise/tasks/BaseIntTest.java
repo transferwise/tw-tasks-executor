@@ -16,17 +16,20 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootContextLoader;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles(profiles = {"test", "mysql"}, resolver = SystemPropertyActiveProfilesResolver.class)
 @SpringBootTest(classes = {TestConfiguration.class, TestApplication.class}, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(loader = SpringBootContextLoader.class, initializers = {TestContainersInitializer.class})
 @Slf4j
+@AutoConfigureMockMvc
 public abstract class BaseIntTest {
 
   static {
@@ -48,6 +51,9 @@ public abstract class BaseIntTest {
   void setApplicationContext(ApplicationContext applicationContext) {
     TestApplicationContextHolder.setApplicationContext(applicationContext);
   }
+
+  @Autowired
+  protected MockMvc mockMvc;    // use for testing secured endpoints
 
   private long startTimeMs = ClockHolder.getClock().millis();
 

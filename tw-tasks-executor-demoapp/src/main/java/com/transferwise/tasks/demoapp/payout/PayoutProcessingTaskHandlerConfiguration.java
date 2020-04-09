@@ -48,8 +48,8 @@ public class PayoutProcessingTaskHandlerConfiguration {
   @Bean
   public ITaskConcurrencyPolicy taskConcurrencyPolicy() {
     return new ITaskConcurrencyPolicy() {
-      private AtomicInteger totalInProgressCnt = new AtomicInteger();
-      private AtomicInteger lhvInProgressCnt = new AtomicInteger();
+      private final AtomicInteger totalInProgressCnt = new AtomicInteger();
+      private final AtomicInteger lhvInProgressCnt = new AtomicInteger();
 
       @Override
       public boolean bookSpaceForTask(IBaseTask task) {

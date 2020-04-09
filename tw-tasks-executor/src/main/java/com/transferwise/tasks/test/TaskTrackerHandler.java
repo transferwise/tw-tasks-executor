@@ -7,7 +7,7 @@ import java.util.List;
 
 public class TaskTrackerHandler {
 
-  private List<ITasksService.AddTaskRequest> requests = new ArrayList<>();
+  private final List<ITasksService.AddTaskRequest> requests = new ArrayList<>();
 
   void track(ITasksService.AddTaskRequest request) {
     requests.add(request);

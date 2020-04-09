@@ -5,9 +5,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class ExecutorThreadFactory implements ThreadFactory {
 
-  private AtomicInteger threadNumber = new AtomicInteger(0);
-  private ThreadGroup group;
-  private String groupName;
+  private final AtomicInteger threadNumber = new AtomicInteger(0);
+  private final ThreadGroup group;
+  private final String groupName;
 
   public ExecutorThreadFactory(String groupName) {
     this.groupName = groupName;

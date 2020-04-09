@@ -41,7 +41,7 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
 
   private boolean shuttingDown;
 
-  private List<String> topics = new ArrayList<>();
+  private final List<String> topics = new ArrayList<>();
 
   @PostConstruct
   public void init() {

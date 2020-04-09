@@ -105,10 +105,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private volatile boolean shuttingDown;
   private String triggerTopic;
   private Map<String, Object> kafkaConsumerProps;
-  private Map<String, ConsumerBucket> consumerBuckets = new ConcurrentHashMap<>();
-  private Map<String, ProcessingBucket> processingBuckets = new ConcurrentHashMap<>();
-  private AtomicInteger pollingBucketsCount = new AtomicInteger();
-  private Lock lifecycleLock = new ReentrantLock();
+  private final Map<String, ConsumerBucket> consumerBuckets = new ConcurrentHashMap<>();
+  private final Map<String, ProcessingBucket> processingBuckets = new ConcurrentHashMap<>();
+  private final AtomicInteger pollingBucketsCount = new AtomicInteger();
+  private final Lock lifecycleLock = new ReentrantLock();
 
   @PostConstruct
   public void init() {

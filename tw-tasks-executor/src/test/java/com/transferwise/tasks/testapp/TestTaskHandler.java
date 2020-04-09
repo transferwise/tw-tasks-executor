@@ -16,11 +16,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class TestTaskHandler extends TaskHandlerAdapter {
 
-  private static ISyncTaskProcessor syncTaskProcessor = task -> {
+  private static final ISyncTaskProcessor syncTaskProcessor = task -> {
     log.info("Task '" + task.getVersionId() + "' finished.");
     return null;
   };
-  private static Predicate<IBaseTask> handlesPredicate = (task) -> task.getType().equals("test");
+  private static final Predicate<IBaseTask> handlesPredicate = (task) -> task.getType().equals("test");
 
   public TestTaskHandler() {
     super(handlesPredicate, syncTaskProcessor);
