@@ -15,7 +15,6 @@ import com.transferwise.tasks.dao.PostgresTaskDao;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
-import com.transferwise.tasks.health.TasksIncidentGenerator;
 import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.MicrometerMeterHelper;
@@ -177,11 +176,6 @@ public class TwTasksAutoConfiguration {
       return new AdminClientTopicPartitionsManager();
     }
     return new NoOpTopicPartitionsManager();
-  }
-
-  @Bean
-  public TasksIncidentGenerator twTasksStuckTasksIncidentGenerator() {
-    return new TasksIncidentGenerator();
   }
 
   @Bean

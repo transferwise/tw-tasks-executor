@@ -21,7 +21,6 @@ dependencies {
     implementation 'com.transferwise.common:tw-base-utils:1.2.8'
     implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.4'
     implementation 'com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2'
-    implementation 'com.transferwise.common:tw-incidents:1.0.1'
     implementation 'org.apache.commons:commons-lang3'
     implementation 'commons-io:commons-io:2.6'
     implementation 'com.newrelic.agent.java:newrelic-api:5.10.0'
