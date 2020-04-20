@@ -31,6 +31,10 @@ public class ExponentialTaskRetryPolicy implements ITaskRetryPolicy {
       return null;
     }
     long addedTimeMs = delay.toMillis() * (long) Math.pow(multiplier, (triesCount - 1));
+    if (addedTimeMs < 0) {
+      // avoid overflows causing dates in the past to be generated
+      addedTimeMs = Long.MAX_VALUE;
+    }
     if (maxDelay != null && addedTimeMs > maxDelay.toMillis()) {
       addedTimeMs = maxDelay.toMillis();
     }
