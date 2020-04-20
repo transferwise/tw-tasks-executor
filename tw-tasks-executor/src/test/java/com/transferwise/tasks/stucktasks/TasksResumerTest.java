@@ -65,7 +65,7 @@ class TasksResumerTest extends BaseTest {
   @InjectMocks
   private TasksResumer service;
 
-  private ZonedDateTime now = ZonedDateTime.now(ClockHolder.getClock());
+  private final ZonedDateTime now = ZonedDateTime.now(ClockHolder.getClock());
 
   @BeforeEach
   void setup() {

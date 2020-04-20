@@ -53,7 +53,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   // For tests.
   private volatile boolean paused;
 
-  private int batchSize = 1000;
+  private final int batchSize = 1000;
 
   @PostConstruct
   public void init() {

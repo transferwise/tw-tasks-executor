@@ -33,6 +33,7 @@ public class TaskVersionId implements ITaskVersionId {
   }
 
   public static class TaskVersionIdJsonSerializer extends StdSerializer<TaskVersionId> {
+
     private static final long serialVersionUID = 1L;
 
     public TaskVersionIdJsonSerializer() {
@@ -46,6 +47,7 @@ public class TaskVersionId implements ITaskVersionId {
   }
 
   public static class TaskVersionIdJsonDeserializer extends StdDeserializer<TaskVersionId> {
+
     private static final long serialVersionUID = 1L;
 
     public TaskVersionIdJsonDeserializer() {

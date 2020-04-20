@@ -9,7 +9,7 @@ import org.slf4j.MDC;
 
 public class MdcContext {
 
-  private static ThreadLocal<Set<String>> keysSet = new ThreadLocal<>();
+  private static final ThreadLocal<Set<String>> keysSet = new ThreadLocal<>();
 
   private MdcContext() {
     throw new UnsupportedOperationException();

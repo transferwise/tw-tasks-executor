@@ -16,7 +16,7 @@ public class SimpleTaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
 
   protected int maxInProgressCnt;
 
-  protected AtomicInteger inProgressCnt = new AtomicInteger();
+  protected final AtomicInteger inProgressCnt = new AtomicInteger();
 
   public SimpleTaskConcurrencyPolicy(int maxConcurrency) {
     this.maxConcurrency = maxConcurrency;

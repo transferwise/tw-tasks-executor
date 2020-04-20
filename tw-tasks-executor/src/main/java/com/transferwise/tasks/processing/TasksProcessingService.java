@@ -94,22 +94,22 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
 
-  private AtomicInteger runningTasksCount = new AtomicInteger();
+  private final AtomicInteger runningTasksCount = new AtomicInteger();
 
   private ExecutorService taskExecutor;
   private ExecutorService tasksProcessingExecutor;
   private ExecutorService tasksGrabbingExecutor;
 
   private volatile boolean shuttingDown;
-  private AtomicInteger ongoingTasksGrabbingsCount = new AtomicInteger();
+  private final AtomicInteger ongoingTasksGrabbingsCount = new AtomicInteger();
 
   private Consumer<TaskTriggering> taskTriggeringProcessingListener;
 
-  private AtomicLong taskTriggeringSequence = new AtomicLong(0);
+  private final AtomicLong taskTriggeringSequence = new AtomicLong(0);
 
   private Instant shutdownStartTime;
-  private Set<Thread> tasksProcessingThreads = new HashSet<>();
-  private Lock tasksProcessingThreadsLock = new ReentrantLock();
+  private final Set<Thread> tasksProcessingThreads = new HashSet<>();
+  private final Lock tasksProcessingThreadsLock = new ReentrantLock();
 
   @PostConstruct
   public void init() {
@@ -614,7 +614,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         && Duration.between(shutdownStartTime, Instant.now(ClockHolder.getClock()))
         .compareTo(tasksProperties.getInterruptTasksAfterShutdownTime()) > 0) {
       LockUtils.withLock(tasksProcessingThreadsLock, () -> {
-        ;
         log.info("taskProcessingThreads: " + tasksProcessingThreads.size());
         for (Thread thread : tasksProcessingThreads) {
           log.info("Interrupting thread: " + thread);

@@ -17,8 +17,7 @@ public interface ITasksService {
    * <p>If you want a uniqueness guarantee, you can provide a unique task id (UUID) or unique key (not recommended for performance reasons).
    *
    * <p>If you want to schedule a task to run only after a specific time, provide runAfterTime value. Otherwise the task will be run immediately
-   * after
-   * transaction commit. A scheduled task will be resumed by the leader node polling for it (less efficient).
+   * after transaction commit. A scheduled task will be resumed by the leader node polling for it (less efficient).
    *
    * <p>Default priority is 5. The higher the number, the higher the priority and the higher the chance the task will be run before other tasks.
    *

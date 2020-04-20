@@ -17,6 +17,7 @@ dependencies {
     compileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
     // Optional end
 
+    implementation 'org.springframework.security:spring-security-web'
     implementation 'com.transferwise.common:tw-leader-selector:1.1.2'
     implementation 'com.transferwise.common:tw-base-utils:1.2.8'
     implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.4'
@@ -36,6 +37,8 @@ dependencies {
 
     testCompileOnly 'com.github.spotbugs:spotbugs-annotations:3.1.12'
 
+    testImplementation 'org.springframework.security:spring-security-config'
+    testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-web'
     testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
     testImplementation 'org.springframework.boot:spring-boot-starter-actuator'

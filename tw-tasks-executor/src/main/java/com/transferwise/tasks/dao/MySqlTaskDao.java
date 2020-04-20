@@ -61,13 +61,13 @@ public class MySqlTaskDao implements ITaskDao {
   @Autowired
   protected TasksProperties tasksProperties;
 
-  private JdbcTemplate jdbcTemplate;
+  private final JdbcTemplate jdbcTemplate;
 
   public MySqlTaskDao(DataSource dataSource) {
     jdbcTemplate = new JdbcTemplate(dataSource);
   }
 
-  private ConcurrentHashMap<Pair<String, Integer>, String> sqlCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<Pair<String, Integer>, String> sqlCache = new ConcurrentHashMap<>();
 
   protected String insertTaskSql;
   protected String insertUniqueTaskKeySql;
@@ -102,7 +102,7 @@ public class MySqlTaskDao implements ITaskDao {
   protected String getEarliesTaskNextEventTimeSql;
   protected String getTaskVersionSql;
 
-  protected int[] questionBuckets = {1, 5, 25, 125, 625};
+  protected final int[] questionBuckets = {1, 5, 25, 125, 625};
 
   @PostConstruct
   public void init() {
@@ -371,6 +371,9 @@ public class MySqlTaskDao implements ITaskDao {
   @SuppressWarnings("unchecked")
   @Override
   public <T> T getTask(UUID taskId, Class<T> clazz) {
+    if (taskId == null) {
+      return null;
+    }
     if (clazz.equals(BaseTask1.class)) {
       List<BaseTask1> result = jdbcTemplate.query(getTaskSql, args(taskId), (rs, rowNum) ->
           new BaseTask1().setId(toUuid(rs.getObject(1)))

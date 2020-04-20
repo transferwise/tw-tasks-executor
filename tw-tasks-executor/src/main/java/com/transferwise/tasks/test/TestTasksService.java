@@ -19,8 +19,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class TestTasksService extends TasksService implements ITestTasksService {
 
   private Predicate<AddTaskRequest> newTaskInterceptPredicate;
-  private Map<TaskTrackerHandler, Predicate<AddTaskRequest>> taskAdditionTrackers = new HashMap<>();
-  private List<AddTaskRequest> interceptedNewTasks = new ArrayList<>();
+  private final Map<TaskTrackerHandler, Predicate<AddTaskRequest>> taskAdditionTrackers = new HashMap<>();
+  private final List<AddTaskRequest> interceptedNewTasks = new ArrayList<>();
 
   @Autowired
   private ITaskDao taskDao;
