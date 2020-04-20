@@ -69,8 +69,6 @@ tw-tasks:
       - emails
     configure-kafka-topics: true
     trigger-same-task-in-all-nodes: true
-    security-roles:
-      view-task-data: DEMOAPPSERVICE_VIEW_TASK_DATA
 
 spring.liquibase.change-log: 'classpath:db/changelog/db.tw-tasks-postgres.xml'
 
