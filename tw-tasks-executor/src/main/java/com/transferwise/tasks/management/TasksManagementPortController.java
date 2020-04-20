@@ -9,7 +9,6 @@ import java.sql.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -121,7 +120,6 @@ public class TasksManagementPortController implements ITasksManagementPort {
   @Override
   public ResponseEntity<GetTaskDataResponse> getTaskData(UUID taskId) {
     return callWithAuthentication(tasksProperties.getTasksManagement().getViewTaskDataRoles(),
-        (auth) -> log.info("User was lacking roles '{}' trying to fetch payload for task '{}'.", auth.getName(), taskId),
         (auth) -> {
           GetTaskDataResponse response = new GetTaskDataResponse();
 
@@ -197,12 +195,12 @@ public class TasksManagementPortController implements ITasksManagementPort {
   }
 
   protected <T> T callWithAuthentication(Supplier<T> supplier) {
-    return callWithAuthentication(tasksProperties.getTasksManagement().getRoles(), null, (auth) -> supplier.get());
+    return callWithAuthentication(tasksProperties.getTasksManagement().getRoles(), (auth) -> supplier.get());
   }
 
   @SuppressWarnings("unchecked")
-  protected <T> T callWithAuthentication(Set<String> roles, Consumer<Authentication> authFailureLogger, Function<Authentication, T> fun) {
-    final Authentication auth = getAuthenticationIfAllowed(roles, authFailureLogger);
+  protected <T> T callWithAuthentication(Set<String> roles, Function<Authentication, T> fun) {
+    final Authentication auth = getAuthenticationIfAllowed(roles);
 
     if (auth == null) {
       return (T) ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -211,7 +209,7 @@ public class TasksManagementPortController implements ITasksManagementPort {
     return fun.apply(auth);
   }
 
-  protected Authentication getAuthenticationIfAllowed(Set<String> roles, Consumer<Authentication> authFailureLogger) {
+  protected Authentication getAuthenticationIfAllowed(Set<String> roles) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null) {
       throw new AuthenticationServiceException("Service has no authentication configured");
@@ -228,9 +226,6 @@ public class TasksManagementPortController implements ITasksManagementPort {
       }
     }
 
-    if (authFailureLogger != null) {
-      authFailureLogger.accept(authentication);
-    }
     return null;
   }
 }
