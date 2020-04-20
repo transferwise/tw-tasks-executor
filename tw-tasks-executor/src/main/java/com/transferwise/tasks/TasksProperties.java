@@ -253,9 +253,17 @@ public class TasksProperties {
   @Data
   public static class TasksManagement {
 
+    /**
+     * A role for viewing PII data.
+     */
     private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
-    // TODO: We move to = new HashSet<>(Arrays.asList("ROLE_DEVEL"));
-    //       with next PR. Needs to fix many tests.
+    /**
+     * Roles for all other task management endpoints.
+     * 
+     * <p>TODO: We move to = new HashSet<>(Arrays.asList("ROLE_DEVEL"));
+     *       with next PR. Needs to fix many tests.
+     *
+     */
     private Set<String> roles;
   }
 }
