@@ -2,7 +2,6 @@ package com.transferwise.tasks;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -259,10 +258,9 @@ public class TasksProperties {
     private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
     /**
      * Roles for all other task management endpoints.
-     * 
-     * <p>TODO: We move to = new HashSet<>(Arrays.asList("ROLE_DEVEL"));
-     *       with next PR. Needs to fix many tests.
      *
+     * <p>TODO: We move to = new HashSet<>(Arrays.asList("ROLE_DEVEL"));
+     * with next PR. Needs to fix many tests.
      */
     private Set<String> roles;
   }
