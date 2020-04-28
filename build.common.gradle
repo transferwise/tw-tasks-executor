@@ -57,7 +57,7 @@ java {
 jar {
     manifest {
         attributes(
-                "Implementation-Title": "Transferwise Base Utils",
+                "Implementation-Title": projectName,
                 "Implementation-Version": archiveVersion
         )
     }
@@ -145,6 +145,8 @@ test {
         showStackTraces = true
         exceptionFormat = TestExceptionFormat.FULL
     }
+
+    useJUnitPlatform()
 }
 
 tasks.findAll { it.name.startsWith("spotbugs") }*.configure {

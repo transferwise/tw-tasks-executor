@@ -1,0 +1,6 @@
+apply from: '../build.common.gradle'
+apply from: '../build.core-dependencies.gradle'
+
+dependencies {
+    implementation project(":core")
+}

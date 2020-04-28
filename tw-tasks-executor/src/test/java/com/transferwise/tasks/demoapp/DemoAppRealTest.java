@@ -1,7 +1,6 @@
 package com.transferwise.tasks.demoapp;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.tasks.BaseTest;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
 import java.net.URI;
 import java.time.Duration;
@@ -21,7 +20,7 @@ import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @Disabled("Not meant to be automatically run.")
-class DemoAppRealTest extends BaseTest {
+class DemoAppRealTest {
 
   private final RestTemplate restTemplate = new RestTemplate();
 

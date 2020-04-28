@@ -1,0 +1,6 @@
+ext.projectName = "Core of Tw Tasks"
+ext.projectDescription = "Tw Tasks core"
+ext.projectArtifactName = "tw-tasks-core"
+
+apply from: '../build.common.gradle'
+apply from: '../build.core-dependencies.gradle'
