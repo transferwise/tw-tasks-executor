@@ -3,6 +3,7 @@ package com.transferwise.tasks.config;
 import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
+import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.PriorityManager;
 import com.transferwise.tasks.TasksProperties;
@@ -55,6 +56,10 @@ import org.springframework.kafka.core.KafkaTemplate;
 @Import(TransactionsConfiguration.class)
 @EnableConfigurationProperties({TasksProperties.class})
 public class TwTasksCoreAutoConfiguration {
+
+  // Following is not used by the code, but makes sure, that someone has not turned graceful shutdown completely off.
+  @Autowired
+  private GracefulShutdowner gracefulShutdowner;
 
   @Bean
   public static TasksProperties.Validator twTasksTasksPropertiesValidator() {

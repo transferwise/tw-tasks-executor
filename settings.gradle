@@ -7,12 +7,12 @@ pluginManagement {
     }
 }
 
-rootProject.name = 'tw-tasks-executor-root'
+rootProject.name = 'tw-tasks-executor'
 
 include 'core'
 include 'ext-incidents'
 include 'ext-kafka-listener'
 include 'ext-kafka-publisher'
 include 'ext-management'
-include 'tw-tasks-executor'
+include 'integration-tests'
 include 'demoapp'

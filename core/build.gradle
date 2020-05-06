@@ -1,5 +1,5 @@
-ext.projectName = "Core of Tw Tasks"
-ext.projectDescription = "Tw Tasks core"
+ext.projectName = "Transferwise Tasks Executor"
+ext.projectDescription = "Transferwise Tasks Executor - Fire and forget until Alert."
 ext.projectArtifactName = "tw-tasks-core"
 
 apply from: '../build.common.gradle'

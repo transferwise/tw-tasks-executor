@@ -7,12 +7,17 @@ apply from: '../build.common.gradle'
 apply plugin: "org.springframework.boot"
 
 dependencies {
+    implementation project(":core")
+    implementation project(":ext-incidents")
+    implementation project(":ext-kafka-listener")
+    implementation project(":ext-kafka-publisher")
+    implementation project(":ext-management")
+
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'
     implementation 'org.springframework.kafka:spring-kafka'
     implementation 'com.transferwise.common:tw-gaffer-jta:1.3.1'
     implementation 'org.apache.tomcat:tomcat-jdbc'
-    implementation project(':tw-tasks-executor')
     implementation 'com.transferwise.common:tw-base-utils:1.2.8'
     implementation 'com.transferwise.common:tw-graceful-shutdown:1.2.4'
     implementation 'com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2'
