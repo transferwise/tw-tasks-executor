@@ -20,7 +20,6 @@ buildscript {
 }
 
 apply plugin: "java-library"
-apply plugin: "maven-publish"
 apply plugin: "checkstyle"
 apply plugin: "idea"
 apply plugin: "com.github.spotbugs"
@@ -68,73 +67,6 @@ compileJava {
     options.compilerArgs << '-parameters'
     options.compilerArgs << '-Xlint'
     options.compilerArgs << '-Xlint:-processing'
-}
-
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            afterEvaluate {
-                artifactId = projectArtifactName
-            }
-
-            pom {
-                name = projectName
-                description = projectDescription
-                url = projectScmUrl
-                packaging = "jar"
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0, Copyright 2019 TransferWise Ltd'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'onukristo'
-                        name = 'Kristo Kuusküll'
-                        email = "kristo.kuuskull@transferwise.com"
-                        organization = "Transferwise Ltd"
-                        organizationUrl = "https://github.com/transferwise"
-                    }
-                }
-                scm {
-                    connection = projectScmConnection
-                    developerConnection = projectScmConnection
-                    url = projectScmUrl
-                }
-            }
-        }
-    }
-
-/*
-    signing {
-        sign publishing.publications.mavenJava
-    }
-*/
-
-    javadoc {
-        if (JavaVersion.current().isJava9Compatible()) {
-            options.addBooleanOption('html5', true)
-        }
-    }
-
-    repositories {
-        maven {
-            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-            credentials {
-                username = artifactoryUser
-                password = artifactoryPassword
-            }
-        }
-        /*maven {
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-            credentials {
-                username sonatypeUsername
-                password sonatypePassword
-            }
-        }*/
-    }
 }
 
 test {

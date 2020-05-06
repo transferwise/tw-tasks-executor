@@ -6,15 +6,13 @@ apply from: '../build.common.gradle'
 apply from: '../build.core-dependencies.gradle'
 
 dependencies {
-    api project(":core")
-    api project(":ext-incidents")
-    api project(":ext-kafka-listener")
-    api project(":ext-kafka-publisher")
-    api project(":ext-management")
+    implementation project(":core")
+    implementation project(":ext-incidents")
+    implementation project(":ext-kafka-listener")
+    implementation project(":ext-kafka-publisher")
+    implementation project(":ext-management")
 }
 
 test {
     systemProperty("spring.profiles.include", System.getProperty("spring.profiles.include"))
-
-    useJUnitPlatform()
 }

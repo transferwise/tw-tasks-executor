@@ -4,3 +4,4 @@ ext.projectArtifactName = "tw-tasks-core"
 
 apply from: '../build.common.gradle'
 apply from: '../build.core-dependencies.gradle'
+apply from: '../build.publish.gradle'
