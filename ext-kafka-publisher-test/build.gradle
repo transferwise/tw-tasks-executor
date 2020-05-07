@@ -1,0 +1,10 @@
+ext.projectName = "TwTasks Extension - Kafka Publisher (Test Components)"
+ext.projectDescription = "Set of components that simply testing around kafka messages publishing"
+ext.projectArtifactName = "tw-tasks-ext-kafka-publisher-test"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation project(":core-test")
+    implementation project(":ext-kafka-publisher")
+}

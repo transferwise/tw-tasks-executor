@@ -11,6 +11,9 @@ dependencies {
     implementation project(":ext-kafka-listener")
     implementation project(":ext-kafka-publisher")
     implementation project(":ext-management")
+
+    testImplementation project(":core-test")
+    testImplementation project(":ext-kafka-publisher-test")
 }
 
 test {
