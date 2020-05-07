@@ -1,2 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.transferwise.tasks.config.TwTasksCoreAutoConfiguration
-org.springframework.context.ApplicationListener=com.transferwise.tasks.TwTasksApplicationListener

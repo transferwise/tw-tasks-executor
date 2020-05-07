@@ -1,0 +1,9 @@
+ext.projectName = "TwTasks Extension - Kafka Listener - Spring Boot starter"
+ext.projectDescription = "Autoconfigures extension for spring boot application"
+ext.projectArtifactName = "tw-tasks-ext-kafka-listener-starter"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    api project(":ext-kafka-listener")
+}

@@ -1,1 +1,0 @@
-org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.transferwise.tasks.ext.kafkapublisher.config.TwTasksExtKafkaPublisherAutoConfiguration

@@ -2,13 +2,11 @@ package com.transferwise.tasks.helpers.kafka;
 
 import com.transferwise.tasks.TasksProperties;
 import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
  * Additional to {@link TasksProperties} configuration of kafka listener extension.
  */
 @Data
-@ConfigurationProperties(prefix = "tw-tasks.ext.kafka-listener")
 public class TwTasksExtKafkaListenerProperties {
 
   /**

@@ -6,11 +6,11 @@ apply from: '../build.common.gradle'
 apply from: '../build.core-dependencies.gradle'
 
 dependencies {
-    implementation project(":core")
-    implementation project(":ext-incidents")
-    implementation project(":ext-kafka-listener")
-    implementation project(":ext-kafka-publisher")
-    implementation project(":ext-management")
+    implementation project(":core-starter")
+    implementation project(":ext-incidents-starter")
+    implementation project(":ext-kafka-listener-starter")
+    implementation project(":ext-kafka-publisher-starter")
+    implementation project(":ext-management-starter")
 
     testImplementation project(":core-test")
     testImplementation project(":ext-kafka-publisher-test")
