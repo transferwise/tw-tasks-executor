@@ -5,7 +5,11 @@ ext.projectArtifactName = "tw-tasks-ext-kafka-publisher"
 apply from: '../build.ext.gradle'
 
 dependencies {
-    implementation 'org.springframework.security:spring-security-web'
+    implementation libraries.springSecurityWeb
+    implementation libraries.newRelic
+    implementation libraries.springTx
+    implementation libraries.springContext
 
-    compileOnly 'org.springframework.boot:spring-boot-starter-web'
+    compileOnly libraries.springWeb
+    compileOnly libraries.jakartaValidationApi
 }

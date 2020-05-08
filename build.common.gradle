@@ -7,8 +7,6 @@ group = "com.transferwise.tasks"
 ext.projectGitHubRepoName = "tw-tasks-executor"
 ext.projectScmUrl = "https://github.com/transferwise/${projectGitHubRepoName}"
 ext.projectScmConnection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
-ext.springBootVersion = "2.2.4.RELEASE"
-ext.twContextVersion = "0.1.2"
 
 buildscript {
     repositories {
@@ -24,6 +22,8 @@ apply plugin: "checkstyle"
 apply plugin: "idea"
 apply plugin: "com.github.spotbugs"
 
+apply from: "${rootDir}/build.libraries.gradle"
+
 repositories {
     maven {
         setUrl("https://arti.tw.ee/artifactory/libs-release")
@@ -32,18 +32,33 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
-    compileOnly(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
-    testAnnotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    implementation platform(libraries.springBootDependencies)
+    annotationProcessor platform(libraries.springBootDependencies)
+    testAnnotationProcessor platform(libraries.springBootDependencies)
+    compileOnly platform(libraries.springBootDependencies)
 
-    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor libraries.lombok
 
-    compileOnly("org.projectlombok:lombok")
+    compileOnly libraries.lombok
+    compileOnly libraries.spotbugsAnnotations
 
-    testAnnotationProcessor("org.projectlombok:lombok")
+    implementation libraries.slf4j
+    implementation libraries.apacheCommonsCollections
+    implementation libraries.apacheCommonsLang
+    implementation libraries.guava
+    implementation libraries.twBaseUtils
 
-    testImplementation("org.projectlombok:lombok")
+    testAnnotationProcessor libraries.lombok
+
+    testCompileOnly libraries.lombok
+    testCompileOnly libraries.spotbugsAnnotations
+
+    testImplementation libraries.lombok
+    testImplementation libraries.junitApi
+    testImplementation libraries.junitEngine
+    testImplementation libraries.junitParams
+    testImplementation libraries.junitMockito
+    testImplementation libraries.assertJCore
 }
 
 java {

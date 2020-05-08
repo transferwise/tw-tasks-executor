@@ -3,3 +3,12 @@ ext.projectDescription = "Set of components that allow publishing arbitrary kafk
 ext.projectArtifactName = "tw-tasks-ext-kafka-publisher"
 
 apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation libraries.jacksonDatabind
+    implementation libraries.springTx
+    implementation libraries.micrometerCore
+    implementation libraries.springBeans
+    implementation libraries.springContext
+    implementation libraries.springKafka
+}

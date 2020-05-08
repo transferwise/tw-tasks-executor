@@ -7,4 +7,9 @@ apply from: '../build.ext.gradle'
 dependencies {
     implementation project(":core-test")
     implementation project(":ext-kafka-publisher")
+
+    implementation libraries.springContext
+    implementation libraries.springBeans
+    implementation libraries.springKafka
+    implementation libraries.jacksonDatabind
 }

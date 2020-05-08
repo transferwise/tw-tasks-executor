@@ -2,14 +2,12 @@ package com.transferwise.tasks.impl.tokafka;
 
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @Data
 @Accessors(chain = true)
 /*
   Defaults give 20 retries over 52 hours.
  */
-@ConfigurationProperties(prefix = "tw-tasks.impl.to-kafka", ignoreUnknownFields = false)
 public class ToKafkaProperties {
 
   private int maxConcurrency = 5;

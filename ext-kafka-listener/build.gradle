@@ -10,3 +10,12 @@ Note that later the extension will be deprecated and removed in preference to ka
 ext.projectArtifactName = "tw-tasks-ext-kafka-listener"
 
 apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation libraries.springBeans
+    implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
+    implementation libraries.newRelic
+    implementation libraries.springKafka
+    implementation libraries.springBootAutoconfigure // (KafkaProperties)
+    implementation libraries.jacksonDatabind
+}

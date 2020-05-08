@@ -1,0 +1,7 @@
+apply from: '../build.common.gradle'
+apply from: '../build.publish.gradle'
+
+dependencies {
+    implementation libraries.springBootStarter
+    implementation libraries.springBootAutoconfigure
+}

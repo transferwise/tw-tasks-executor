@@ -11,4 +11,7 @@ apply from: '../build.ext.gradle'
 
 dependencies {
     implementation 'com.transferwise.common:tw-incidents:1.0.1'
+
+    implementation libraries.newRelic
+    implementation libraries.springBeans
 }

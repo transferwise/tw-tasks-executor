@@ -1,5 +1,4 @@
 apply from: '../build.common.gradle'
-apply from: '../build.core-dependencies.gradle'
 apply from: '../build.publish.gradle'
 
 dependencies {

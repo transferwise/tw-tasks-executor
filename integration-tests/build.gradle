@@ -3,7 +3,6 @@ ext.projectDescription = "Transferwise Tasks Executor - Fire and forget until Al
 ext.projectArtifactName = "tw-tasks-executor"
 
 apply from: '../build.common.gradle'
-apply from: '../build.core-dependencies.gradle'
 
 dependencies {
     implementation project(":core-starter")
@@ -14,6 +13,30 @@ dependencies {
 
     testImplementation project(":core-test")
     testImplementation project(":ext-kafka-publisher-test")
+
+    testImplementation libraries.commonsIo
+    testImplementation libraries.apacheCuratorRecipies
+    testImplementation libraries.twLeaderSelector
+    testImplementation 'org.springframework:spring-tx'
+    testImplementation 'org.springframework.boot:spring-boot'
+    testImplementation 'org.springframework.boot:spring-boot-autoconfigure'
+    testImplementation 'org.springframework.boot:spring-boot-actuator'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    testImplementation 'org.springframework.boot:spring-boot-test'
+    testImplementation 'org.springframework.boot:spring-boot-test-autoconfigure'
+    testImplementation 'org.springframework.security:spring-security-config'
+    testImplementation 'org.springframework.security:spring-security-config'
+    testImplementation 'org.springframework.security:spring-security-test'
+    testImplementation 'org.springframework.boot:spring-boot-starter-web'
+    testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
+    testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
+    testImplementation 'org.liquibase:liquibase-core'
+    testImplementation 'org.postgresql:postgresql'
+    testImplementation 'org.mariadb.jdbc:mariadb-java-client'
+    testImplementation 'org.springframework.kafka:spring-kafka'
+    testImplementation 'org.testcontainers:testcontainers:1.13.0'
+    testImplementation 'org.awaitility:awaitility:4.0.2'
 }
 
 test {

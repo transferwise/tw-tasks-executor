@@ -6,4 +6,7 @@ apply from: '../build.ext.gradle'
 
 dependencies {
     implementation project(":core")
+
+    implementation libraries.springTx
+    implementation libraries.springBeans
 }
