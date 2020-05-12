@@ -12,4 +12,5 @@ dependencies {
 
     compileOnly libraries.springWeb
     compileOnly libraries.jakartaValidationApi
+    compileOnly libraries.jacksonDatabind
 }

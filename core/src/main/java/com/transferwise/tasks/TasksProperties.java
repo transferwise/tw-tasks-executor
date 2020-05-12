@@ -7,11 +7,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import lombok.Data;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 
-@ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)
 @Data
 public class TasksProperties {
 

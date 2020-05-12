@@ -43,6 +43,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,7 +56,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 @Configuration
 @Slf4j
 @Import(TransactionsConfiguration.class)
-@EnableConfigurationProperties({TasksProperties.class})
+@EnableConfigurationProperties
 public class TwTasksCoreAutoConfiguration {
 
   // Following is not used by the code, but makes sure, that someone has not turned graceful shutdown completely off.
@@ -65,6 +66,12 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   public static TasksProperties.Validator twTasksTasksPropertiesValidator() {
     return new TasksProperties.Validator();
+  }
+
+  @Bean
+  @ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)
+  public TasksProperties tasksProperties() {
+    return new TasksProperties();
   }
 
   @Bean
