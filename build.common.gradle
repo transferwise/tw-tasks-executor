@@ -22,7 +22,7 @@ apply plugin: "checkstyle"
 apply plugin: "idea"
 apply plugin: "com.github.spotbugs"
 
-apply from: "${rootDir}/build.libraries.gradle"
+apply from: "../build.libraries.gradle"
 
 repositories {
     maven {
