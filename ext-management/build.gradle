@@ -1,6 +1,6 @@
 ext.projectName = "TwTasks Extension - Management"
 ext.projectDescription = "Provides facade that simplifies management of the tasks. Exposes API covering most of operational needs"
-ext.projectArtifactName = "tw-tasks-ext-kafka-publisher"
+ext.projectArtifactName = "tw-tasks-ext-management"
 
 apply from: '../build.ext.gradle'
 
