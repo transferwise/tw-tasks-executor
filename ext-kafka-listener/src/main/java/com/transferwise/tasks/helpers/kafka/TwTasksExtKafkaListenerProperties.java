@@ -3,6 +3,8 @@ package com.transferwise.tasks.helpers.kafka;
 import com.transferwise.tasks.TasksProperties;
 import lombok.Data;
 
+// TODO (BEFORE MERGE): Do we need it? Extension is deprecated and probably won't last long
+
 /**
  * Additional to {@link TasksProperties} configuration of kafka listener extension.
  */
