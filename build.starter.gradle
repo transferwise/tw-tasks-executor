@@ -5,10 +5,9 @@ dependencies {
     implementation libraries.springBootStarter
     implementation libraries.springBootAutoconfigure
 
-    // Avoid annotation usage compilation warnings
+    // Avoid annotation related compilation warnings
+    compileOnly libraries.jacksonAnnotations
     compileOnly libraries.newRelic
     compileOnly libraries.springTx
-    compileOnly libraries.springTx
-    compileOnly libraries.jacksonDatabind
     compileOnly libraries.springWeb
 }
