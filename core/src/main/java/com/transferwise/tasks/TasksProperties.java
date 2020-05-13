@@ -101,11 +101,11 @@ public class TasksProperties {
    * When listening Kafka Topics, it is possible to specify the topics replication factor and partitions count, which is applied on application
    * startup.
    *
-   * <p>It may add a small additional time for startup, which is sometimes prefferred to be avoided (integration tests, development).
+   * <p>It may add a small additional time for startup, which is sometimes preferred to be avoided (integration tests, development).
    *
    * <p>Using this option, the automatic topic configuration can be turned off.
    *
-   * @deprecated use ext-kafka-listener extension properties instead
+   * @deprecated used exclusively by ext-kafka-listener which is deprecated and soon will be removed
    */
   @Deprecated
   private boolean coreKafkaListenerTopicsConfiguringEnabled = true;

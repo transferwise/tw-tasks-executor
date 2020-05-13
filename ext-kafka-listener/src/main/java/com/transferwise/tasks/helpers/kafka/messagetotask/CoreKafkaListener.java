@@ -1,6 +1,5 @@
 package com.transferwise.tasks.helpers.kafka.messagetotask;
 
-import com.google.common.base.MoreObjects;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
@@ -9,7 +8,6 @@ import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
-import com.transferwise.tasks.helpers.kafka.TwTasksExtKafkaListenerProperties;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,8 +31,6 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   private IExecutorsHelper executorsHelper;
   @Autowired
   private TasksProperties tasksProperties;
-  @Autowired
-  private TwTasksExtKafkaListenerProperties twTasksExtKafkaListenerProperties;
   @Autowired
   private IKafkaMessageHandlerRegistry<T> kafkaMessageHandlerRegistry;
   @Autowired
@@ -125,11 +121,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     }
     executorService = executorsHelper.newCachedExecutor("core-kafka-listener");
     executorService.submit(() -> {
-      boolean isTopicsConfiguringEnabled = MoreObjects.firstNonNull(
-          twTasksExtKafkaListenerProperties.getTopicsConfiguringEnabled(),
-          tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()
-      );
-      if (isTopicsConfiguringEnabled) {
+      if (tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()) {
         for (MyTopic topic : topics) {
           if (!topic.isConfigured() && topic.getPartitionsCount() != null) {
             topicPartitionsManager.setPartitionsCount(getNamespacedTopic(topic.getAddress()), topic.getPartitionsCount());

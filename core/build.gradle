@@ -8,7 +8,6 @@ apply from: '../build.publish.gradle'
 dependencies {
     annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 
-    // TODO: (BEFORE MERGE) it's API since lib clients might want to extend lib classes implementing strategy interface
     api libraries.twGracefulShutdownIntefaces
 
     implementation libraries.apacheCuratorRecipies
@@ -20,7 +19,6 @@ dependencies {
     implementation libraries.newRelic
     implementation libraries.jacksonDatabind
 
-    // TODO: (BEFORE MERGE) was compileOnly, figure out why as seems to be pretty much required by the lib
     // TODO: avoid ioc related code or spring boot code in core
     implementation libraries.springTx
     implementation libraries.springJdbc
