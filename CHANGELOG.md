@@ -1,6 +1,6 @@
 #ChangeLog
 
-#### 1.6.0 - 2020/05/13
+#### 1.6.0 - 2020/05/14
 The project is split on modules. The tw-tasks-executor artifact is no longer published.
 From now on there is a core module and related extensions that can be easily switched on and off. 
 The typical library consumer will replace tw-tasks-executor dependency with: 
