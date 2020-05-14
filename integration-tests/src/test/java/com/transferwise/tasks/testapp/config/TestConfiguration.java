@@ -1,14 +1,20 @@
 package com.transferwise.tasks.testapp.config;
 
+import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
+import com.transferwise.tasks.impl.jobs.interfaces.IJob;
+import com.transferwise.tasks.impl.jobs.test.JobsTestConfiguration;
 import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
 import com.transferwise.tasks.utils.LogUtils;
+
+import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -21,12 +27,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
 @Slf4j
+@Import(JobsTestConfiguration.class)
 public class TestConfiguration {
 
   public static final String KAFKA_TEST_TOPIC_A = "myTopicA";
+  public static final String TEST_JOB_UNIQUE_NAME = "MyFancyJobA";
 
   @Autowired
   private IBucketsManager bucketsManager;
@@ -92,6 +101,27 @@ public class TestConfiguration {
 
       @Override
       public void handle(ConsumerRecord record) {
+      }
+    };
+  }
+
+  @Bean
+  public IJob myFancyJobA() {
+
+    return new IJob() {
+      @Override
+      public ZonedDateTime getNextRunTime() {
+        return ZonedDateTime.now(ClockHolder.getClock()).plusYears(20);
+      }
+
+      @Override
+      public ProcessResult process(ITask task) {
+        return null;
+      }
+
+      @Override
+      public String getUniqueName() {
+        return TEST_JOB_UNIQUE_NAME;
       }
     };
   }

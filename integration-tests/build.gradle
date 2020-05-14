@@ -10,9 +10,11 @@ dependencies {
     implementation project(":tw-tasks-kafka-listener-spring-boot-starter")
     implementation project(":tw-tasks-kafka-publisher-spring-boot-starter")
     implementation project(":tw-tasks-management-spring-boot-starter")
+    implementation project(":tw-tasks-jobs-spring-boot-starter")
 
     testImplementation project(":tw-tasks-core-test")
     testImplementation project(":tw-tasks-kafka-publisher-test")
+    testImplementation project(":tw-tasks-jobs-test")
 
     testImplementation libraries.commonsIo
     testImplementation libraries.apacheCuratorRecipies
