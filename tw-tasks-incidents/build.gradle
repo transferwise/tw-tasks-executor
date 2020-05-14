@@ -5,7 +5,7 @@ TransferWise incidents library - https://github.com/transferwise/tw-incidents.
     
 Note that extension is deprecated and soon will be dropped, build alerting using metrics instead!
 '''
-ext.projectArtifactName = "tw-tasks-ext-incidents"
+ext.projectArtifactName = "tw-tasks-incidents"
 
 apply from: '../build.ext.gradle'
 

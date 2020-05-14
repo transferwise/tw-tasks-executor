@@ -1,12 +1,12 @@
 ext.projectName = "TwTasks Extension - Kafka Publisher - Test Components"
 ext.projectDescription = "Set of components that simply testing of publishing kafka messages using tasks"
-ext.projectArtifactName = "tw-tasks-ext-kafka-publisher-test"
+ext.projectArtifactName = "tw-tasks-kafka-publisher-test"
 
 apply from: '../build.ext.gradle'
 
 dependencies {
-    implementation project(":core-test")
-    implementation project(":ext-kafka-publisher")
+    implementation project(":tw-tasks-core-test")
+    implementation project(":tw-tasks-kafka-publisher")
 
     implementation libraries.springContext
     implementation libraries.springBeans

@@ -2,5 +2,5 @@ apply from: '../build.common.gradle'
 apply from: '../build.publish.gradle'
 
 dependencies {
-    implementation project(":core")
+    implementation project(":tw-tasks-core")
 }

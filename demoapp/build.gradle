@@ -7,11 +7,11 @@ apply from: '../build.common.gradle'
 apply plugin: "org.springframework.boot"
 
 dependencies {
-    implementation project(":core-starter")
-    implementation project(":ext-incidents-starter")
-    implementation project(":ext-kafka-listener-starter")
-    implementation project(":ext-kafka-publisher-starter")
-    implementation project(":ext-management-starter")
+    implementation project(":tw-tasks-core-spring-boot-starter")
+    implementation project(":tw-tasks-incidents-spring-boot-starter")
+    implementation project(":tw-tasks-kafka-listener-spring-boot-starter")
+    implementation project(":tw-tasks-kafka-publisher-spring-boot-starter")
+    implementation project(":tw-tasks-management-spring-boot-starter")
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-jdbc'

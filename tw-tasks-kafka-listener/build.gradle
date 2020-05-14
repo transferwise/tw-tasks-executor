@@ -7,7 +7,7 @@ consider using those instead if more flexibility is needed.
 
 Note that later the extension is deprecated and later on will removed in preference to kafka libraries.
 '''
-ext.projectArtifactName = "tw-tasks-ext-kafka-listener"
+ext.projectArtifactName = "tw-tasks-kafka-listener"
 
 apply from: '../build.ext.gradle'
 

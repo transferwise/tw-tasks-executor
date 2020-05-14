@@ -5,8 +5,6 @@ ext.projectArtifactName = "tw-tasks-core-test"
 apply from: '../build.ext.gradle'
 
 dependencies {
-    implementation project(":core")
-
     implementation libraries.springTx
     implementation libraries.springBeans
 }

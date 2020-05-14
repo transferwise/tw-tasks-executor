@@ -1,24 +1,24 @@
 #ChangeLog
 
-#### 1.6.0 - 2020/05/14
+#### 1.6.0 - 2020/05/15
 The project is split on modules. The tw-tasks-executor artifact is no longer published.
 From now on there is a core module and related extensions that can be easily switched on and off. 
 The typical library consumer will replace tw-tasks-executor dependency with: 
 
 ```
-implementation("com.transferwise.tasks:tw-tasks-core-starter:${twTasksVersion}")
-implementation("com.transferwise.tasks:tw-tasks-ext-incidents-starter:${twTasksVersion}")
-implementation("com.transferwise.tasks:tw-tasks-ext-kafka-listener-starter:${twTasksVersion}")
-implementation("com.transferwise.tasks:tw-tasks-ext-kafka-publisher-starter:${twTasksVersion}")
-implementation("com.transferwise.tasks:tw-tasks-ext-management-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-core-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-incidents-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-kafka-listener-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-kafka-publisher-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-management-spring-boot-starter:${twTasksVersion}")
 
-testImplementation("com.transferwise.tasks:tw-tasks-ext-kafka-publisher-test:${twTasksVersion}")
+testImplementation("com.transferwise.tasks:tw-tasks-kafka-publisher-test:${twTasksVersion}")
 testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}")
 ```   
 
-Note that _ext-incidents_ and _ext-kafka-listener_ are deprecated and soon will be removed
-- Build alerting based on exposed metrics instead of using _ext-tw-incidents_
-- Use spring-kafka or another kafka library instead of using _ext-kafka-listener_   
+Note that _tw-tasks-incidents_ and _tw-tasks-kafka-listener_ are deprecated and soon will be removed
+- Build alerting based on exposed metrics instead of using _tw-tasks-incidents_
+- Use spring-kafka or another kafka library instead of using _tw-tasks-kafka-listener_   
 
 #### 1.5.0 - 2020/04/20
 ExponentialTaskRetryPolicy is now handling arithmetic overflows.
