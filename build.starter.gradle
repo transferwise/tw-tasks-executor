@@ -1,0 +1,13 @@
+apply from: '../build.common.gradle'
+apply from: '../build.publish.gradle'
+
+dependencies {
+    implementation libraries.springBootStarter
+    implementation libraries.springBootAutoconfigure
+
+    // Avoid annotation related compilation warnings
+    compileOnly libraries.jacksonAnnotations
+    compileOnly libraries.newRelic
+    compileOnly libraries.springTx
+    compileOnly libraries.springWeb
+}

@@ -1,0 +1,10 @@
+ext.projectName = "TwTasks Core - Test Components"
+ext.projectDescription = "Set of components that simply testing of tasks processing"
+ext.projectArtifactName = "tw-tasks-core-test"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation libraries.springTx
+    implementation libraries.springBeans
+}

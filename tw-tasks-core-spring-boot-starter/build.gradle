@@ -1,0 +1,16 @@
+ext.projectName = "TwTasks Core - Spring Boot Starter"
+ext.projectDescription = "Autoconfigures core for spring boot application"
+ext.projectArtifactName = "tw-tasks-core-spring-boot-starter"
+
+apply from: '../build.starter.gradle'
+
+dependencies {
+    api project(":tw-tasks-core")
+
+    implementation libraries.twGracefulShutdown
+    implementation libraries.apacheCuratorRecipies
+    implementation libraries.springKafka
+    implementation libraries.micrometerCore
+
+    runtimeOnly libraries.twContextStarter
+}

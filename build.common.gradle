@@ -7,8 +7,6 @@ group = "com.transferwise.tasks"
 ext.projectGitHubRepoName = "tw-tasks-executor"
 ext.projectScmUrl = "https://github.com/transferwise/${projectGitHubRepoName}"
 ext.projectScmConnection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
-ext.springBootVersion = "2.2.4.RELEASE"
-ext.twContextVersion = "0.1.2"
 
 buildscript {
     repositories {
@@ -20,10 +18,11 @@ buildscript {
 }
 
 apply plugin: "java-library"
-apply plugin: "maven-publish"
 apply plugin: "checkstyle"
 apply plugin: "idea"
 apply plugin: "com.github.spotbugs"
+
+apply from: "../build.libraries.gradle"
 
 repositories {
     maven {
@@ -33,18 +32,33 @@ repositories {
 }
 
 dependencies {
-    annotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
-    compileOnly(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
-    implementation(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
-    testAnnotationProcessor(platform("org.springframework.boot:spring-boot-dependencies:${springBootVersion}"))
+    implementation platform(libraries.springBootDependencies)
+    annotationProcessor platform(libraries.springBootDependencies)
+    testAnnotationProcessor platform(libraries.springBootDependencies)
+    compileOnly platform(libraries.springBootDependencies)
 
-    annotationProcessor("org.projectlombok:lombok")
+    annotationProcessor libraries.lombok
 
-    compileOnly("org.projectlombok:lombok")
+    compileOnly libraries.lombok
+    compileOnly libraries.spotbugsAnnotations
 
-    testAnnotationProcessor("org.projectlombok:lombok")
+    implementation libraries.slf4j
+    implementation libraries.apacheCommonsCollections
+    implementation libraries.apacheCommonsLang
+    implementation libraries.guava
+    implementation libraries.twBaseUtils
 
-    testImplementation("org.projectlombok:lombok")
+    testAnnotationProcessor libraries.lombok
+
+    testCompileOnly libraries.lombok
+    testCompileOnly libraries.spotbugsAnnotations
+
+    testImplementation libraries.lombok
+    testImplementation libraries.junitApi
+    testImplementation libraries.junitEngine
+    testImplementation libraries.junitParams
+    testImplementation libraries.junitMockito
+    testImplementation libraries.assertJCore
 }
 
 java {
@@ -57,7 +71,7 @@ java {
 jar {
     manifest {
         attributes(
-                "Implementation-Title": "Transferwise Base Utils",
+                "Implementation-Title": projectName,
                 "Implementation-Version": archiveVersion
         )
     }
@@ -70,73 +84,6 @@ compileJava {
     options.compilerArgs << '-Xlint:-processing'
 }
 
-publishing {
-    publications {
-        mavenJava(MavenPublication) {
-            from components.java
-            afterEvaluate {
-                artifactId = projectArtifactName
-            }
-
-            pom {
-                name = projectName
-                description = projectDescription
-                url = projectScmUrl
-                packaging = "jar"
-                licenses {
-                    license {
-                        name = 'The Apache License, Version 2.0, Copyright 2019 TransferWise Ltd'
-                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                    }
-                }
-                developers {
-                    developer {
-                        id = 'onukristo'
-                        name = 'Kristo Kuusküll'
-                        email = "kristo.kuuskull@transferwise.com"
-                        organization = "Transferwise Ltd"
-                        organizationUrl = "https://github.com/transferwise"
-                    }
-                }
-                scm {
-                    connection = projectScmConnection
-                    developerConnection = projectScmConnection
-                    url = projectScmUrl
-                }
-            }
-        }
-    }
-
-/*
-    signing {
-        sign publishing.publications.mavenJava
-    }
-*/
-
-    javadoc {
-        if (JavaVersion.current().isJava9Compatible()) {
-            options.addBooleanOption('html5', true)
-        }
-    }
-
-    repositories {
-        maven {
-            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-            credentials {
-                username = artifactoryUser
-                password = artifactoryPassword
-            }
-        }
-        /*maven {
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-            credentials {
-                username sonatypeUsername
-                password sonatypePassword
-            }
-        }*/
-    }
-}
-
 test {
     testLogging {
         events TestLogEvent.STARTED, TestLogEvent.FAILED, TestLogEvent.SKIPPED, TestLogEvent.PASSED,
@@ -145,6 +92,8 @@ test {
         showStackTraces = true
         exceptionFormat = TestExceptionFormat.FULL
     }
+
+    useJUnitPlatform()
 }
 
 tasks.findAll { it.name.startsWith("spotbugs") }*.configure {
@@ -177,12 +126,3 @@ private def getCheckstyleConfig() {
 
     return resources.text.fromArchiveEntry(checkstyleJar, "google_checks.xml")
 }
-
-task addTag(type: Exec) {
-    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
-}
-task pushTag(type: Exec) {
-    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
-}
-
-pushTag.dependsOn addTag

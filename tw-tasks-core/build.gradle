@@ -1,0 +1,32 @@
+ext.projectName = "Transferwise Tasks Executor"
+ext.projectDescription = "Transferwise Tasks Executor - Fire and forget until Alert."
+ext.projectArtifactName = "tw-tasks-core"
+
+apply from: '../build.common.gradle'
+apply from: '../build.publish.gradle'
+
+dependencies {
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    api libraries.twGracefulShutdownIntefaces
+
+    implementation libraries.apacheCuratorRecipies
+    implementation libraries.commonsIo
+    implementation libraries.twLeaderSelector
+    implementation libraries.twContext
+    implementation libraries.springKafka
+    implementation libraries.micrometerCore
+    implementation libraries.newRelic
+    implementation libraries.jacksonDatabind
+
+    // TODO: avoid ioc related code or spring boot code in core
+    implementation libraries.springTx
+    implementation libraries.springJdbc
+    implementation libraries.springCore // (used by TwTasksApplicationListener)
+    implementation libraries.springContext
+    implementation libraries.springBeans
+    implementation libraries.springBoot // (used by TwTasksApplicationListener)
+    implementation libraries.springBootAutoconfigure // (used for KafkaProperties)
+    implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
+    //
+}

@@ -1,0 +1,9 @@
+ext.projectName = "TwTasks Extension - Management - Spring Boot Starter"
+ext.projectDescription = "Autoconfigures extension for spring boot application"
+ext.projectArtifactName = "tw-tasks-management-spring-boot-starter"
+
+apply from: '../build.starter.gradle'
+
+dependencies {
+    api project(":tw-tasks-management")
+}

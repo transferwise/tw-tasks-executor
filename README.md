@@ -109,9 +109,14 @@ TwTask depends on and needs following infrastructure services.
 
 ## Quick Start
 
-##### Add dependency
+##### Add dependencies
 ```groovy
-implementation 'com.transferwise.tasks:tw-tasks-executor:1.0.9'
+implementation("com.transferwise.tasks:tw-tasks-core-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-kafka-publisher-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-management-spring-boot-starter:${twTasksVersion}")
+
+testImplementation("com.transferwise.tasks:tw-tasks-kafka-publisher-test:${twTasksVersion}")
+testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}")
 ```
 
 ##### Create database tables

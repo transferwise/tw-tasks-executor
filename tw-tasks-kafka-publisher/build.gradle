@@ -1,0 +1,14 @@
+ext.projectName = "TwTasks Extension - Kafka Publisher"
+ext.projectDescription = "Set of components that allow publishing arbitrary kafka messages using tasks abstraction"
+ext.projectArtifactName = "tw-tasks-kafka-publisher"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation libraries.jacksonDatabind
+    implementation libraries.springTx
+    implementation libraries.micrometerCore
+    implementation libraries.springBeans
+    implementation libraries.springContext
+    implementation libraries.springKafka
+}

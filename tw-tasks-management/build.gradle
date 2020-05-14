@@ -1,0 +1,16 @@
+ext.projectName = "TwTasks Extension - Management"
+ext.projectDescription = "Provides facade that simplifies management of the tasks. Exposes API covering most of operational needs"
+ext.projectArtifactName = "tw-tasks-management"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation libraries.springSecurityWeb
+    implementation libraries.newRelic
+    implementation libraries.springTx
+    implementation libraries.springContext
+
+    compileOnly libraries.springWeb
+    compileOnly libraries.jakartaValidationApi
+    compileOnly libraries.jacksonDatabind
+}
