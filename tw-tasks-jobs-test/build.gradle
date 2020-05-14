@@ -1,0 +1,17 @@
+ext.projectName = "TwTasks Extension - Jobs - Test Components"
+ext.projectDescription = "Set of components that simply testing of jobs"
+ext.projectArtifactName = "tw-tasks-jobs-test"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation project(":tw-tasks-core-test")
+    implementation project(":tw-tasks-jobs")
+
+    implementation libraries.springBeans
+    implementation libraries.springContext
+    implementation libraries.springBootAutoconfigure
+
+    compileOnly libraries.jacksonDatabind
+    compileOnly libraries.springTx
+}

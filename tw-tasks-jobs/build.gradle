@@ -1,0 +1,12 @@
+ext.projectName = "TwTasks Extension - Jobs"
+ext.projectDescription = "Set of components simplifying creation/triggering of period tasks (jobs)"
+ext.projectArtifactName = "tw-tasks-jobs"
+
+apply from: '../build.ext.gradle'
+
+dependencies {
+    implementation libraries.newRelic
+    implementation libraries.springBeans
+    implementation libraries.springContext
+    implementation libraries.micrometerCore
+}
