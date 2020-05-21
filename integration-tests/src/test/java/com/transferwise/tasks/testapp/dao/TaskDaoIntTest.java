@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -37,6 +38,11 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
+
+  @BeforeEach
+  void taskDaoIntTestSetup() {
+    testTasksService.stopProcessing();
+  }
 
   @Test
   void insertingATaskInsertsOnlyOneTaskForAGivenId() {

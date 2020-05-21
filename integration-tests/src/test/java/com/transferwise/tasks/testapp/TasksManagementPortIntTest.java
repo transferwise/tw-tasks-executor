@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TaskTestBuilder;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -24,7 +25,6 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
 import lombok.SneakyThrows;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -40,16 +40,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   private ITaskDao taskDao;
   @Autowired
   private TasksResumer tasksResumer;
-
-  private boolean resumerPaused;
-
-  @AfterEach
-  void cleanup() {
-    if (resumerPaused) {
-      tasksResumer.resume();
-      resumerPaused = false;
-    }
-  }
+  @Autowired
+  private ITasksService tasksService;
 
   @Test
   void erroneousTasksWillBeCorrectlyFound() {
@@ -129,7 +121,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   @ParameterizedTest(name = "find a task in {0} state")
   @EnumSource(value = TaskStatus.class, names = "UNKNOWN", mode = Mode.EXCLUDE)
   void findATaskInAGivenStatus(TaskStatus status) {
-    pauseResumer();
+    testTasksService.stopProcessing();
 
     final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
@@ -197,7 +189,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .build()
     );
 
-    pauseResumer();
+    testTasksService.stopProcessing();
 
     ResponseEntity<ITasksManagementPort.ResumeTasksImmediatelyResponse> response = testRestTemplate.postForEntity(
         "/v1/twTasks/resumeTasksImmediately",
@@ -223,7 +215,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .build()
     );
 
-    pauseResumer();
+    testTasksService.stopProcessing();
 
     ResponseEntity<ITasksManagementPort.ResumeTasksImmediatelyResponse> response = testRestTemplate.postForEntity(
         "/v1/twTasks/resumeAllTasksImmediately",
@@ -238,8 +230,4 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(1)));
   }
 
-  private void pauseResumer() {
-    tasksResumer.pause();
-    resumerPaused = true;
-  }
 }

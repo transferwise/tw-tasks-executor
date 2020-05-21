@@ -1,5 +1,14 @@
 #ChangeLog
 
+Describes notable changes.
+
+#### 1.7.1 - 2020/05/21
+- ITestTaskService got 2 new methods for controlling the automatic tasks processing:
+  - `stopProcessing()`
+  - `resumeProcessing()`
+
+Fixing possible race-condition in `ClusterWideTasksStateMonitor`.
+
 #### 1.7.0 - 2020/05/14
 Moved https://github.com/transferwise/tw-tasks-jobs to the main repository in a form
 of extension that consists of extension core, spring boot starter and test components.

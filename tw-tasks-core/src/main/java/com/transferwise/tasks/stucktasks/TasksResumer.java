@@ -274,11 +274,11 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     }
   }
 
-  public void pause() {
+  public void pauseProcessing() {
     paused = true;
   }
 
-  public void resume() {
+  public void resumeProcessing() {
     paused = false;
   }
 

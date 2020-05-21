@@ -22,6 +22,7 @@ tw-tasks:
     additional-processing-buckets: manualStart
     stuck-tasks-polling-interval: PT1S
     configure-kafka-topics: true
+    generic-medium-delay: 500ms
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN

@@ -73,6 +73,9 @@ public abstract class BaseIntTest {
     resultRegisteringSyncTaskProcessor.reset();
     testTaskHandlerAdapter.reset();
 
+    // Cheap when it's already running.
+    testTasksService.resumeProcessing();
+    
     testInfo.getTestMethod().ifPresent(name ->
         log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)
     );

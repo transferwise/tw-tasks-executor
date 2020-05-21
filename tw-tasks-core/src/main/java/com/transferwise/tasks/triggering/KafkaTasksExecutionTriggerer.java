@@ -63,6 +63,7 @@ import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RetriableException;
+import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Propagation;
@@ -300,8 +301,13 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
 
       while (!shuttingDown && (getProcessingBucket(bucketId).getState() == ITasksService.TasksProcessingState.STARTED)) {
-        ConsumerRecords<String, String> consumerRecords = consumerBucket.getKafkaConsumer()
-            .poll(tasksProperties.getGenericMediumDelay());
+        ConsumerRecords<String, String> consumerRecords;
+        try {
+          consumerRecords = consumerBucket.getKafkaConsumer().poll(tasksProperties.getGenericMediumDelay());
+        } catch (WakeupException ignored) {
+          // Wake up was called, most likely to shut down, nothing erronous here.
+          continue;
+        }
 
         commitOffsets(consumerBucket, false);
 
@@ -581,6 +587,14 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       }
       bucket.setStopFuture(future);
       bucket.setState(ITasksService.TasksProcessingState.STOP_IN_PROGRESS);
+
+      ConsumerBucket consumerBucket = consumerBuckets.get(bucketId);
+      if (consumerBucket != null) {
+        KafkaConsumer<String, String> kafkaConsumer = consumerBucket.getKafkaConsumer();
+        if (kafkaConsumer != null) {
+          kafkaConsumer.wakeup();
+        }
+      }
       return future;
     });
   }

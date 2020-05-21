@@ -1,15 +1,19 @@
 package com.transferwise.tasks.test;
 
+import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.TasksService;
+import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.stucktasks.ITasksResumer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Future;
 import java.util.function.Predicate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +28,12 @@ public class TestTasksService extends TasksService implements ITestTasksService 
 
   @Autowired
   private ITaskDao taskDao;
+
+  @Autowired
+  private IBucketsManager bucketsManager;
+
+  @Autowired
+  private ITasksResumer tasksResumer;
 
   @Override
   public List<Task> getFinishedTasks(String type, String subType) {
@@ -53,6 +63,31 @@ public class TestTasksService extends TasksService implements ITestTasksService 
   @Override
   public List<Task> getTasks(String type, String subType, TaskStatus... statuses) {
     return taskDao.findTasksByTypeSubTypeAndStatus(type, subType, statuses);
+  }
+
+  @Override
+  public void stopProcessing() {
+    tasksResumer.pauseProcessing();
+    List<Future<Void>> futures = new ArrayList<>();
+    for (String bucketId : bucketsManager.getBucketIds()) {
+      futures.add(stopTasksProcessing(bucketId));
+    }
+
+    for (Future<Void> future : futures) {
+      ExceptionUtils.doUnchecked(() -> {
+        future.get();
+      });
+    }
+  }
+
+  @Override
+  public void resumeProcessing() {
+    tasksResumer.resumeProcessing();
+    for (String bucketId : bucketsManager.getBucketIds()) {
+      if (!Boolean.FALSE.equals(bucketsManager.getBucketProperties(bucketId).getAutoStartProcessing())) {
+        startTasksProcessing(bucketId);
+      }
+    }
   }
 
   @Override
