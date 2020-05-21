@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -63,8 +62,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private List<Object> registeredMetricHandles;
   private Map<String, Object> taskInErrorStateHandles;
 
-  private Lock stateLock = new ReentrantLock();
-  private volatile boolean initialized;
+  private final Lock stateLock = new ReentrantLock();
+  private boolean initialized;
 
   @PostConstruct
   public void init() {
@@ -107,7 +106,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       stuckTasksCount = null;
 
       erroneousTasksCount = null;
-      erroneousTasksCounts = new ConcurrentHashMap<>();
+      erroneousTasksCounts = new HashMap<>();
       erroneousTasksCountPerType = new ArrayList<>();
       registeredMetricHandles = new ArrayList<>();
       taskInErrorStateHandles = new HashMap<>();
