@@ -27,4 +27,18 @@ public interface ITestTasksService extends ITasksService {
   List<AddTaskRequest> getInterceptedNewTasks();
 
   List<Task> getTasks(String type, String subType, TaskStatus... statuses);
+
+  /**
+   * Stops tasks processing buckets. 
+   * 
+   * <p>Also stops the automatic stuck and scheduled tasks handling.
+   */
+  void stopProcessing();
+
+  /**
+   * Resumes tasks processing and stuck and scheduled tasks handling.
+   * 
+   * <p>Does not resume buckets configured with {@code autoStartProcessing=false}.
+   */
+  void resumeProcessing();
 }

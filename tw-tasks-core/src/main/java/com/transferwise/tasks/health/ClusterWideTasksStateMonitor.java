@@ -27,6 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -61,6 +63,9 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private List<Object> registeredMetricHandles;
   private Map<String, Object> taskInErrorStateHandles;
 
+  private Lock stateLock = new ReentrantLock();
+  private volatile boolean initialized;
+
   @PostConstruct
   public void init() {
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_state_monitor";
@@ -73,7 +78,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
           control.workAsyncUntilShouldStop(
               () -> {
-                resetState();
+                resetState(true);
                 taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(this::check, Duration.ofSeconds(0),
                     Duration.ofSeconds(30)));
                 log.info("Started to monitor tasks state.");
@@ -84,33 +89,49 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
                   taskHandleHolder.getValue().stop();
                   taskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
                 }
-                resetState();
+                resetState(false);
                 log.info("Monitoring of tasks state stopped.");
               });
         });
   }
 
-  protected void resetState() {
-    if (registeredMetricHandles != null) {
-      for (Object metricHandle : registeredMetricHandles) {
-        meterHelper.unregisterMetric(metricHandle);
+  protected void resetState(boolean forInit) {
+    stateLock.lock();
+    try {
+      if (registeredMetricHandles != null) {
+        for (Object metricHandle : registeredMetricHandles) {
+          meterHelper.unregisterMetric(metricHandle);
+        }
       }
+
+      stuckTasksCount = null;
+
+      erroneousTasksCount = null;
+      erroneousTasksCounts = new ConcurrentHashMap<>();
+      erroneousTasksCountPerType = new ArrayList<>();
+      registeredMetricHandles = new ArrayList<>();
+      taskInErrorStateHandles = new HashMap<>();
+      tasksHistoryLengthSeconds = new HashMap<>();
+
+      initialized = forInit;
+    } finally {
+      stateLock.unlock();
     }
-
-    stuckTasksCount = null;
-
-    erroneousTasksCount = null;
-    erroneousTasksCounts = new ConcurrentHashMap<>();
-    erroneousTasksCountPerType = new ArrayList<>();
-    registeredMetricHandles = new ArrayList<>();
-    taskInErrorStateHandles = new HashMap<>();
-    tasksHistoryLengthSeconds = new HashMap<>();
   }
 
   protected void check() {
-    checkErroneousTasks();
-    checkStuckTasks();
-    measureTasksHistoryLength();
+    stateLock.lock();
+    try {
+      if (!initialized) {
+        return;
+      }
+
+      checkErroneousTasks();
+      checkStuckTasks();
+      measureTasksHistoryLength();
+    } finally {
+      stateLock.unlock();
+    }
   }
 
   protected void measureTasksHistoryLength() {
@@ -124,35 +145,29 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     long historyLengthSeconds = earliestTaskNextEventTime == null ? 0L : Duration.between(earliestTaskNextEventTime, now).getSeconds();
 
     AtomicLong counter = tasksHistoryLengthSeconds.get(status);
-    boolean metricRegistered = counter != null;
-    if (!metricRegistered) {
-      tasksHistoryLengthSeconds.put(status, counter = new AtomicLong());
-    }
-
-    counter.set(historyLengthSeconds);
-
-    if (!metricRegistered) {
+    if (counter == null) {
+      tasksHistoryLengthSeconds.put(status, counter = new AtomicLong(historyLengthSeconds));
       registeredMetricHandles
           .add(meterHelper.registerGauge(METRIC_PREFIX + "health.tasksHistoryLengthSeconds", ImmutableMap.of("taskStatus", status.name()),
               counter::get));
+    } else {
+      counter.set(historyLengthSeconds);
     }
   }
 
   protected void checkErroneousTasks() {
-    boolean totalGaugeNotRegistered = erroneousTasksCount == null;
-    if (totalGaugeNotRegistered) {
-      erroneousTasksCount = new AtomicInteger();
-    }
-    erroneousTasksCount.set(taskDao.getTasksCountInStatus(tasksProperties.getMaxDatabaseFetchSize(), TaskStatus.ERROR));
-    if (erroneousTasksCount.get() == 0) {
+    int tasksCountInError = taskDao.getTasksCountInStatus(tasksProperties.getMaxDatabaseFetchSize(), TaskStatus.ERROR);
+    if (tasksCountInError == 0) {
       erroneousTasksCountPerType = Collections.emptyList();
     } else {
       erroneousTasksCountPerType = taskDao.getTasksCountInErrorGrouped(tasksProperties.getMaxDatabaseFetchSize());
     }
 
-    if (totalGaugeNotRegistered) {
-      AtomicInteger erroneousTasksCountCopy = erroneousTasksCount;
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.tasksInErrorCount", erroneousTasksCountCopy::get));
+    if (erroneousTasksCount == null) {
+      erroneousTasksCount = new AtomicInteger(tasksCountInError);
+      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.tasksInErrorCount", erroneousTasksCount::get));
+    } else {
+      erroneousTasksCount.set(tasksCountInError);
     }
 
     Set<String> erroneousTaskTypes = new HashSet<>();
@@ -182,16 +197,14 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   protected void checkStuckTasks() {
-    boolean stuckTasksMeterNotRegistered = stuckTasksCount == null;
-    if (stuckTasksMeterNotRegistered) {
-      stuckTasksCount = new AtomicInteger();
-    }
-    stuckTasksCount
-        .set(taskDao.getStuckTasksCount(ZonedDateTime.now(ClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()),
-            tasksProperties.getMaxDatabaseFetchSize()));
-    if (stuckTasksMeterNotRegistered) {
-      AtomicInteger stuckTasksCountCopy = stuckTasksCount;
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCountCopy::get));
+    int stuckTasksCountValue = taskDao.getStuckTasksCount(ZonedDateTime.now(ClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()),
+        tasksProperties.getMaxDatabaseFetchSize());
+
+    if (stuckTasksCount == null) {
+      stuckTasksCount = new AtomicInteger(stuckTasksCountValue);
+      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCount::get));
+    } else {
+      stuckTasksCount.set(stuckTasksCountValue);
     }
   }
 

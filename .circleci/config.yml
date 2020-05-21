@@ -7,7 +7,7 @@ references:
       user: circleci
     - image: circleci/mariadb:10.3
       name: mysql1
-      command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --log_error_verbosity=1 --log_warnings=1
+      command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
       environment:
         MYSQL_ROOT_PASSWORD: example-password-change-me
         MYSQL_DATABASE: tw-tasks-test
@@ -42,44 +42,66 @@ references:
       TERM: vt100
       GRADLE_OPTS: '-Dorg.gradle.console=plain'
 
-  gather_test_results: &gather_test_results
-    run:
-      name: Gather test results
-      shell: /bin/bash
-      command: |
-        tar -zcvf ~/reports.tar.gz tw-tasks-executor/build/reports
-        tar -zcvf ~/test-results.tar.gz tw-tasks-executor/build/test-results
-      when: always
 jobs:
   test:
     <<: *container_config
     steps:
     - checkout
     - restore_cache:
-        # here we restore the .gradle folder, so we don't have to download all the jars again.
-        # the cache key is the checksum of build.gradle, so a new version of the cache will
-        # be produced if you changed something in the build script (likely you changed a dependency)
-        keys:
-        - gradle-cache-{{ checksum "build.gradle" }}
-    - run:
-        name: Install dependencies
-        command: ./gradlew :tw-tasks-executor:dependencies :tw-tasks-executor:testClasses
+        key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
     - run:
         name: Run tests
-        command: ./gradlew :tw-tasks-executor:clean :tw-tasks-executor:check -Dspring.profiles.include=circle --stacktrace
-    - *gather_test_results
+        command: ./gradlew --refresh-dependencies clean check -Dspring.profiles.include=circle --console=plain --no-daemon --stacktrace
+    - save_cache:
+        paths:
+          - ~/.gradle/
+        key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
     - store_test_results:
-        path: tw-tasks-executor/build/test-results/
+        path: ./integration-tests/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-core/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-core-spring-boot-starter/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-core-test/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-incidents/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-incidents-spring-boot-starter/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-jobs/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-jobs-spring-boot-starter/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-jobs-test/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-kafka-listener/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-kafka-listener-spring-boot-starter/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-kafka-publisher/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-kafka-publisher-spring-boot-starter/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-kafka-publisher-test/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-management/build/test-results/
+    - store_test_results:
+        path: ./tw-tasks-management-spring-boot-starter/build/test-results/
+    - run:
+        name: gather reports
+        command: |
+          tar -zcvf ~/reports.tar.gz $( find . -type f -regex '.*/build/reports/.*' )
+        when: always
     - store_artifacts:
         path: ~/reports.tar.gz
-    - store_artifacts:
-        path: ~/test-results.tar.gz
+        target: reports
+        when: always
     - save_cache:
         # here we save the .gradle folder, so we can reuse it in the later steps and also later builds.
         key: gradle-cache-{{ checksum "build.gradle" }}
         paths:
         - "~/.gradle"
-
 
 workflows:
   version: 2

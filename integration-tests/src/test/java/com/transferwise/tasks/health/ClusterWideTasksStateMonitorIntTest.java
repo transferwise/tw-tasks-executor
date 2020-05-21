@@ -13,11 +13,17 @@ import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.Collection;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-// TODO: Doesn't work if run solely, rework it
+@Slf4j
 class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
   @Autowired
@@ -28,6 +34,8 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
   @Test
   void metricsAreCorrectlyRegistered() {
+    clusterWideTasksStateMonitor.check();
+
     Collection<Gauge> hlGauges = meterRegistry.get("twTasks.health.tasksHistoryLengthSeconds").gauges();
 
     assertEquals(2, hlGauges.size());
@@ -88,4 +96,48 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
             .noneMatch("twTasks.health.tasksInErrorCountPerType"::equals)
     );
   }
+
+  @Test
+  @SneakyThrows
+  void metricsAreProbablyThreadSafe() {
+    final int T = 20;
+    final int N = 10000;
+    ExecutorService executor = Executors.newFixedThreadPool(T);
+
+    AtomicInteger errorsCount = new AtomicInteger();
+    AtomicInteger executionsCount = new AtomicInteger();
+
+    Consumer<Runnable> wrapper = (runnable) -> {
+      executionsCount.incrementAndGet();
+      try {
+        runnable.run();
+      } catch (Throwable t) {
+        log.error(t.getMessage(), t);
+        errorsCount.incrementAndGet();
+      }
+    };
+
+    for (int i = 0; i < N; i++) {
+      if (i % 4 == 0) {
+        executor.submit(() -> {
+          wrapper.accept(() -> {
+            clusterWideTasksStateMonitor.resetState(true);
+            clusterWideTasksStateMonitor.resetState(false);
+          });
+        });
+      } else {
+        executor.submit(() -> {
+          wrapper.accept(() -> {
+            clusterWideTasksStateMonitor.check();
+          });
+        });
+      }
+    }
+
+    executor.shutdown();
+    executor.awaitTermination(10, TimeUnit.SECONDS);
+
+    assertEquals(0, errorsCount.get());
+  }
+
 }
