@@ -9,6 +9,7 @@ import com.transferwise.tasks.testapp.TestTaskHandler;
 import com.transferwise.tasks.testapp.config.TestApplication;
 import com.transferwise.tasks.testapp.config.TestConfiguration;
 import com.transferwise.tasks.testapp.config.TestContainersInitializer;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
@@ -46,6 +47,8 @@ public abstract class BaseIntTest {
   protected IResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor;
   @Autowired
   protected TestTaskHandler testTaskHandlerAdapter;
+  @Autowired
+  protected MeterRegistry meterRegistry;
 
   @Autowired
   void setApplicationContext(ApplicationContext applicationContext) {
@@ -75,7 +78,9 @@ public abstract class BaseIntTest {
 
     // Cheap when it's already running.
     testTasksService.resumeProcessing();
-    
+
+    meterRegistry.clear();
+
     testInfo.getTestMethod().ifPresent(name ->
         log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)
     );

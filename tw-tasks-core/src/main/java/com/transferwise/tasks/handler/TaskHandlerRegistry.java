@@ -4,31 +4,25 @@ import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
 @Slf4j
 public class TaskHandlerRegistry implements ITaskHandlerRegistry {
 
   @Autowired
-  private List<ITaskHandler> handlers;
+  private ApplicationContext applicationContext;
 
-  @PostConstruct
-  public void init() {
-    if (log.isDebugEnabled()) {
-      for (ITaskHandler taskHandler : handlers) {
-        log.debug("Registering task handler: " + taskHandler);
-      }
-    }
-  }
+  private volatile List<ITaskHandler> handlers;
 
   @Override
   public ITaskHandler getTaskHandler(IBaseTask task) {
-    List<ITaskHandler> results = handlers.stream().filter(h -> h.handles(task)).collect(Collectors.toList());
+    List<ITaskHandler> results = getHandlers().stream().filter(h -> h.handles(task)).collect(Collectors.toList());
 
     if (results.size() > 1) {
       String resultsSt = StringUtils.join(results.stream().map(p -> p.getClass().getSimpleName()).collect(Collectors.toList()), ",");
@@ -43,5 +37,24 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
   public ITaskProcessingPolicy getTaskProcessingPolicy(IBaseTask task) {
     ITaskHandler taskHandler = getTaskHandler(task);
     return taskHandler == null ? null : taskHandler.getProcessingPolicy(task);
+  }
+
+  /**
+   * Task handlers should be lazily loaded to avoid any circular dependencies.
+   */
+  protected List<ITaskHandler> getHandlers() {
+    if (handlers == null) {
+      synchronized (this) {
+        if (handlers == null) {
+          handlers = new ArrayList<>(applicationContext.getBeansOfType(ITaskHandler.class).values());
+          if (log.isDebugEnabled()) {
+            for (ITaskHandler taskHandler : handlers) {
+              log.debug("Registering task handler: " + taskHandler);
+            }
+          }
+        }
+      }
+    }
+    return handlers;
   }
 }

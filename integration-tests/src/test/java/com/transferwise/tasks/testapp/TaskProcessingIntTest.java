@@ -18,7 +18,6 @@ import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResul
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.List;
@@ -41,8 +40,6 @@ public class TaskProcessingIntTest extends BaseIntTest {
   protected ITaskDao taskDao;
   @Autowired
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
-  @Autowired
-  protected MeterRegistry meterRegistry;
 
   private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer;
 

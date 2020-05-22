@@ -34,6 +34,8 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
   @Test
   void metricsAreCorrectlyRegistered() {
+    clusterWideTasksStateMonitor.resetState(false);
+    clusterWideTasksStateMonitor.resetState(true);
     clusterWideTasksStateMonitor.check();
 
     Collection<Gauge> hlGauges = meterRegistry.get("twTasks.health.tasksHistoryLengthSeconds").gauges();
