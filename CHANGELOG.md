@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.7.2 - 2020/05/22
+- TaskHandlerRegistry is initializing handlers list in lazy way to avoid possible circular dependencies in applications.
+
 #### 1.7.1 - 2020/05/21
 - ITestTaskService got 2 new methods for controlling the automatic tasks processing:
   - `stopProcessing()`

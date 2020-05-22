@@ -9,7 +9,6 @@ import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.test.ITestTasksService;
 import io.micrometer.core.instrument.Counter;
-import io.micrometer.core.instrument.MeterRegistry;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +23,6 @@ public class TaskResumingIntTest extends BaseIntTest {
   private ITasksService tasksService;
   @Autowired
   private ITestTasksService testTasksService;
-  @Autowired
-  protected MeterRegistry meterRegistry;
 
   @BeforeEach
   void setup() {
