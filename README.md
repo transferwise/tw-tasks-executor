@@ -18,10 +18,10 @@ Basically fire-and-forget-until-alert kind of system.
     of receiving same Kafka message multiple times.
     - TwTask uses optimistic locking for most efficient consistency, even for manual intervention a version has to be always provided.
 - Atomicity
-    - TwTasks allows to set up tasks inside business logic and guarantees, that only when business logic is successfully 
+    - TwTasks allows to set up tasks inside business logic and guarantees, that only when business logic is successfully
     committed, the set up tasks will be executed. If business logic will be rolled back, the set up tasks will be discarded.
-    This will fix the issue we had with Artemis, where in some cases a message was sent before transaction was committed 
-    or in worse case rolled back.  
+    This will fix the issue we had with Artemis, where in some cases a message was sent before transaction was committed
+    or in worse case rolled back.
 - Low latency
     - TwTasks can provide sub-millisecond latency, so the task can be executed very quickly (even in other node) after
     business logic commits. Every payout has many asynchronous steps and we can not tolerate any latency when supporting
@@ -38,11 +38,11 @@ Basically fire-and-forget-until-alert kind of system.
     - When a service node or even the whole cluster crashes, we still want to keep our consistency and atomicity guarantees.
     - Not only crashes, but infrastructure problems (Kafka or Database down) are considered and handled.
 - Self healing
-    - After a crash or even a bug fix, the system is able to resume all the tasks set up, but still maintaining atomicity and 
+    - After a crash or even a bug fix, the system is able to resume all the tasks set up, but still maintaining atomicity and
     consistency guarantees.
-    - TwTasks has algorithms for in certain situation to safely recover and resume tasks very fast. 
+    - TwTasks has algorithms for in certain situation to safely recover and resume tasks very fast.
 - Monitoring and Alerting
-    - Sometimes a self healing is impossible (usually because of a bug) or too dangerous. For those cases TwTasks is able 
+    - Sometimes a self healing is impossible (usually because of a bug) or too dangerous. For those cases TwTasks is able
     to notify engineers via logs, Rollbar and/or VictorOps.
     - TwTasks has also NewRelic and XRequestId support built in. It is relatively easy to track chained tasks and how performant
     every task is.
@@ -77,29 +77,29 @@ Basically fire-and-forget-until-alert kind of system.
 - Good Performance
     - Lots of effort is put into performance and efficiency. Local machine performance tests show about 1750 tasks set up and executed in a second.
     During that, CPU utilization is low and the bottleneck is underlying database, especially its commit (read fsync) speed.
-    - 1750 tasks/s should always considered when designing algorithms based on TwTasks, for example its much more efficient to send 
-    batch of Kafka messages with one tasks, instead creating a separate task for every single message. 
+    - 1750 tasks/s should always considered when designing algorithms based on TwTasks, for example its much more efficient to send
+    batch of Kafka messages with one tasks, instead creating a separate task for every single message.
 - Support for both synchronous and asynchronous tasks.
     - Payout execution for example is synchronous, but sending a Kafka message is asynchronous.
 - Support for both Postgres and MySQL databases.
     - TransferWise uses both databases in different services.
 - Cluster support
-    - A task can be executed in any node having free processing power first. It is very common (actually 1/(nodes count) chance), 
+    - A task can be executed in any node having free processing power first. It is very common (actually 1/(nodes count) chance),
     that a task is set up by one node, but execution is happening on another node.
     - It is guaranteed, that even in a cluster, a task processing happens only in one node and only once.
     - Depending on a cluster size there are different triggering algorithms balancing latency, ordering and resource efficiency.
     - Self healing and task scheduling maintenance processes run only in one node (leader election) to maximize efficiency.
-    
+
 Design of TwTasks has avoided following practices and approaches.
 - Triggering tasks by database polling (QueueEvent, Outgoing Messages)
 Mainly because of latency and performance reasons. You can not have 1 ms latency with database polling approach.
-Database polling is not used for usual tasks and happy flows, however it is still used for scheduled tasks (notice, that a retry is also handled 
+Database polling is not used for usual tasks and happy flows, however it is still used for scheduled tasks (notice, that a retry is also handled
 with a task scheduling), self healing and monitoring needs. However the polling has long interval and only one node in the cluster
 does it. In the future a better algorithm could be designed for scheduled tasks.
 
 ## What TwTask is not for
 Notice, that TwTask is for inner (micro-)service use. If you want to set up an asynchronous process in another service, you should
-send a Kafka Message to that service instead and this service could set up a TwTask itself on receiving the message. 
+send a Kafka Message to that service instead and this service could set up a TwTask itself on receiving the message.
 
 ## Infrastructure
 TwTask depends on and needs following infrastructure services.
@@ -120,8 +120,8 @@ testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}"
 ```
 
 ##### Create database tables
-- [MySQL/MariaDB/Percona](tw-tasks-executor/src/main/resources/db/changelog/db.tw-tasks-mysql.xml)
-- [Postgres](tw-tasks-executor/src/main/resources/db/changelog/db.tw-tasks-postgres.xml)
+- [MySQL/MariaDB/Percona](tw-tasks-core/src/main/resources/db/changelog/db.tw-tasks-mysql.xml)
+- [Postgres](tw-tasks-core/src/main/resources/db/changelog/db.tw-tasks-postgres.xml)
 
 ##### Add at least following configuration options
 ```yml
@@ -286,7 +286,7 @@ public class SampleCronTaskHandler extends TaskHandlerAdapter {
 		super(s -> s.equals(TT_SAMPLE_CRON), (ISyncTaskProcessor) task -> {
 			// Do the work
 			log.info("Alive and kicking!");
-			// We could throw an exception for a retry, but TwTasks also provide special, spam(logs) free, return code. 
+			// We could throw an exception for a retry, but TwTasks also provide special, spam(logs) free, return code.
 			return new ISyncTaskProcessor.ProcessResult().setResultCode(ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY);
 		});
 		setRetryPolicy(new ITaskRetryPolicy() {
@@ -381,7 +381,7 @@ class PayoutTaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
 			inProgressCnt.decrementAndGet();
 			return false;
 		}
-		
+
 		// Overall concurrency is satisfied, lets check per partner concurrency as well.
 		String transferMethod = getTransferMethod(task);
 		if (transferMethod != null) {
@@ -438,8 +438,8 @@ TwTasks works more efficiently with a proper JTA transaction manager than with S
 Engine configuration is described with and in `com.transferwise.tasks.TasksProperties`.
 
 When using additional shards to the default one, TwTasks must be told about them by setting the
-`additional-processing-buckets` property within the engine configuration. **Failure to do so will result in tasks 
-submitted to those buckets not being processed, and instead being sent to the error state.** 
+`additional-processing-buckets` property within the engine configuration. **Failure to do so will result in tasks
+submitted to those buckets not being processed, and instead being sent to the error state.**
 
 When using multiple shards, a shard can further configured by registering a `com.transferwise.tasks.buckets.BucketProperties` instance via
 `com.transferwise.tasks.buckets.IBucketsManager.registerBucketProperties`.
@@ -468,7 +468,7 @@ public TwTasksKafkaConfiguration twTaskKafkaConfiguration() {
 Some engineers want to understand how the engine actually works and which algorithms and tricks are used.
 
 1. Post Transaction Hook.
-When a task is added, we register a post transaction hook. Immediately, after a commit has finalized, the task is triggered. In 
+When a task is added, we register a post transaction hook. Immediately, after a commit has finalized, the task is triggered. In
 a case of rollback, nothing is done and can't be done, because the task record is "removed" from database.
 Currently there is one hook per task registered (for simplicity).
 
@@ -490,7 +490,7 @@ is basically very small and concrete - "Trigger task with id X and version Y."
 Any node, which receives this message will try to trigger the task.
 
 3. Look-ahead triggerings fetching and processing.
-The number of topics, or actually the number of partitions is actually a scarce resource in Kafka. The limitation is not 
+The number of topics, or actually the number of partitions is actually a scarce resource in Kafka. The limitation is not
 coming from Kafka itself, but from the Zookeeper underneath it.
 
 One can write a system, where for example every task type and task priority has its own triggering topic, but this will not scale.
@@ -503,7 +503,7 @@ This kind of look ahead fetch into memory allows us to "sort" tasks by priority,
 4. Sorted task triggerings table.
 Triggerings are fetched into very specific data structure, which goal is to provide a next task for processing with maximum of logN complexity.
 
-From this data structure, the system is finding a next task for execution. If it finds one, it stops, schedules the task execution in another thread and 
+From this data structure, the system is finding a next task for execution. If it finds one, it stops, schedules the task execution in another thread and
 starts again (searches a next task).
 
 There is one table per priority. Next task is always searched from highest priority table to lowest. If the task type has
@@ -511,7 +511,7 @@ no available processing slots in higher priority, it is assumed, it can not have
 
 Table for one priority looks like following.
 
-SEND_EMAIL            | SEND_KAFKA_MESSAGE | EXECUTE_PAYOUT 
+SEND_EMAIL            | SEND_KAFKA_MESSAGE | EXECUTE_PAYOUT
 ----------------------|--------------------|---------------
 1                     | 2                  | 4
 3                     | 5                  |
@@ -532,10 +532,10 @@ manual intervention happened and we just ignore it.
 
 So if for above table, the SEND_EMAIL processing slots where full, but we were able process SEND_KAFKA_MESSAGE, the table looks like
 
-SEND_EMAIL            | EXECUTE_PAYOUT     | SEND_KAFKA_MESSAGE 
+SEND_EMAIL            | EXECUTE_PAYOUT     | SEND_KAFKA_MESSAGE
 ----------------------|--------------------|---------------
 1                     | 4                  | 5
-3                     |                    | 
+3                     |                    |
 
 5. Concurrency control with booking system
 A booking system was decided to use. It is very simple, yet very powerful.
@@ -545,7 +545,7 @@ it will free (de-book) the slot so it will be available for next tasks.
 
 The booking registration is handled by implementation of `ITaskConcurrencyPolicy` where in its simples form it can be just
 increasing and decreasing an atomic integer (`SimpleTaskConcurrencyPolicy`). On the other end of complexity spectrum, it could
-be reserving and freeing Zookeeper's Semaphores to have cluster wide concurrency limit. Or have so called concurrency hierarchy, for 
+be reserving and freeing Zookeeper's Semaphores to have cluster wide concurrency limit. Or have so called concurrency hierarchy, for
 example 30 total, but 15 total for payout tasks, but only 3 total for one partner payout executions.
 
 6. Programmatic configuration
@@ -578,7 +578,7 @@ Because the tw-incidents does not have leader election (Yet), all nodes are curr
 and erroneous tasks and generating alerts (e.g. into VictorOps) for those.
 
 ## Support for integration tests
-For making integration testing easy and fun, the following support classes can be used. They are especially convinient for 
+For making integration testing easy and fun, the following support classes can be used. They are especially convinient for
 tasks with Json payload.
 
 - `IToKafkaTestHelper`
@@ -594,17 +594,17 @@ For very specific and extreme cases a `ITaskDao` can be directly injected and us
 ## Support for pure Spring and Grails applications.
 Basically a copy-paste of current auto-configuration class has to be done. Our conditionals are Spring Boot based and will not work there.
 
-No out-of-the box copy-paste free support is currently intended for other than Spring-Boot type of applications. 
+No out-of-the box copy-paste free support is currently intended for other than Spring-Boot type of applications.
 
 ## License
 Copyright 2019 TransferWise Ltd.
- 
+
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
- 
+
 http://www.apache.org/licenses/LICENSE-2.0
- 
+
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
