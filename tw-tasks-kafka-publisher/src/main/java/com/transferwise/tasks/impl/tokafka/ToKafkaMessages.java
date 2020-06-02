@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Multimap;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -29,7 +29,7 @@ public class ToKafkaMessages {
 
     private String key;
     private String message;
-    private Map<String, byte[]> headers;
+    private Multimap<String, byte[]> headers;
 
     @JsonIgnore
     public int getApproxSize() {

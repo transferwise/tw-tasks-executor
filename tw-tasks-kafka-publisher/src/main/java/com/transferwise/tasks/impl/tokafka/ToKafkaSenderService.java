@@ -1,6 +1,7 @@
 package com.transferwise.tasks.impl.tokafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Multimap;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.tracing.IWithXRequestId;
 import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
@@ -8,7 +9,6 @@ import com.transferwise.tasks.ITasksService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -118,7 +118,7 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
     }
   }
 
-  private ToKafkaMessages.Message toKafkaMessage(String key, String payloadString, Object payload, Map<String, byte[]> headers) {
+  private ToKafkaMessages.Message toKafkaMessage(String key, String payloadString, Object payload, Multimap<String, byte[]> headers) {
     ToKafkaMessages.Message toKafkaMessage = new ToKafkaMessages.Message().setKey(key);
     if (payloadString != null) {
       toKafkaMessage.setMessage(payloadString);

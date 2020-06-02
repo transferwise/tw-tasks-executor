@@ -1,6 +1,7 @@
 package com.transferwise.tasks.impl.tokafka;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.Multimap;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.handler.ExponentialTaskRetryPolicy;
@@ -14,8 +15,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
@@ -74,11 +73,11 @@ public class ToKafkaTaskHandlerConfiguration {
             .setMaxCount(toKafkaProperties.getRetryMaxCount()).setMaxDelay(Duration.ofMillis(toKafkaProperties.getRetryMaxDelayMs())));
   }
 
-  private List<Header> toKafkaHeaders(Map<String, byte[]> headers) {
+  private List<Header> toKafkaHeaders(Multimap<String, byte[]> headers) {
     if (headers == null) {
       return null;
     }
-    return headers.entrySet()
+    return headers.entries()
             .stream()
             .map(header -> new RecordHeader(header.getKey(), header.getValue()))
             .collect(Collectors.toList());

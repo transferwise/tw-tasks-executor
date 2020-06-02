@@ -11,7 +11,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
@@ -21,7 +22,6 @@ import com.transferwise.tasks.impl.tokafka.ToKafkaMessages.Message;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -94,7 +94,8 @@ class ToKafkaSenderServiceTest {
 
   @Test
   void headersAreAddedToTheTaskRequest() {
-    Map<String, byte[]> headers = ImmutableMap.of("a", "b".getBytes(UTF_8));
+    Multimap<String, byte[]> headers = HashMultimap.create();
+    headers.put("a", "b".getBytes(UTF_8));
 
     toKafkaSenderService.sendMessage(new SendMessageRequest()
         .setPayload("abc")
@@ -108,7 +109,8 @@ class ToKafkaSenderServiceTest {
 
   @Test
   void headersAreAddedToTheTaskRequestInCaseOfBatch() {
-    Map<String, byte[]> headers = ImmutableMap.of("a", "b".getBytes(UTF_8));
+    Multimap<String, byte[]> headers = HashMultimap.create();
+    headers.put("a", "b".getBytes(UTF_8));
 
     toKafkaSenderService.sendMessages(new SendMessagesRequest().add(new SendMessagesRequest.Message()
         .setPayloadString("abc")
@@ -206,10 +208,10 @@ class ToKafkaSenderServiceTest {
     return mock;
   }
 
-  private void assertHeadersEqual(Map<String, byte[]> expectedHeaders, AddTaskRequest actualRequest) {
+  private void assertHeadersEqual(Multimap<String, byte[]> expectedHeaders, AddTaskRequest actualRequest) {
     List<Message> toKafkaMessages = ((ToKafkaMessages) actualRequest.getData()).getMessages();
     assertEquals(toKafkaMessages.size(), 1);
-    Map<String, byte[]> actualHeaders = toKafkaMessages.get(0).getHeaders();
+    Multimap<String, byte[]> actualHeaders = toKafkaMessages.get(0).getHeaders();
     assertEquals(expectedHeaders, actualHeaders);
   }
 

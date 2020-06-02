@@ -3,7 +3,7 @@ package com.transferwise.tasks.impl.tokafka;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Multimap;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -29,7 +29,7 @@ public interface IToKafkaSenderService {
     private String key;
     private Object payload;
     private String payloadString;
-    private Map<String, byte[]> headers;
+    private Multimap<String, byte[]> headers;
     private ZonedDateTime sendAfterTime;
   }
 
@@ -59,7 +59,7 @@ public interface IToKafkaSenderService {
       private String key;
       private Object payload;
       private String payloadString;
-      private Map<String, byte[]> headers;
+      private Multimap<String, byte[]> headers;
 
     }
   }
