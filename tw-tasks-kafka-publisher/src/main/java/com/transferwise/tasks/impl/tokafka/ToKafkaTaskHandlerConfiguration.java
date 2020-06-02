@@ -13,8 +13,15 @@ import com.transferwise.tasks.helpers.IMeterHelper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.Header;
+import org.apache.kafka.common.header.internals.RecordHeader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -38,8 +45,14 @@ public class ToKafkaTaskHandlerConfiguration {
 
           String topic = toKafkaMessages.getTopic();
           for (ToKafkaMessages.Message message : toKafkaMessages.getMessages()) {
+            ProducerRecord<String, String> producerRecord = new ProducerRecord<>(
+                topic,
+                null,
+                message.getKey(),
+                message.getMessage(),
+                toKafkaHeaders(message.getHeaders()));
             kafkaConfiguration.getKafkaTemplate()
-                .send(topic, message.getKey(), message.getMessage())
+                .send(producerRecord)
                 .addCallback(
                     result -> {
                       log.debug("Sent and acked Kafka message to topic '{}'.", topic);
@@ -59,6 +72,16 @@ public class ToKafkaTaskHandlerConfiguration {
         new ExponentialTaskRetryPolicy().setDelay(Duration.ofMillis(toKafkaProperties.getRetryDelayMs()))
             .setMultiplier(toKafkaProperties.getRetryExponent())
             .setMaxCount(toKafkaProperties.getRetryMaxCount()).setMaxDelay(Duration.ofMillis(toKafkaProperties.getRetryMaxDelayMs())));
+  }
+
+  private List<Header> toKafkaHeaders(Map<String, byte[]> headers) {
+    if (headers == null) {
+      return null;
+    }
+    return headers.entrySet()
+            .stream()
+            .map(header -> new RecordHeader(header.getKey(), header.getValue()))
+            .collect(Collectors.toList());
   }
 
   private void registerSentMessage(String topic) {

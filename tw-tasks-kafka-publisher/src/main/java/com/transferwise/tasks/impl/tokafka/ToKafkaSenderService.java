@@ -8,6 +8,7 @@ import com.transferwise.tasks.ITasksService;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -48,11 +49,11 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
   }
 
   protected ToKafkaMessages.Message convert(SendMessageRequest request) {
-    return toKafkaMessage(request.getKey(), request.getPayloadString(), request.getPayload());
+    return toKafkaMessage(request.getKey(), request.getPayloadString(), request.getPayload(), request.getHeaders());
   }
 
   protected ToKafkaMessages.Message convert(SendMessagesRequest.Message message) {
-    return toKafkaMessage(message.getKey(), message.getPayloadString(), message.getPayload());
+    return toKafkaMessage(message.getKey(), message.getPayloadString(), message.getPayload(), message.getHeaders());
   }
 
   protected List<List<ToKafkaMessages.Message>> splitToBatches(List<ToKafkaMessages.Message> messages, int batchSizeBytes) {
@@ -117,7 +118,7 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
     }
   }
 
-  private ToKafkaMessages.Message toKafkaMessage(String key, String payloadString, Object payload) {
+  private ToKafkaMessages.Message toKafkaMessage(String key, String payloadString, Object payload, Map<String, byte[]> headers) {
     ToKafkaMessages.Message toKafkaMessage = new ToKafkaMessages.Message().setKey(key);
     if (payloadString != null) {
       toKafkaMessage.setMessage(payloadString);
@@ -125,6 +126,8 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
       enrichXRequestId(payload);
       toKafkaMessage.setMessage(ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsString(payload)));
     }
+
+    toKafkaMessage.setHeaders(headers);
 
     return toKafkaMessage;
   }
