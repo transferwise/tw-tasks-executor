@@ -1,9 +1,9 @@
 package com.transferwise.tasks.impl.tokafka;
 
+import com.google.common.collect.Multimap;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import com.google.common.collect.Multimap;
 import lombok.Data;
 import lombok.experimental.Accessors;
 

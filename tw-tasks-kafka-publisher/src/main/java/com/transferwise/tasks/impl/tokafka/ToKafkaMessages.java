@@ -1,10 +1,10 @@
 package com.transferwise.tasks.impl.tokafka;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Multimap;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import com.google.common.collect.Multimap;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
