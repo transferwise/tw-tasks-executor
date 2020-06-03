@@ -1,5 +1,6 @@
 package com.transferwise.tasks.impl.tokafka;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -10,8 +11,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessageRequest;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessagesRequest;
 import com.transferwise.tasks.impl.tokafka.ToKafkaMessages.Message;
@@ -28,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -85,6 +90,36 @@ class ToKafkaSenderServiceTest {
 
     verify(objectMapper, never()).writeValueAsString(anyString());
     verify(taskService).addTask(any());
+  }
+
+  @Test
+  void headersAreAddedToTheTaskRequest() {
+    Multimap<String, byte[]> headers = HashMultimap.create();
+    headers.put("a", "b".getBytes(UTF_8));
+
+    toKafkaSenderService.sendMessage(new SendMessageRequest()
+        .setPayload("abc")
+        .setHeaders(headers));
+
+    ArgumentCaptor<AddTaskRequest> taskCaptor = ArgumentCaptor.forClass(AddTaskRequest.class);
+    verify(taskService).addTask(taskCaptor.capture());
+    AddTaskRequest actualRequest = taskCaptor.getValue();
+    assertHeadersEqual(headers, actualRequest);
+  }
+
+  @Test
+  void headersAreAddedToTheTaskRequestInCaseOfBatch() {
+    Multimap<String, byte[]> headers = HashMultimap.create();
+    headers.put("a", "b".getBytes(UTF_8));
+
+    toKafkaSenderService.sendMessages(new SendMessagesRequest().add(new SendMessagesRequest.Message()
+        .setPayloadString("abc")
+        .setHeaders(headers)));
+
+    ArgumentCaptor<AddTaskRequest> taskCaptor = ArgumentCaptor.forClass(AddTaskRequest.class);
+    verify(taskService).addTask(taskCaptor.capture());
+    AddTaskRequest actualRequest = taskCaptor.getValue();
+    assertHeadersEqual(headers, actualRequest);
   }
 
   @Test
@@ -172,4 +207,12 @@ class ToKafkaSenderServiceTest {
     when(mock.getApproxSize()).thenReturn(size);
     return mock;
   }
+
+  private void assertHeadersEqual(Multimap<String, byte[]> expectedHeaders, AddTaskRequest actualRequest) {
+    List<Message> toKafkaMessages = ((ToKafkaMessages) actualRequest.getData()).getMessages();
+    assertEquals(toKafkaMessages.size(), 1);
+    Multimap<String, byte[]> actualHeaders = toKafkaMessages.get(0).getHeaders();
+    assertEquals(expectedHeaders, actualHeaders);
+  }
+
 }

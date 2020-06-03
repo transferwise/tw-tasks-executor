@@ -1,6 +1,7 @@
 package com.transferwise.tasks.impl.tokafka;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Multimap;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ public class ToKafkaMessages {
 
     private String key;
     private String message;
+    private Multimap<String, byte[]> headers;
 
     @JsonIgnore
     public int getApproxSize() {
