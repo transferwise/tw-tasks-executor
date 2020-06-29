@@ -586,7 +586,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   private void setToBeRetried(Task task, ZonedDateTime retryTime, boolean resetTriesCount) {
     if (!taskDao.setToBeRetried(task.getId(), retryTime, task.getVersion(), resetTriesCount)) {
       meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
-      log.error("Failed to setup task {} to be retried.", LogUtils.asParameter(task.getVersionId()), new Throwable());
     }
   }
 

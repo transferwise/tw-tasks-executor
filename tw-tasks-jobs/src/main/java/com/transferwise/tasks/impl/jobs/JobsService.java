@@ -64,7 +64,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
     cronTasksMap = jobContainers.stream().collect(Collectors.toMap(JobContainer::getUniqueName, Function.identity()));
 
     validateState();
-    registerCronTasks();
+    registerCronTasks(false);
   }
 
   @Override
@@ -97,12 +97,16 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
     });
   }
 
-  protected void registerCronTasks() {
+  protected void registerCronTasks(boolean silent) {
     for (JobContainer jobContainer : jobContainers) {
       IJob cronTask = jobContainer.getJob();
       ZonedDateTime nextRuntime = cronTask.getNextRunTime();
       if (nextRuntime == null) {
-        log.error("Job '{}' did not provide next runtime. It will not be registered and processed.", cronTask.getUniqueName());
+        if (silent) {
+          log.debug("Job '{}' did not provide next runtime. It will not be registered and processed.", cronTask.getUniqueName());
+        } else {
+          log.error("Job '{}' did not provide next runtime. It will not be registered and processed.", cronTask.getUniqueName());
+        }
         continue;
       }
 
@@ -120,9 +124,13 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
           .setData(cronTask.getInitialData()));
 
       if (response.getResult() == ITasksService.AddTaskResponse.Result.OK) {
-        log.info("Job '{}' registered with task id '{}'. It will be run at {}.", jobContainer.getUniqueName(), cronTask.getTaskId(), nextRuntime);
+        if (silent) {
+          log.debug("Job '{}' registered with task id '{}'. It will be run at {}.", jobContainer.getUniqueName(), cronTask.getTaskId(), nextRuntime);
+        } else {
+          log.info("Job '{}' registered with task id '{}'. It will be run at {}.", jobContainer.getUniqueName(), cronTask.getTaskId(), nextRuntime);
+        }
       } else {
-        if (jobsProperties.isTestMode()) {
+        if (jobsProperties.isTestMode() || silent) {
           // We don't want to see this every time a new test runs while tasks are not cleaned.
           log.debug("Job '{}' was not registered with task id '{}', because the task already exists.", jobContainer.getUniqueName(),
               cronTask.getTaskId());
