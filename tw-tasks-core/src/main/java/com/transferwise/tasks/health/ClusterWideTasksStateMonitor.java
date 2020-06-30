@@ -3,10 +3,10 @@ package com.transferwise.tasks.health;
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 import com.google.common.collect.ImmutableMap;
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.common.leaderselector.LeaderSelector;
 import com.transferwise.tasks.TasksProperties;
@@ -139,7 +139,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   protected void measureTaskHistoryLength(TaskStatus status) {
-    ZonedDateTime now = ZonedDateTime.now(ClockHolder.getClock());
+    ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
     ZonedDateTime earliestTaskNextEventTime = taskDao.getEarliestTaskNextEventTime(status);
     long historyLengthSeconds = earliestTaskNextEventTime == null ? 0L : Duration.between(earliestTaskNextEventTime, now).getSeconds();
 
@@ -196,7 +196,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   protected void checkStuckTasks() {
-    int stuckTasksCountValue = taskDao.getStuckTasksCount(ZonedDateTime.now(ClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()),
+    int stuckTasksCountValue = taskDao.getStuckTasksCount(ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()),
         tasksProperties.getMaxDatabaseFetchSize());
 
     if (stuckTasksCount == null) {

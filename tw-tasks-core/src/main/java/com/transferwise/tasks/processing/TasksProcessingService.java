@@ -5,10 +5,10 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 import com.google.common.collect.ImmutableMap;
 import com.newrelic.api.agent.NewRelic;
 import com.newrelic.api.agent.Trace;
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.Criticality;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.IPriorityManager;
@@ -407,7 +407,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                   MdcContext.put("twTaskType", task.getType());
                   MdcContext.put("twTaskSubType", task.getSubType());
 
-                  long processingStartTimeMs = ClockHolder.getClock().millis();
+                  long processingStartTimeMs = TwContextClockHolder.getClock().millis();
                   MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
 
                   ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
@@ -602,7 +602,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
   @Override
   public void prepareForShutdown() {
-    shutdownStartTime = Instant.now(ClockHolder.getClock());
+    shutdownStartTime = Instant.now(TwContextClockHolder.getClock());
     shuttingDown = true;
     tasksProcessingExecutor.shutdown();
   }
@@ -610,7 +610,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   @Override
   public boolean canShutdown() {
     if (tasksProperties.getInterruptTasksAfterShutdownTime() != null
-        && Duration.between(shutdownStartTime, Instant.now(ClockHolder.getClock()))
+        && Duration.between(shutdownStartTime, Instant.now(TwContextClockHolder.getClock()))
         .compareTo(tasksProperties.getInterruptTasksAfterShutdownTime()) > 0) {
       LockUtils.withLock(tasksProcessingThreadsLock, () -> {
         log.info("taskProcessingThreads: " + tasksProcessingThreads.size());

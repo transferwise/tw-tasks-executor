@@ -5,9 +5,9 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newrelic.api.agent.NewRelic;
 import com.newrelic.api.agent.Trace;
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.tracing.IWithXRequestId;
 import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
@@ -75,7 +75,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   public AddTaskResponse addTask(AddTaskRequest request) {
     return MdcContext.with(() -> {
       MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), new TaskVersionId(request.getTaskId(), 0));
-      ZonedDateTime now = ZonedDateTime.now(ClockHolder.getClock());
+      ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
       TaskStatus status = request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
 
       int priority = priorityManager.normalize(request.getPriority());

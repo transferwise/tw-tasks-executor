@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.common.baseutils.clock.TestClock;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.TasksProcessingState;
@@ -37,7 +38,7 @@ class ManualStartIntTest extends BaseIntTest {
 
   @BeforeEach
   void setup() {
-    testClock = TestClock.createAndRegister();
+    TwContextClockHolder.setClock(testClock = new TestClock());
   }
 
   @Test

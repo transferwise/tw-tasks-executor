@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TaskTestBuilder;
@@ -203,7 +204,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     FullTaskRecord task = taskDao.getTask(task0Id, FullTaskRecord.class);
     assertEquals(TaskStatus.WAITING.name(), task.getStatus());
     // decrementing 1 because of database rounding error.
-    assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(1)));
+    assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1)));
   }
 
   @Test
@@ -227,7 +228,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     assertTrue(response.getBody().getResults().get(task0Id).isSuccess());
     FullTaskRecord task = taskDao.getTask(task0Id, FullTaskRecord.class);
     // decrementing 1 because of database rounding error
-    assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(1)));
+    assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1)));
   }
 
 }

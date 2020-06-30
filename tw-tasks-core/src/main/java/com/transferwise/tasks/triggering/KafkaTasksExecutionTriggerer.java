@@ -5,8 +5,8 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
@@ -258,8 +258,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           @Override
           public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
             Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
-            long timestampToSearchMs = ZonedDateTime.now(ClockHolder.getClock()).plus(bucketProperties.getAutoResetOffsetToDuration()).toInstant()
-                .toEpochMilli();
+            long timestampToSearchMs =
+                ZonedDateTime.now(TwContextClockHolder.getClock()).plus(bucketProperties.getAutoResetOffsetToDuration()).toInstant()
+                    .toEpochMilli();
 
             for (TopicPartition partition : partitions) {
               try {

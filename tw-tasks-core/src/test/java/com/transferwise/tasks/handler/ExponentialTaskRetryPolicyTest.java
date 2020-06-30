@@ -3,6 +3,7 @@ package com.transferwise.tasks.handler;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.transferwise.common.baseutils.clock.TestClock;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.Task;
 import java.time.Duration;
 import java.time.Instant;
@@ -15,7 +16,8 @@ public class ExponentialTaskRetryPolicyTest {
     ExponentialTaskRetryPolicy policy = new ExponentialTaskRetryPolicy()
         .setMaxCount(9999).setDelay(Duration.ofSeconds(5)).setMultiplier(2);
     Task task = new Task().setProcessingTriesCount(200);
-    TestClock testClock = TestClock.createAndRegister();
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
     Instant retryTime = policy.getRetryTime(task, null).toInstant();
     assertThat(retryTime).isEqualTo(testClock.instant().plus(Duration.ofDays(1)));
   }
@@ -25,7 +27,8 @@ public class ExponentialTaskRetryPolicyTest {
     ExponentialTaskRetryPolicy policy = new ExponentialTaskRetryPolicy()
         .setMaxCount(9999).setDelay(Duration.ofSeconds(5)).setMultiplier(2);
     Task task = new Task().setProcessingTriesCount(200);
-    TestClock testClock = TestClock.createAndRegister();
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
 
     task.setProcessingTriesCount(1);
     Instant retryTime = policy.getRetryTime(task, null).toInstant();
@@ -41,7 +44,8 @@ public class ExponentialTaskRetryPolicyTest {
     ExponentialTaskRetryPolicy policy = new ExponentialTaskRetryPolicy()
         .setMaxCount(9999).setDelay(Duration.ofSeconds(5)).setMultiplier(2).setTriesDelta(2);
     Task task = new Task().setProcessingTriesCount(200);
-    TestClock testClock = TestClock.createAndRegister();
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
 
     task.setProcessingTriesCount(1);
     Instant retryTime = policy.getRetryTime(task, null).toInstant();

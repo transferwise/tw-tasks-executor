@@ -1,6 +1,7 @@
 package com.transferwise.tasks.testapp.config;
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
@@ -111,7 +112,7 @@ public class TestConfiguration {
     return new IJob() {
       @Override
       public ZonedDateTime getNextRunTime() {
-        return ZonedDateTime.now(ClockHolder.getClock()).plusYears(20);
+        return ZonedDateTime.now(TwContextClockHolder.getClock()).plusYears(20);
       }
 
       @Override

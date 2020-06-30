@@ -3,8 +3,8 @@ package com.transferwise.tasks.ext.jobs;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.clock.TestClock;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.ITask;
@@ -16,7 +16,6 @@ import com.transferwise.tasks.impl.jobs.test.ITestJobsService;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.concurrent.ThreadLocalRandom;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,7 +115,7 @@ class JobsIntTest extends BaseIntTest {
 
     @Override
     public ZonedDateTime getNextRunTime() {
-      return ZonedDateTime.now(ClockHolder.getClock());
+      return ZonedDateTime.now(TwContextClockHolder.getClock());
     }
 
     @Override
@@ -151,7 +150,7 @@ class JobsIntTest extends BaseIntTest {
           }
           retryCode = 'F';
           log.info("Next runtime will be after 1s");
-          return ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(1);
+          return ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1);
         }
       };
     }
@@ -160,7 +159,7 @@ class JobsIntTest extends BaseIntTest {
     public ZonedDateTime getNextRunTime() {
       retryCode = 'R';
       log.info("Next runtime will be after 60s");
-      return ZonedDateTime.now(ClockHolder.getClock()).plusSeconds(60);
+      return ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(60);
     }
 
     @Override
@@ -186,7 +185,7 @@ class JobsIntTest extends BaseIntTest {
 
     @Override
     public ZonedDateTime getNextRunTime() {
-      return ZonedDateTime.now(ClockHolder.getClock()).plusYears(100);
+      return ZonedDateTime.now(TwContextClockHolder.getClock()).plusYears(100);
     }
 
     @Override
@@ -196,11 +195,14 @@ class JobsIntTest extends BaseIntTest {
     }
   }
 
-  @RequiredArgsConstructor
   private class IntermediateRetriesTestSetup {
 
-    final TestClock clock = TestClock.createAndRegister();
+    final TestClock clock = new TestClock();
     final JobB job = new JobB();
+
+    public IntermediateRetriesTestSetup() {
+      TwContextClockHolder.setClock(clock);
+    }
 
     void waitForExecutionCount(int expectedCount) {
       await().until(
