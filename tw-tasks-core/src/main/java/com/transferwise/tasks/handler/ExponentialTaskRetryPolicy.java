@@ -1,7 +1,7 @@
 package com.transferwise.tasks.handler;
 
 import com.google.common.math.LongMath;
-import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import java.time.Duration;
@@ -49,6 +49,6 @@ public class ExponentialTaskRetryPolicy implements ITaskRetryPolicy {
       addedTimeMs = maxDelay.toMillis();
     }
 
-    return ZonedDateTime.now(ClockHolder.getClock()).plus(addedTimeMs, ChronoUnit.MILLIS);
+    return ZonedDateTime.now(TwContextClockHolder.getClock()).plus(addedTimeMs, ChronoUnit.MILLIS);
   }
 }

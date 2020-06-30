@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.StuckTask;
@@ -67,12 +68,12 @@ class TasksResumerTest {
   @InjectMocks
   private TasksResumer service;
 
-  private final ZonedDateTime now = ZonedDateTime.now(ClockHolder.getClock());
+  private final ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
 
   @BeforeEach
   void setup() {
     lenient().when(tasksProperties.getTaskStuckTimeout()).thenReturn(Duration.ofMinutes(10));
-    ClockHolder.setClock(Clock.fixed(now.toInstant(), now.getZone()));
+    TwContextClockHolder.setClock(Clock.fixed(now.toInstant(), now.getZone()));
   }
 
   @Test

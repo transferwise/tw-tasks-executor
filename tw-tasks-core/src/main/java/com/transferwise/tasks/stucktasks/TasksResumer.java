@@ -3,10 +3,10 @@ package com.transferwise.tasks.stucktasks;
 import com.newrelic.api.agent.NewRelic;
 import com.newrelic.api.agent.Trace;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.common.leaderselector.Leader;
 import com.transferwise.common.leaderselector.LeaderSelector;
@@ -287,7 +287,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     if (timeout == null) {
       timeout = tasksProperties.getTaskStuckTimeout();
     }
-    return ZonedDateTime.now(ClockHolder.getClock()).plus(timeout);
+    return ZonedDateTime.now(TwContextClockHolder.getClock()).plus(timeout);
   }
 
   @Override

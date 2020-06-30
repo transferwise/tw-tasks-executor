@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.domain.IBaseTask;
@@ -151,7 +152,9 @@ class RetriesIntTest extends BaseIntTest {
 
   @Test
   void exponentialRetriesWorkEachRetryShouldTakeLonger() {
-    TestClock clock = TestClock.createAndRegister();
+    TestClock clock = new TestClock();
+    TwContextClockHolder.setClock(clock);
+    
     AtomicInteger processingCount = new AtomicInteger();
     int n = 5;
 

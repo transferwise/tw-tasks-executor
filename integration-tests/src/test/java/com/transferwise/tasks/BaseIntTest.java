@@ -1,8 +1,7 @@
 package com.transferwise.tasks;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
-import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.test.ITestTasksService;
 import com.transferwise.tasks.testapp.IResultRegisteringSyncTaskProcessor;
 import com.transferwise.tasks.testapp.TestTaskHandler;
@@ -58,7 +57,7 @@ public abstract class BaseIntTest {
   @Autowired
   protected MockMvc mockMvc;    // use for testing secured endpoints
 
-  private long startTimeMs = ClockHolder.getClock().millis();
+  private long startTimeMs = System.currentTimeMillis();
 
   @BeforeEach
   void setupBaseTest(TestInfo testInfo) {
@@ -68,7 +67,7 @@ public abstract class BaseIntTest {
 
   @AfterEach
   void cleanupBaseTest(TestInfo testInfo) {
-    TestClock.reset();
+    TwContextClockHolder.reset();
     transactionsHelper.withTransaction().asNew().call(() -> {
       testTasksService.reset();
       return null;

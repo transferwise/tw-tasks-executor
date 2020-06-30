@@ -1,6 +1,6 @@
 package com.transferwise.tasks.helpers;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.TaskStatus;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
@@ -59,7 +59,7 @@ public class MicrometerMeterHelper implements IMeterHelper {
         TAG_PROCESSING_RESULT, processingResult).increment();
     meterRegistry.timer(METRIC_PREFIX + "tasks.processingTime", TAG_BUCKET_ID, resolvedBucketId, TAG_TASK_TYPE, taskType,
         TAG_PROCESSING_RESULT, processingResult)
-        .record(ClockHolder.getClock().millis() - processingStartTimeMs, TimeUnit.MILLISECONDS);
+        .record(TwContextClockHolder.getClock().millis() - processingStartTimeMs, TimeUnit.MILLISECONDS);
     gauges.get(Triple.of("tasks.ongoingProcessingsCount", resolvedBucketId, taskType)).decrementAndGet();
   }
 

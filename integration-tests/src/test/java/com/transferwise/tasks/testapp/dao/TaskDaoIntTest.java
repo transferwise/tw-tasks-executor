@@ -9,6 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.google.common.collect.ImmutableSet;
 import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.clock.TestClock;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.DaoTask1;
@@ -232,7 +233,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void getStuckTasksReturnsAllTasksToRetry() {
-    final TestClock testClock = TestClock.createAndRegister();
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
     final UUID taskId = UUID.randomUUID();
     addTask(taskId, TaskStatus.SUBMITTED);
     final ZonedDateTime oldNextEventTime = taskDao.getTask(taskId, FullTaskRecord.class).getNextEventTime();
@@ -399,7 +401,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingStuckTaskCountConsidersTheLimitTime() {
-    TestClock testClock = TestClock.createAndRegister();
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
     addRandomTask(TaskStatus.PROCESSING);
     addRandomTask(TaskStatus.PROCESSING);
     ZonedDateTime limitTime = ZonedDateTime.now(testClock).plus(1, ChronoUnit.MILLIS);
@@ -471,12 +474,13 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void deletingOldTasksIsHappeningInBatches() {
-    TestClock clock = TestClock.createAndRegister();
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
 
     addRandomTask();
     addRandomTask();
 
-    clock.tick(Duration.ofMinutes(11));
+    testClock.tick(Duration.ofMinutes(11));
     DeleteFinishedOldTasksResult result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 1);
 
     assertEquals(1, taskDao.getTasksCountInStatus(10, TaskStatus.DONE));
@@ -654,7 +658,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     return taskDao.insertTask(
         new ITaskDao.InsertTaskRequest()
             .setData(data)
-            .setMaxStuckTime(ZonedDateTime.now(ClockHolder.getClock()))
+            .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
             .setTaskId(id)
             .setPriority(5)
             .setStatus(taskStatus)

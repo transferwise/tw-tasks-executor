@@ -1,6 +1,6 @@
 package com.transferwise.tasks.handler;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
@@ -35,7 +35,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
 
   @Override
   public Instant getProcessingDeadline(IBaseTask task) {
-    return ClockHolder.getClock().instant().plus(maxProcessingDuration);
+    return TwContextClockHolder.getClock().instant().plus(maxProcessingDuration);
   }
 
   @Override

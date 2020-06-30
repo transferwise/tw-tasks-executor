@@ -19,6 +19,7 @@ dependencies {
     testImplementation libraries.commonsIo
     testImplementation libraries.apacheCuratorRecipies
     testImplementation libraries.twLeaderSelector
+    testImplementation libraries.twContext
     testImplementation libraries.springTx
     testImplementation 'org.springframework.boot:spring-boot'
     testImplementation 'org.springframework.boot:spring-boot-autoconfigure'

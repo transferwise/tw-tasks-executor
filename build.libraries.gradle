@@ -1,5 +1,5 @@
 ext {
-    twContextVersion = "0.1.2"
+    twContextVersion = "0.3.2"
     springBootVersion = "2.2.4.RELEASE"
 
     libraries = [
