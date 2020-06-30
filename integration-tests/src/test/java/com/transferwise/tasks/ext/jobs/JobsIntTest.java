@@ -13,7 +13,6 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.test.ITestJobsService;
-import com.transferwise.tasks.impl.jobs.test.TestJobsService;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.concurrent.ThreadLocalRandom;
@@ -33,7 +32,7 @@ class JobsIntTest extends BaseIntTest {
   private ITaskDao taskDao;
 
   @Autowired
-  private TestJobsService testJobsService;
+  private ITestJobsService testJobsService;
 
   @BeforeEach
   void resetJobs() {
@@ -107,7 +106,7 @@ class JobsIntTest extends BaseIntTest {
 
   private <T extends IJob> T registerJobBean(T job) {
     applicationContext.getBeanFactory().registerSingleton(job.getClass().getSimpleName(), job);
-    testJobsService.applicationStarted();
+    testJobsService.reset();
     return job;
   }
 

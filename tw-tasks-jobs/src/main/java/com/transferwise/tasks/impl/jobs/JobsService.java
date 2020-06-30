@@ -55,6 +55,10 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
 
   @Override
   public void applicationStarted() {
+    initJobs(false);
+  }
+
+  protected void initJobs(boolean silent) {
     List<IJob> availableCronTasks = new ArrayList<>(applicationContext.getBeansOfType(IJob.class).values());
 
     jobContainers = Stream.concat(availableCronTasks.stream(), nonBeanJobs.stream())
@@ -64,7 +68,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
     cronTasksMap = jobContainers.stream().collect(Collectors.toMap(JobContainer::getUniqueName, Function.identity()));
 
     validateState();
-    registerCronTasks(false);
+    registerCronTasks(silent);
   }
 
   @Override
