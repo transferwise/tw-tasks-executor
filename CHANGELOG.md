@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.7.4 - 2020/06/29
+- Reducing jobs logs spam in applications test suite.
+
 #### 1.7.2 - 2020/05/22
 - TaskHandlerRegistry is initializing handlers list in lazy way to avoid possible circular dependencies in applications.
 

@@ -59,7 +59,7 @@ public class TestJobsService extends JobsService implements ITestJobsService {
   public void reset() {
     transactionsHelper.withTransaction().asNew().call(() -> {
       testTasksService.reset();
-      applicationStarted();
+      initJobs(true);
       return null;
     });
   }
