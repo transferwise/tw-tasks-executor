@@ -2,6 +2,11 @@
 
 Describes notable changes.
 
+#### 1.7.5 - 2020/06/30
+- Moving away from global ClockHolder to mock the time in tests.
+In that way we will create less surprises and flakiness for services also needing to mock that global time
+for other reasons.
+
 #### 1.7.4 - 2020/06/29
 - Reducing jobs logs spam in applications test suite.
 
