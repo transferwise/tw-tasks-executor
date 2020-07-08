@@ -178,7 +178,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
       transferFromIntermediateBuffer(bucket, prioritySlot);
 
-      // TODO: New ArrayList is not the most efficient on large queues. Come up with something better.
       for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
         String type = typeTasks.getType();
 
