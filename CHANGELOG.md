@@ -2,6 +2,13 @@
 
 Describes notable changes.
 
+#### 1.8.1 - 2020/07/08
+- Added some debug metrics for tasks processing cycle.
+
+#### 1.8.0 - 2020/06/30
+- Removed 1.7.5 and 1.7.4 version from repositories and correctly increased the minor version instead.
+Because the ClockHolder change may need some minor changes in services test suites.
+
 #### 1.7.5 - 2020/06/30
 - Moving away from global ClockHolder to mock the time in tests.
 In that way we will create less surprises and flakiness for services also needing to mock that global time

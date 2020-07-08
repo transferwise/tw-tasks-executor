@@ -1,6 +1,7 @@
 package com.transferwise.tasks.helpers;
 
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -56,4 +57,11 @@ public interface IMeterHelper {
 
   void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
 
+  void registerTaskGrabbingResponse(String bucketId, String type, int priority, ProcessTaskResponse processTaskResponse);
+
+  void debugPriorityQueueCheck(String bucketId, int priority);
+
+  void debugRoomMapAlreadyHasType(String bucketId, int priority, String taskType);
+
+  void debugTaskTriggeringQueueEmpty(String bucketId, int priority, String taskType);
 }
