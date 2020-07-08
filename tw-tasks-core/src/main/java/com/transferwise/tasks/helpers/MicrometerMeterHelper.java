@@ -2,6 +2,7 @@ package com.transferwise.tasks.helpers;
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -26,6 +27,9 @@ public class MicrometerMeterHelper implements IMeterHelper {
   private static final String TAG_BUCKET_ID = "bucketId";
   private static final String TAG_TASK_TYPE = "taskType";
   private static final String TAG_REASON = "reason";
+  private static final String TAG_PRIORITY = "priority";
+  private static final String TAG_GRABBING_RESPONSE = "grabbingResponse";
+  private static final String TAG_GRABBING_CODE = "grabbingCode";
   private static String TAG_PROCESSING_RESULT = "processingResult";
   private static String TAG_FROM_STATUS = "fromStatus";
   private static String TAG_TO_STATUS = "toStatus";
@@ -67,6 +71,32 @@ public class MicrometerMeterHelper implements IMeterHelper {
   public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus) {
     meterRegistry.counter(METRIC_PREFIX + "tasks.failedStatusChangeCount", TAG_TASK_TYPE, taskType,
         TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name()).increment();
+  }
+
+  @Override
+  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, ProcessTaskResponse processTaskResponse) {
+    meterRegistry.counter(METRIC_PREFIX + "tasks.taskGrabbing", TAG_TASK_TYPE, taskType,
+        TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority), TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
+        TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name())
+        .increment();
+  }
+
+  @Override
+  public void debugPriorityQueueCheck(String bucketId, int priority) {
+    meterRegistry.counter(METRIC_PREFIX + "tasks.debug.priorityQueueCheck", TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority))
+        .increment();
+  }
+
+  @Override
+  public void debugRoomMapAlreadyHasType(String bucketId, int priority, String taskType) {
+    meterRegistry.counter(METRIC_PREFIX + "tasks.debug.roomMapAlreadyHasType", TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority),
+        TAG_TASK_TYPE, taskType).increment();
+  }
+
+  @Override
+  public void debugTaskTriggeringQueueEmpty(String bucketId, int priority, String taskType) {
+    meterRegistry.counter(METRIC_PREFIX + "tasks.debug.taskTriggeringQueueEmpty", TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority),
+        TAG_TASK_TYPE, taskType).increment();
   }
 
   @Override

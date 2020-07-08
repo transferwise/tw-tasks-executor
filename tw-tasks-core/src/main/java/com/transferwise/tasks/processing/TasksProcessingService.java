@@ -31,6 +31,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.mdc.MdcContext;
+import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse.Code;
 import com.transferwise.tasks.triggering.TaskTriggering;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
@@ -167,6 +168,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     Map<String, Boolean> noRoomMap = new HashMap<>();
 
     for (Integer priority : bucket.getPriorities()) {
+      meterHelper.debugPriorityQueueCheck(bucketId, priority);
+          
       if (taskProcessed) {
         break;
       }
@@ -175,15 +178,18 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
       transferFromIntermediateBuffer(bucket, prioritySlot);
 
+      // TODO: New ArrayList is not the most efficient on large queues. Come up with something better.
       for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
         String type = typeTasks.getType();
 
         if (noRoomMap.containsKey(type)) {
+          meterHelper.debugRoomMapAlreadyHasType(bucketId, priority, type);
           continue;
         }
 
         TaskTriggering taskTriggering = typeTasks.getTasks().peek();
         if (taskTriggering == null) {
+          meterHelper.debugTaskTriggeringQueueEmpty(bucketId, priority, type);
           // Empty queues are always in the end, no point of going forward.
           break;
         }
@@ -192,6 +198,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         try {
           try {
             ProcessTaskResponse processTaskResponse = grabTaskForProcessing(bucketId, task);
+
+            meterHelper.registerTaskGrabbingResponse(bucketId, type, priority, processTaskResponse);
 
             if (processTaskResponse.getResult() == ProcessTaskResponse.Result.NO_SPACE) {
               noRoomMap.put(type, Boolean.TRUE);
@@ -268,25 +276,25 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       log.error("Marking task {} as ERROR, because no task handler was found for type '{}'.",
           LogUtils.asParameter(task.getVersionId()), task.getType());
       markAsError(task, bucketId);
-      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
+      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR).setCode(Code.NO_HANDLER);
     }
 
     ITaskProcessingPolicy processingPolicy = taskHandler.getProcessingPolicy(task);
     if (processingPolicy == null) {
       log.error("Marking task {} as ERROR, as the handler does not provide a processing policy.", LogUtils.asParameter(task.getVersionId()));
       markAsError(task, bucketId);
-      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
+      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR).setCode(Code.NO_POLICY);
     }
 
     if (!processingPolicy.canExecuteTaskOnThisNode(task)) {
-      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.OK);
+      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.OK).setCode(Code.NOT_ALLOWED_ON_NODE);
     }
 
     ITaskConcurrencyPolicy concurrencyPolicy = taskHandler.getConcurrencyPolicy(task);
     if (concurrencyPolicy == null) {
       log.error("Marking task {} as ERROR, as the handler does not provide a concurrency policy.", LogUtils.asParameter(task.getVersionId()));
       markAsError(task, bucketId);
-      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
+      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR).setCode(Code.NO_CONCURRENCY_POLICY);
     }
 
     if (!concurrencyPolicy.bookSpaceForTask(task)) {
@@ -312,10 +320,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
         meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
       }
-      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR);
+      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR).setCode(Code.UNKNOWN_ERROR);
     }
 
-    return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.OK);
+    return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.OK).setCode(Code.HAPPY_FLOW);
   }
 
   @Trace(dispatcher = true)
@@ -638,6 +646,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       meterHelper
           .registerGauge(METRIC_PREFIX + "processing.inProgressTasksGrabbingCount", tags, () -> bucket.getInProgressTasksGrabbingCount().get());
       meterHelper.registerGauge(METRIC_PREFIX + "processing.triggersCount", tags, () -> bucket.getSize().get());
+      meterHelper.registerGauge(METRIC_PREFIX + "processing.stateVersion", tags, () -> bucket.getVersion().get());
 
       tasksProcessingExecutor.submit(() -> {
         while (!shuttingDown) {
@@ -668,14 +677,20 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
   }
 
-  @Data
-  @Accessors(chain = true)
-  protected static class ProcessTaskResponse {
+  @lombok.Data
+  @lombok.experimental.Accessors(chain = true)
+  public static class ProcessTaskResponse {
 
     private Result result;
 
+    private Code code;
+
     public enum Result {
       OK, NO_SPACE, ERROR
+    }
+
+    public enum Code {
+      NO_HANDLER, NO_POLICY, NO_CONCURRENCY_POLICY, UNKNOWN_ERROR, HAPPY_FLOW, NOT_ALLOWED_ON_NODE
     }
   }
 
