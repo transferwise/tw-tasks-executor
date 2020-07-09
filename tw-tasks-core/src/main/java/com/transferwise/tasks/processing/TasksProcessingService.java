@@ -178,6 +178,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
       transferFromIntermediateBuffer(bucket, prioritySlot);
 
+      // TODO: Probably we can avoid the new ArrayList<> here.
       for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
         String type = typeTasks.getType();
 
@@ -316,6 +317,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
       concurrencyPolicy.freeSpaceForTask(task);
+      globalProcessingState.increaseBucketsVersion();
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
         meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
       }
@@ -351,7 +353,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       } finally {
         if (!grabbed) {
           concurrencyPolicy.freeSpaceForTask(task);
-          bucket.increaseVersion();
+          globalProcessingState.increaseBucketsVersion();
           meterHelper.registerFailedTaskGrabbing(bucket.getBucketId(), task.getType());
         }
       }
@@ -604,7 +606,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     meterHelper.registerTaskProcessingEnd(bucketId, task.getType(), processingStartTimeMs, processingResult.name());
 
     concurrencyPolicy.freeSpaceForTask(task);
-    bucket.increaseVersion();
+    globalProcessingState.increaseBucketsVersion();
   }
 
   @Override
