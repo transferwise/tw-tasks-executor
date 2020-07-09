@@ -22,6 +22,12 @@ public class GlobalProcessingState {
 
   private Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
+  public void increaseBucketsVersion() {
+    buckets.forEach((k, v) -> {
+      v.increaseVersion();
+    });
+  }
+
   @Data
   @Accessors(chain = true)
   public static class Bucket {

@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.8.2 - 2020/07/09
+- We are marking all buckets as dirty, when some concurrency slot frees up. 
+To support cases where multiple buckets have the same concurrency policy.
+
 #### 1.8.1 - 2020/07/08
 - Added some debug metrics for tasks processing cycle.
 
