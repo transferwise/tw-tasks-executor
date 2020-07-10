@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.8.3 - 2020/07/10
+- Debug metrics are disabled by default.
+
 #### 1.8.2 - 2020/07/09
 - We are marking all buckets as dirty, when some concurrency slot frees up. 
 To support cases where multiple buckets have the same concurrency policy.

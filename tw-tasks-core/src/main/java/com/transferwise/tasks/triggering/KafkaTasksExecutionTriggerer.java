@@ -65,7 +65,6 @@ import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -84,10 +83,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private TasksProperties tasksProperties;
   @Autowired
   private ObjectMapper objectMapper;
-  // to avoid a circular dependency when task handlers create tasks, and because we don't use this during
-  // initialisation, we use lazy initialisation for this field
   @Autowired
-  @Lazy
   private ITaskHandlerRegistry taskHandlerRegistry;
   @Autowired
   private IExecutorsHelper executorsHelper;

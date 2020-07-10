@@ -54,13 +54,10 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
-import lombok.Data;
 import lombok.Getter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,10 +68,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
   @Autowired
   private ITaskDao taskDao;
-  // to avoid a circular dependency when task handlers create tasks, and because we don't use this during
-  // initialisation, we use lazy initialisation for this field
   @Autowired
-  @Lazy
   private ITaskHandlerRegistry taskHandlerRegistry;
   @Autowired
   private TasksProperties tasksProperties;
@@ -168,8 +162,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     Map<String, Boolean> noRoomMap = new HashMap<>();
 
     for (Integer priority : bucket.getPriorities()) {
-      meterHelper.debugPriorityQueueCheck(bucketId, priority);
-          
+      if (tasksProperties.isDebugMetricsEnabled()) {
+        meterHelper.debugPriorityQueueCheck(bucketId, priority);
+      }
       if (taskProcessed) {
         break;
       }
@@ -183,13 +178,17 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         String type = typeTasks.getType();
 
         if (noRoomMap.containsKey(type)) {
-          meterHelper.debugRoomMapAlreadyHasType(bucketId, priority, type);
+          if (tasksProperties.isDebugMetricsEnabled()) {
+            meterHelper.debugRoomMapAlreadyHasType(bucketId, priority, type);
+          }
           continue;
         }
 
         TaskTriggering taskTriggering = typeTasks.getTasks().peek();
         if (taskTriggering == null) {
-          meterHelper.debugTaskTriggeringQueueEmpty(bucketId, priority, type);
+          if (tasksProperties.isDebugMetricsEnabled()) {
+            meterHelper.debugTaskTriggeringQueueEmpty(bucketId, priority, type);
+          }
           // Empty queues are always in the end, no point of going forward.
           break;
         }
