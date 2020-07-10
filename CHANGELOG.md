@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.9.0 - 2020/07/10
+- Optimized some queries for a case where there is enormous number of waiting or stuck tasks.
+
 #### 1.8.3 - 2020/07/10
 - Debug metrics are disabled by default.
 

@@ -79,7 +79,10 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   }
 
   @Test
+  @SneakyThrows
   void stuckTaskWillBeCorrectlyFound() {
+    testTasksService.stopProcessing();
+    
     transactionsHelper.withTransaction().asNew().call(() -> {
       TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2)).build();
       // It should not be found as we have 10s delta by default.

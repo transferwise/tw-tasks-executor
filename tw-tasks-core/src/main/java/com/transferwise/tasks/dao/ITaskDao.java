@@ -33,7 +33,7 @@ public interface ITaskDao {
 
   boolean scheduleTaskForImmediateExecution(UUID taskId, long version);
 
-  GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus... statuses);
+  GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus status);
 
   List<DaoTask2> getStuckTasks(int maxCount, Duration delta);
 
@@ -47,7 +47,7 @@ public interface ITaskDao {
 
   InsertTaskResponse insertTask(InsertTaskRequest request);
 
-  int getTasksCountInStatus(int maxCount, TaskStatus... statuses);
+  int getTasksCountInStatus(int maxCount, TaskStatus status);
 
   List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount);
 
@@ -109,6 +109,7 @@ public interface ITaskDao {
     private String subType;
     private String status;
     private ZonedDateTime stateTime;
+    private ZonedDateTime nextEventTime;
   }
 
   @Data
