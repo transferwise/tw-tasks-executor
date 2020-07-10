@@ -15,7 +15,6 @@ import com.transferwise.tasks.utils.TimeUtils;
 import com.transferwise.tasks.utils.UuidUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -42,7 +41,6 @@ import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.SqlParameterValue;
 import org.springframework.jdbc.core.SqlTypeValue;
 import org.springframework.jdbc.core.StatementCreatorUtils;
@@ -99,7 +97,7 @@ public class MySqlTaskDao implements ITaskDao {
   protected String deleteFinishedOldTasksSql;
   protected String deleteFinishedOldTasksSql1;
   protected String getTasksInErrorStatusSql;
-  protected String getTasksInProcessingOrWaitingStatusSql;
+  protected String getTasksInStatusSql;
   protected String clearPayloadAndMarkDoneSql;
   protected String getTasksSql;
   protected String getEarliesTaskNextEventTimeSql;
@@ -157,7 +155,7 @@ public class MySqlTaskDao implements ITaskDao {
     deleteFinishedOldTasksSql1 = "select next_event_time from " + taskTable + " where id=?";
     getTasksInErrorStatusSql = "select id,version,state_time,type,sub_type from " + taskTable
         + " where status='" + TaskStatus.ERROR.name() + "' order by next_event_time desc limit ?";
-    getTasksInProcessingOrWaitingStatusSql = "select id,version,state_time,type,sub_type,status,next_event_time from " + taskTable
+    getTasksInStatusSql = "select id,version,state_time,type,sub_type,status,next_event_time from " + taskTable
         + " where status in (?) order by next_event_time desc limit ?";
     clearPayloadAndMarkDoneSql = "update " + taskTable + " set data='',status=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     getTasksSql = "select id,type,sub_type,data,status,version,processing_tries_count,priority,state_time"
@@ -572,7 +570,7 @@ public class MySqlTaskDao implements ITaskDao {
   public List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount) {
     List<DaoTask3> result = new ArrayList<>();
     for (TaskStatus taskStatus : waitingAndProcessingStatuses) {
-      result.addAll(jdbcTemplate.query(getTasksInProcessingOrWaitingStatusSql, args(taskStatus, maxCount),
+      result.addAll(jdbcTemplate.query(getTasksInStatusSql, args(taskStatus, maxCount),
           (rs, rowNum) -> new DaoTask3().setId(toUuid(rs.getObject(1)))
               .setVersion(rs.getLong(2))
               .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3))).setType(rs.getString(4))
