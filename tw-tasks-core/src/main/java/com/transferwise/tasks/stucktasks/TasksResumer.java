@@ -25,6 +25,7 @@ import com.transferwise.tasks.utils.DomainUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -129,27 +130,33 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   protected void resumeStuckTasks(Leader.Control control) {
     NewRelic.setTransactionName("TwTasksEngine", "ResumeStuckTasks");
     try {
-      while (true) {
-        ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, TaskStatus.NEW,
-            TaskStatus.SUBMITTED, TaskStatus.PROCESSING);
-        AtomicInteger resumedCount = new AtomicInteger();
-        AtomicInteger errorCount = new AtomicInteger();
-        AtomicInteger failedCount = new AtomicInteger();
+      List<TaskStatus> statusesToCheck = new ArrayList<>();
+      statusesToCheck.add(TaskStatus.NEW);
+      statusesToCheck.add(TaskStatus.SUBMITTED);
+      statusesToCheck.add(TaskStatus.PROCESSING);
 
-        for (ITaskDao.StuckTask task : result.getStuckTasks()) {
-          if (control.shouldStop()) {
-            return;
+      while (statusesToCheck.size() > 0) {
+        for (int i = statusesToCheck.size() - 1; i >= 0; i--) {
+          ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, statusesToCheck.get(i));
+          AtomicInteger resumedCount = new AtomicInteger();
+          AtomicInteger errorCount = new AtomicInteger();
+          AtomicInteger failedCount = new AtomicInteger();
+
+          for (ITaskDao.StuckTask task : result.getStuckTasks()) {
+            if (control.shouldStop() || paused) {
+              return;
+            }
+
+            MdcContext.with(() -> {
+              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
+              handleStuckTask(task, resumedCount, errorCount, failedCount);
+            });
           }
+          log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
 
-          MdcContext.with(() -> {
-            MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-            handleStuckTask(task, resumedCount, errorCount, failedCount);
-          });
-        }
-        log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
-
-        if (!result.isHasMore()) {
-          break;
+          if (!result.isHasMore()) {
+            statusesToCheck.remove(i);
+          }
         }
       }
     } catch (Throwable t) {
@@ -165,7 +172,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
       while (true) {
         ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, TaskStatus.WAITING);
         for (ITaskDao.StuckTask task : result.getStuckTasks()) {
-          if (control.shouldStop()) {
+          if (control.shouldStop() || paused) {
             return;
           }
           MdcContext.with(() -> {

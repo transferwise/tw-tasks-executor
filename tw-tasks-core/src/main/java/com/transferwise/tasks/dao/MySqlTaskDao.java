@@ -24,6 +24,7 @@ import java.time.temporal.TemporalAccessor;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -78,6 +79,7 @@ public class MySqlTaskDao implements ITaskDao {
   protected String setStatusSql1;
   protected String scheduleTaskForImmediateExecutionSql;
   protected String getStuckTasksSql;
+  protected String getStuckTasksSql1;
   protected String prepareStuckOnProcessingTaskForResumingSql;
   protected String prepareStuckOnProcessingTaskForResumingSql1;
   protected String[] findTasksByTypeSubTypeAndStatusSqls;
@@ -95,14 +97,16 @@ public class MySqlTaskDao implements ITaskDao {
   protected String deleteFinishedOldTasksSql;
   protected String deleteFinishedOldTasksSql1;
   protected String getTasksInErrorStatusSql;
-  protected String getTasksInProcessingOrWaitingStatusSql;
-  protected String getStuckTasksSql1;
+  protected String getTasksInStatusSql;
   protected String clearPayloadAndMarkDoneSql;
   protected String getTasksSql;
   protected String getEarliesTaskNextEventTimeSql;
   protected String getTaskVersionSql;
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
+
+  protected final TaskStatus[] stuckStatuses = new TaskStatus[]{TaskStatus.NEW, TaskStatus.SUBMITTED, TaskStatus.WAITING, TaskStatus.PROCESSING};
+  protected final TaskStatus[] waitingAndProcessingStatuses = new TaskStatus[]{TaskStatus.WAITING, TaskStatus.PROCESSING};
 
   @PostConstruct
   public void init() {
@@ -122,17 +126,20 @@ public class MySqlTaskDao implements ITaskDao {
     setStatusSql1 = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     scheduleTaskForImmediateExecutionSql = "update " + taskTable + " set status=?"
         + ",next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
-    getStuckTasksSql = "select id,version,type,priority,status from " + taskTable + " where status in (??)"
+    getStuckTasksSql = "select id,version,type,priority,status from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time limit ?";
+    getStuckTasksSql1 = "select id,version,next_event_time from " + taskTable + " where status=?"
+        + " and next_event_time<? order by next_event_time desc limit ?";
     prepareStuckOnProcessingTaskForResumingSql = "select id,version,type,priority from " + taskTable + " where status=? and processing_client_id=?";
     prepareStuckOnProcessingTaskForResumingSql1 = "update " + taskTable + " set status=?,next_event_time=?"
         + ",state_time=?,time_updated=?,version=? where id=? and version=?";
+    // Tests only, not efficient.
     findTasksByTypeSubTypeAndStatusSqls = new String[]{"select id,type,sub_type,data,status,version"
         + ",processing_tries_count,priority from " + taskTable + " where type=?", " and status in (??)", " and sub_type=?"};
-    getTasksCountInStatusSql = "select count(*) from (select 1 from " + taskTable + " where status in (??) order by next_event_time limit ?) q";
+    getTasksCountInStatusSql = "select count(*) from (select 1 from " + taskTable + " where status = ? order by next_event_time limit ?) q";
     getTasksCountInErrorGroupedSql = "select type, count(*) from (select type from " + taskTable + " where status='"
         + TaskStatus.ERROR.name() + "' order by next_event_time limit ?) q group by type";
-    getStuckTasksCountSql = "select count(*) from (select 1 from " + taskTable + " where status in (?,?,?,?)"
+    getStuckTasksCountSql = "select count(*) from (select 1 from " + taskTable + " where status in (?)"
         + " and next_event_time<? order by next_event_time limit ?) q";
     getTaskSql = "select id,version,type,status,priority from " + taskTable + " where id=?";
     getTaskSql1 = "select id,version,type,status,priority,sub_type,data,processing_tries_count from " + taskTable + " where id=?";
@@ -140,6 +147,7 @@ public class MySqlTaskDao implements ITaskDao {
         + ",processing_tries_count,state_time,next_event_time,processing_client_id from " + taskTable + " where id=?";
     deleteAllTasksSql = "delete from " + taskTable;
     deleteAllTasksSql1 = "delete from " + uniqueTaskKeyTable;
+    // Tests only, not efficient
     deleteTasksSqls = new String[]{"select id,version from " + taskTable + " where type=?", " and sub_type=?", " and status in (??)"};
     deleteTaskSql = "delete from " + taskTable + " where id=? and version=?";
     deleteUniqueTaskKeySql = "delete from " + uniqueTaskKeyTable + " where task_id=?";
@@ -147,11 +155,8 @@ public class MySqlTaskDao implements ITaskDao {
     deleteFinishedOldTasksSql1 = "select next_event_time from " + taskTable + " where id=?";
     getTasksInErrorStatusSql = "select id,version,state_time,type,sub_type from " + taskTable
         + " where status='" + TaskStatus.ERROR.name() + "' order by next_event_time desc limit ?";
-    getTasksInProcessingOrWaitingStatusSql = "select id,version,state_time,type,sub_type,status from " + taskTable
-        + " where status in('" + TaskStatus.WAITING.name() + "','" + TaskStatus.PROCESSING + "') order by next_event_time desc limit ?";
-    getStuckTasksSql1 = "select id,version,next_event_time from " + taskTable + " where status in ('"
-        + TaskStatus.NEW.name() + "','" + TaskStatus.SUBMITTED.name() + "','" + TaskStatus.WAITING.name()
-        + "','" + TaskStatus.PROCESSING.name() + "') and next_event_time<? order by next_event_time desc limit ?";
+    getTasksInStatusSql = "select id,version,state_time,type,sub_type,status,next_event_time from " + taskTable
+        + " where status in (?) order by next_event_time desc limit ?";
     clearPayloadAndMarkDoneSql = "update " + taskTable + " set data='',status=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     getTasksSql = "select id,type,sub_type,data,status,version,processing_tries_count,priority,state_time"
         + ",next_event_time,processing_client_id from " + taskTable + " where id in (??)";
@@ -237,13 +242,10 @@ public class MySqlTaskDao implements ITaskDao {
   }
 
   @Override
-  public GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus... statuses) {
+  public GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus status) {
     Timestamp now = Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).toInstant());
 
-    String sql = cachedSql(sqlKey("getStuckTasksSql", statuses.length), () ->
-        getExpandedSql(getStuckTasksSql, statuses.length));
-
-    List<StuckTask> stuckTasks = jdbcTemplate.query(sql, args(statuses, now, batchSize + 1), (rs, rowNum) ->
+    List<StuckTask> stuckTasks = jdbcTemplate.query(getStuckTasksSql, args(status, now, batchSize + 1), (rs, rowNum) ->
         new StuckTask()
             .setVersionId(new TaskVersionId(toUuid(rs.getObject(1)), rs.getLong(2)))
             .setType(rs.getString(3))
@@ -255,15 +257,23 @@ public class MySqlTaskDao implements ITaskDao {
     return new GetStuckTasksResponse().setStuckTasks(stuckTasks).setHasMore(hasMore);
   }
 
+  /**
+   * It's more efficient to do one query per status and merge the results.
+   */
   @Override
-  //TODO: Annotate with ManagementOnly.
-  //TODO: Will not perform well on MySQL. See #getTasksInProcessingOrWaitingStatus
-  //TODO: Should do UNION all here for better performance.
   public List<DaoTask2> getStuckTasks(int maxCount, Duration delta) {
     Timestamp timeThreshold = Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).toInstant().minus(delta));
-    return jdbcTemplate.query(getStuckTasksSql1, args(timeThreshold, maxCount), (rs, rowNum) -> new DaoTask2()
-        .setId(toUuid(rs.getObject(1))).setVersion(rs.getLong(2))
-        .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3))));
+
+    List<DaoTask2> stuckTasks = new ArrayList<>();
+    for (TaskStatus taskStatus : stuckStatuses) {
+      stuckTasks.addAll(jdbcTemplate.query(getStuckTasksSql1, args(taskStatus, timeThreshold, maxCount), (rs, rowNum) -> new DaoTask2()
+          .setId(toUuid(rs.getObject(1))).setVersion(rs.getLong(2))
+          .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3)))));
+    }
+
+    stuckTasks.sort(Comparator.comparing(DaoTask2::getNextEventTime).reversed());
+
+    return stuckTasks.subList(0, Math.min(maxCount, stuckTasks.size()));
   }
 
   @Override
@@ -339,16 +349,9 @@ public class MySqlTaskDao implements ITaskDao {
             .setPriority(rs.getInt(8)));
   }
 
-  /**
-   * NB. This performs well only with one status. Support for multiple status are meant for test usages. We need to use UNION ALL if we want to
-   * support production calls as well with multiple statuses.
-   */
   @Override
-  public int getTasksCountInStatus(int maxCount, TaskStatus... statuses) {
-    String sql = cachedSql(sqlKey("getTasksCountInStatusSql", statuses.length), () ->
-        getExpandedSql(getTasksCountInStatusSql, statuses.length)
-    );
-    List<Integer> results = jdbcTemplate.query(sql, args(statuses, maxCount),
+  public int getTasksCountInStatus(int maxCount, TaskStatus status) {
+    List<Integer> results = jdbcTemplate.query(getTasksCountInStatusSql, args(status, maxCount),
         (rs, rowNum) -> rs.getInt(1));
 
     return DataAccessUtils.intResult(results);
@@ -362,10 +365,15 @@ public class MySqlTaskDao implements ITaskDao {
 
   @Override
   public int getStuckTasksCount(ZonedDateTime age, int maxCount) {
-    List<Integer> results = jdbcTemplate.query(getStuckTasksCountSql, args(TaskStatus.NEW, TaskStatus.SUBMITTED,
-        TaskStatus.WAITING, TaskStatus.PROCESSING, age, maxCount), (rs, rowNum) -> rs.getInt(1));
+    int cnt = 0;
 
-    return DataAccessUtils.intResult(results);
+    for (TaskStatus taskStatus : stuckStatuses) {
+      List<Integer> results = jdbcTemplate.query(getStuckTasksCountSql, args(taskStatus, age, maxCount), (rs, rowNum) -> rs.getInt(1));
+
+      cnt += DataAccessUtils.intResult(results);
+    }
+
+    return cnt;
   }
 
   @SuppressWarnings("unchecked")
@@ -555,18 +563,24 @@ public class MySqlTaskDao implements ITaskDao {
             .setSubType(rs.getString(5)));
   }
 
+  /**
+   * It's more efficient to do a one query per status and merge the results.
+   */
   @Override
-  //TODO: This does not perform well, at least on MySQL 5.6. "in (status1, status2) order by next_event_time" will not use "(status,next_event_time)"
-  // index.
-  //      Are we ok with this, as it is used for Management interface only?
-  //      Need to investigate how it works on later MySQL/MariaDB versions.
-  //TODO: Should do UNION ALL here for better performance.
   public List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount) {
-    return jdbcTemplate.query(getTasksInProcessingOrWaitingStatusSql, args(maxCount),
-        (rs, rowNum) -> new DaoTask3().setId(toUuid(rs.getObject(1)))
-            .setVersion(rs.getLong(2))
-            .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3))).setType(rs.getString(4))
-            .setSubType(rs.getString(5)).setStatus(rs.getString(6)));
+    List<DaoTask3> result = new ArrayList<>();
+    for (TaskStatus taskStatus : waitingAndProcessingStatuses) {
+      result.addAll(jdbcTemplate.query(getTasksInStatusSql, args(taskStatus, maxCount),
+          (rs, rowNum) -> new DaoTask3().setId(toUuid(rs.getObject(1)))
+              .setVersion(rs.getLong(2))
+              .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3))).setType(rs.getString(4))
+              .setSubType(rs.getString(5)).setStatus(rs.getString(6))
+              .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(7)))));
+    }
+
+    result.sort(Comparator.comparing(DaoTask3::getNextEventTime).reversed());
+
+    return result.subList(0, Math.min(maxCount, result.size()));
   }
 
   @Override

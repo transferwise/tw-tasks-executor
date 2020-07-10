@@ -241,8 +241,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     addRandomTask(TaskStatus.SUBMITTED);
     testClock.tick(Duration.ofMillis(1));
 
-    GetStuckTasksResponse result = taskDao.getStuckTasks(2, TaskStatus.SUBMITTED, TaskStatus.PROCESSING);
-
+    GetStuckTasksResponse result = taskDao.getStuckTasks(2, TaskStatus.SUBMITTED);
+    
     assertFalse(result.isHasMore());
     assertEquals(2, result.getStuckTasks().size());
     assertEquals(0, result.getStuckTasks().get(0).getVersionId().getVersion());
@@ -556,7 +556,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     addRandomTask(TaskStatus.DONE);
     addRandomTask(TaskStatus.WAITING);
 
-    List<ITaskDao.DaoTask2> tasks = taskDao.getStuckTasks(4, Duration.ofMillis(-1));
+    List<ITaskDao.DaoTask2> tasks = taskDao.getStuckTasks(4, Duration.ofMillis(-2));
 
     assertEquals(4, tasks.size());
   }
