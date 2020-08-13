@@ -48,8 +48,6 @@ public class ConsistentKafkaConsumer<T> {
   private IMeterHelper meterHelper;
   @Setter
   private IErrorLoggingThrottler errorLoggingThrottler;
-  @Setter
-  private String clientId;
 
   public void consume() {
     MutableObject<Consumer<String, T>> consumerHolder = new MutableObject<>();
@@ -60,9 +58,6 @@ public class ConsistentKafkaConsumer<T> {
           if (consumerHolder.getValue() == null) {
             Map<String, Object> kafkaConsumerProps = new HashMap<>(kafkaPropertiesSupplier.get());
             kafkaConsumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-            if (clientId != null) {
-              kafkaConsumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, clientId);
-            }
             consumerHolder.setValue(new KafkaConsumer<>(kafkaConsumerProps));
             consumerHolder.getValue().subscribe(topics);
           }
