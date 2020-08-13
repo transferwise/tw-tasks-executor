@@ -57,7 +57,7 @@ jobs:
           key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
       - run:
           name: Run tests
-          command: ./gradlew --refresh-dependencies clean check -Dspring.profiles.include=circle --console=plain --no-daemon --stacktrace
+          command: ./gradlew --refresh-dependencies clean check -Din.circle=true -Dspring.profiles.include=circle --console=plain --no-daemon --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/
