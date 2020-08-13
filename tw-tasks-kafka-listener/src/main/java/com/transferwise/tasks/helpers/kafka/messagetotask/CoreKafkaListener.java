@@ -85,7 +85,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   public void poll(int shard, List<String> addresses) {
     Map<String, Object> kafkaConsumerProps = kafkaConfiguration.getKafkaProperties().buildConsumerProperties();
     kafkaConsumerProps.put(
-        ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.core-listener");
+        ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.core-listener." + shard);
 
     inProgressPollers.incrementAndGet();
     try {
@@ -102,7 +102,6 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
           })
           .setErrorLoggingThrottler(errorLoggingThrottler)
           .setMeterHelper(meterHelper)
-          .setClientId("core-kafka-listener-" + shard)
           .consume();
     } finally {
       inProgressPollers.decrementAndGet();
