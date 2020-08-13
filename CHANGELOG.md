@@ -2,6 +2,14 @@
 
 Describes notable changes.
 
+#### 1.10.0 - 2020/08/13
+- IKafkaMessageHandler Topics can now specify a shard. Every shard will have it's own KafkaConsumer and processing thread.
+It is useful in scenarios where low latency processing is desired for a specific topic.
+The downside of multiple shards is having more KafkaConsumers per application, possibly increasing the load on Kafka server.
+- tw-leader-selector was upgraded, it now brings in tw-curator.
+This in turn means, that you don't have to define a CuratorFramework bean in your application, it will be created
+automatically if missing. 
+
 #### 1.9.0 - 2020/07/10
 - Optimized some queries for a case where there is enormous number of waiting or stuck tasks.
 

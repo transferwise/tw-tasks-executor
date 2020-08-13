@@ -1,19 +1,22 @@
 package com.transferwise.tasks.helpers.kafka.messagetotask;
 
+import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
+import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
-import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -28,7 +31,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   @Autowired
   private TwTasksKafkaConfiguration kafkaConfiguration;
   @Autowired
-  private IExecutorsHelper executorsHelper;
+  private IExecutorServicesProvider executorServicesProvider;
   @Autowired
   private TasksProperties tasksProperties;
   @Autowired
@@ -42,8 +45,9 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
 
   private ExecutorService executorService;
   private boolean shuttingDown;
-  private final List<MyTopic> topics = new ArrayList<>();
+  private volatile Map<Integer, List<MyTopic>> topicsShards;
   private List<String> kafkaDataCenterPrefixes;
+  private AtomicInteger inProgressPollers = new AtomicInteger();
 
   /**
    * Remember to set correct number of partitions for all topics here: @ https://octopus.tw.ee/kafka/topic/change . We could do it automatically, but
@@ -57,32 +61,52 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
       return;
     }
     kafkaDataCenterPrefixes = Arrays.asList(StringUtils.split(tasksProperties.getKafkaDataCenterPrefixes(), ","));
-    for (IKafkaMessageHandler<T> kafkaMessageHandler : kafkaMessageHandlerRegistry.getKafkaMessageHandlers()) {
-      for (IKafkaMessageHandler.Topic topic : kafkaMessageHandler.getTopics()) {
-        topics.add(new MyTopic().setAddress(topic.getAddress()).setPartitionsCount(topic.getSuggestedPartitionsCount()));
-      }
-    }
   }
 
-  public void poll(List<String> addresses) {
+  protected Map<Integer, List<MyTopic>> getTopicsShards() {
+    if (topicsShards == null) {
+      synchronized (this) {
+        if (topicsShards == null) {
+          Map<Integer, List<MyTopic>> result = new HashMap<>();
+          for (IKafkaMessageHandler<T> kafkaMessageHandler : kafkaMessageHandlerRegistry.getKafkaMessageHandlers()) {
+            for (IKafkaMessageHandler.Topic topic : kafkaMessageHandler.getTopics()) {
+              result.computeIfAbsent(topic.getShard(), (ignored) -> new ArrayList<>())
+                  .add(new MyTopic().setAddress(topic.getAddress()).setPartitionsCount(topic.getSuggestedPartitionsCount()));
+            }
+          }
+
+          topicsShards = result;
+        }
+      }
+    }
+    return topicsShards;
+  }
+
+  public void poll(int shard, List<String> addresses) {
     Map<String, Object> kafkaConsumerProps = kafkaConfiguration.getKafkaProperties().buildConsumerProperties();
     kafkaConsumerProps.put(
         ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.core-listener");
 
-    new ConsistentKafkaConsumer<T>().setTopics(addresses)
-        .setDelayTimeout(tasksProperties.getGenericMediumDelay())
-        .setShouldPollPredicate(() -> true)
-        .setShouldFinishPredicate(() -> shuttingDown)
-        .setKafkaPropertiesSupplier(() -> kafkaConsumerProps)
-        .setRecordConsumer(record -> {
-          String nakedTopic = removeTopicPrefixes(record.topic());
-          List<IKafkaMessageHandler<T>> kafkaMessageHandlers = kafkaMessageHandlerRegistry.getForTopicOrFail(nakedTopic);
-          kafkaMessageHandlers.forEach(kafkaMessageHandler -> kafkaMessageHandler.handle(record));
-          meterHelper.registerKafkaCoreMessageProcessing(record.topic());
-        })
-        .setErrorLoggingThrottler(errorLoggingThrottler)
-        .setMeterHelper(meterHelper)
-        .consume();
+    inProgressPollers.incrementAndGet();
+    try {
+      new ConsistentKafkaConsumer<T>().setTopics(addresses)
+          .setDelayTimeout(tasksProperties.getGenericMediumDelay())
+          .setShouldPollPredicate(() -> true)
+          .setShouldFinishPredicate(() -> shuttingDown)
+          .setKafkaPropertiesSupplier(() -> kafkaConsumerProps)
+          .setRecordConsumer(record -> {
+            String nakedTopic = removeTopicPrefixes(record.topic());
+            List<IKafkaMessageHandler<T>> kafkaMessageHandlers = kafkaMessageHandlerRegistry.getForTopicOrFail(nakedTopic);
+            kafkaMessageHandlers.forEach(kafkaMessageHandler -> kafkaMessageHandler.handle(record));
+            meterHelper.registerKafkaCoreMessageProcessing(shard, record.topic());
+          })
+          .setErrorLoggingThrottler(errorLoggingThrottler)
+          .setMeterHelper(meterHelper)
+          .setClientId("core-kafka-listener-" + shard)
+          .consume();
+    } finally {
+      inProgressPollers.decrementAndGet();
+    }
   }
 
   protected void addAddresses(List<String> addresses, String topicAddress) {
@@ -119,46 +143,45 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     if (kafkaMessageHandlerRegistry.isEmpty()) {
       return;
     }
-    executorService = executorsHelper.newCachedExecutor("core-kafka-listener");
-    executorService.submit(() -> {
-      if (tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()) {
-        for (MyTopic topic : topics) {
-          if (!topic.isConfigured() && topic.getPartitionsCount() != null) {
-            topicPartitionsManager.setPartitionsCount(getNamespacedTopic(topic.getAddress()), topic.getPartitionsCount());
-            topic.setConfigured(true);
+    executorService = new ThreadNamingExecutorServiceWrapper("core-kafka-listener", executorServicesProvider.getGlobalExecutorService());
+    getTopicsShards().forEach((shard, topics) -> {
+      executorService.submit(() -> {
+        if (tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()) {
+          for (MyTopic topic : topics) {
+            if (!topic.isConfigured() && topic.getPartitionsCount() != null) {
+              topicPartitionsManager.setPartitionsCount(getNamespacedTopic(topic.getAddress()), topic.getPartitionsCount());
+              topic.setConfigured(true);
+            }
           }
         }
-      }
 
-      List<String> addresses = new ArrayList<>();
-      for (MyTopic topic : topics) {
-        addAddresses(addresses, topic.getAddress());
-      }
-
-      addresses.forEach(a -> log.info("Listening topic '" + a + "'."));
-
-      while (!shuttingDown) {
-        try {
-          poll(addresses);
-        } catch (Throwable t) {
-          log.error(t.getMessage(), t);
-          WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+        List<String> addresses = new ArrayList<>();
+        for (MyTopic topic : topics) {
+          addAddresses(addresses, topic.getAddress());
         }
-      }
+
+        addresses.forEach(a -> log.info("Listening topic '" + a + "' in shard " + shard + "."));
+
+        while (!shuttingDown) {
+          try {
+            poll(shard, addresses);
+          } catch (Throwable t) {
+            log.error(t.getMessage(), t);
+            WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+          }
+        }
+      });
     });
   }
 
   @Override
   public void prepareForShutdown() {
     shuttingDown = true;
-    if (executorService != null) {
-      executorService.shutdown();
-    }
   }
 
   @Override
   public boolean canShutdown() {
-    return executorService == null || executorService.isTerminated();
+    return inProgressPollers.get() == 0;
   }
 
   @Data

@@ -37,7 +37,8 @@ tw-incidents:
     enabled: false
   slack:
     enabled: false
-
+tw-curator:
+  zookeeper-connect-string: ${testenv.zookeeper.host:localhost}:${testenv.zookeeper.port}
 ---
 
 spring:

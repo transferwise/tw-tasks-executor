@@ -17,29 +17,21 @@ dependencies {
     testImplementation project(":tw-tasks-jobs-test")
 
     testImplementation libraries.commonsIo
-    testImplementation libraries.apacheCuratorRecipies
     testImplementation libraries.twLeaderSelector
     testImplementation libraries.twContext
     testImplementation libraries.springTx
-    testImplementation 'org.springframework.boot:spring-boot'
-    testImplementation 'org.springframework.boot:spring-boot-autoconfigure'
-    testImplementation 'org.springframework.boot:spring-boot-actuator'
-    testImplementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
-    testImplementation 'org.springframework.boot:spring-boot-test'
-    testImplementation 'org.springframework.boot:spring-boot-test-autoconfigure'
-    testImplementation 'org.springframework.security:spring-security-config'
-    testImplementation 'org.springframework.security:spring-security-config'
-    testImplementation 'org.springframework.security:spring-security-test'
-    testImplementation 'org.springframework.boot:spring-boot-starter-web'
-    testImplementation 'org.springframework.boot:spring-boot-starter-jdbc'
-    testImplementation 'org.springframework.boot:spring-boot-starter-actuator'
-    testImplementation 'org.liquibase:liquibase-core'
-    testImplementation 'org.postgresql:postgresql'
-    testImplementation 'org.mariadb.jdbc:mariadb-java-client'
-    testImplementation 'org.springframework.kafka:spring-kafka'
-    testImplementation 'org.testcontainers:testcontainers:1.13.0'
-    testImplementation 'org.awaitility:awaitility:4.0.2'
+    testImplementation libraries.springBootStarterActuator
+    testImplementation libraries.springBootStarterWeb
+    testImplementation libraries.springBootStarterJdbc
+    testImplementation libraries.springBootStarterTest
+    testImplementation libraries.springSecurityConfig
+    testImplementation libraries.springSecurityTest
+    testImplementation libraries.liquibaseCore
+    testImplementation libraries.postgresql
+    testImplementation libraries.mariadbJavaClient
+    testImplementation libraries.springKafka
+    testImplementation libraries.testcontainers
+    testImplementation libraries.awaitility
 }
 
 test {

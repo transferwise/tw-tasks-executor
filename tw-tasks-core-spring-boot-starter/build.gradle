@@ -13,4 +13,5 @@ dependencies {
     implementation libraries.micrometerCore
 
     runtimeOnly libraries.twContextStarter
+    runtimeOnly libraries.twLeaderSelectorStarter
 }
