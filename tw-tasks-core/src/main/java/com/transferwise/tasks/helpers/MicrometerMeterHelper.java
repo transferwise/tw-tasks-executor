@@ -100,8 +100,8 @@ public class MicrometerMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerKafkaCoreMessageProcessing(String topic) {
-    meterRegistry.counter(METRIC_PREFIX + "coreKafka.processedMessagesCount", Tags.of("topic", topic)).increment();
+  public void registerKafkaCoreMessageProcessing(int shard, String topic) {
+    meterRegistry.counter(METRIC_PREFIX + "coreKafka.processedMessagesCount", Tags.of("topic", topic, "shard", String.valueOf(shard))).increment();
   }
 
   @Override

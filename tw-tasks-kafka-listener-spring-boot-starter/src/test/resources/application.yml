@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: tw-tasks-kafka-listener-test
+  datasource:
+    url: "jdbc:mariadb://${MARIADB_TCP_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test"
+    password: "example-password-change-me"
+    username: "root"
+  kafka:
+    bootstrap-servers: "${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}"
+    consumer:
+      group-id: ${spring.application.name}
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      auto-offset-reset: earliest
+  liquibase.change-log: classpath:db/changelog/db.tw-tasks-mysql.xml
+
+tw-tasks:
+  core:
+    zookeeper-connect-string: "${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}"
+    db-type: mysql
+
+tw-graceful-shutdown:
+  clients-reaction-time-ms: 1000
+  strategies-check-interval-time-ms: 1000
+
+tw-curator:
+  zookeeper-connect-string: "${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}"
+
+logging.level.org.apache.kafka.clients: WARN
+logging.level.org.apache.kafka.common.utils: WARN

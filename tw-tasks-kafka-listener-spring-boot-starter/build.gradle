@@ -1,3 +1,7 @@
+plugins {
+    id "docker-compose"
+}
+
 ext.projectName = "TwTasks Extension - Kafka Listener - Spring Boot starter"
 ext.projectDescription = "Autoconfigures extension for spring boot application"
 ext.projectArtifactName = "tw-tasks-kafka-listener-spring-boot-starter"
@@ -6,7 +10,36 @@ apply from: '../build.starter.gradle'
 
 dependencies {
     api project(":tw-tasks-kafka-listener")
+    api project(":tw-tasks-core-spring-boot-starter")
 
     implementation project(":tw-tasks-core")
     implementation libraries.jacksonDatabind
+
+    testImplementation libraries.springBootStarterTest
+    testImplementation libraries.springBootStarterActuator
+    testImplementation libraries.springKafka
+    testImplementation libraries.springBootStarterJdbc
+    testImplementation libraries.mariadbJavaClient
+    testImplementation libraries.liquibaseCore
+    testImplementation libraries.awaitility
+}
+
+if (System.getProperty("in.circle") != "true") {
+    dockerCompose.isRequiredBy(test)
+}
+
+ServerSocket ss = new ServerSocket(0);
+def freePort = ss.getLocalPort();
+ss.close();
+
+dockerCompose {
+    useComposeFiles = ["src/test/resources/docker-compose.yml"]
+    // Create some flakiness on slower comps
+    // waitForTcpPorts = false
+
+    // Set to true if you have anomalies
+    stopContainers = true
+    removeContainers = false
+
+    environment.put "KAFKA_RANDOM_PORT", "${freePort}"
 }

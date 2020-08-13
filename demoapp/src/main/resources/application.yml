@@ -7,7 +7,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://host.local:15432/postgres
+    url: jdbc:postgresql://localhost:15432/postgres
     username: postgres
     password: example-password-change-me
     tomcat:
@@ -36,7 +36,7 @@ spring:
       max-wait: 600000
       jdbc-interceptors: ConnectionState;QueryTimeoutInterceptor(queryTimeout=60);SlowQueryReport(threshold=10000,maxQueries=0)
   kafka:
-    bootstrap-servers: host.local:9092
+    bootstrap-servers: localhost:9092
     client-id: ${demoapp.node-id}
     properties:
       session.timeout.ms: 30000
@@ -62,7 +62,7 @@ tw-tasks:
     task-stuck-timeout: PT2M
     waiting-tasks-polling-interval: PT0.1s
     db-type: POSTGRES
-    zookeeper-connect-string: host.local:2183
+    zookeeper-connect-string: localhost:2183
     topic-replication-factor: 1
     max-node-count: 1
     additional-processing-buckets:
@@ -73,7 +73,7 @@ tw-tasks:
 spring.liquibase.change-log: 'classpath:db/changelog/db.tw-tasks-postgres.xml'
 
 zookeeper:
-  connect-string: host.local:2181
+  connect-string: localhost:2181
 
 loggingFile: logs/demoapp.log
 
@@ -93,6 +93,8 @@ management:
     export:
       prometheus:
         enabled: true
+tw-curator:
+  zookeeper-connect-string: localhost:2181
 ---
 
 spring:

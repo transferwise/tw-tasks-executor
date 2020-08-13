@@ -63,7 +63,7 @@ public class NoOpMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerKafkaCoreMessageProcessing(String topic) {
+  public void registerKafkaCoreMessageProcessing(int shard, String topic) {
 
   }
 

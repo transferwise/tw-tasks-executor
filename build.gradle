@@ -5,6 +5,10 @@ buildscript {
         }
         mavenLocal()
     }
+
+    dependencies {
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.13.0"
+    }
 }
 
 plugins {

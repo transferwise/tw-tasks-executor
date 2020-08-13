@@ -39,7 +39,7 @@ public interface IMeterHelper {
 
   void registerTaskProcessingEnd(String bucketId, String type, long processingStartTimeMs, String processingResult);
 
-  void registerKafkaCoreMessageProcessing(String topic);
+  void registerKafkaCoreMessageProcessing(int shard, String topic);
 
   void registerDuplicateTask(String taskType, boolean expected);
 
