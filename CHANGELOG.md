@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.10.1 - 2020/08/18
+- Fixes a bug, where using a max priority for a task causes a null pointer exception.
+
 #### 1.10.0 - 2020/08/13
 - IKafkaMessageHandler Topics can now specify a shard. Every shard will have it's own KafkaConsumer and processing thread.
 It is useful in scenarios where low latency processing is desired for a specific topic.

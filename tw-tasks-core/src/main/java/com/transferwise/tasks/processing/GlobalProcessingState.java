@@ -45,7 +45,7 @@ public class GlobalProcessingState {
     private Condition tasksGrabbingCondition = tasksGrabbingLock.newCondition();
 
     public Bucket(int minPriority, int maxPriority) {
-      for (int i = minPriority; i < maxPriority; i++) {
+      for (int i = minPriority; i <= maxPriority; i++) {
         addPriority(i);
       }
     }

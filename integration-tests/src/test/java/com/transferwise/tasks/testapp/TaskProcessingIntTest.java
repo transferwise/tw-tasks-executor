@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -193,6 +195,29 @@ public class TaskProcessingIntTest extends BaseIntTest {
     log.info("Submitting huge message task.");
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString(st))
+    );
+    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
+      try {
+        return testTasksService.getFinishedTasks("test", null).size() == 1;
+      } catch (Throwable t) {
+        log.error(t.getMessage(), t);
+      }
+      return false;
+    }));
+  }
+
+  @ParameterizedTest
+  @ValueSource(ints = {-1, 0, 5, 9, 10})
+  void taskWithSpecificPriorityCanBeHandled(int priority) {
+    String st = "Hello World!";
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      assertEquals(st, task.getData());
+      return new ProcessResult().setResultCode(ResultCode.DONE);
+    });
+
+    log.info("Submitting huge message task.");
+    transactionsHelper.withTransaction().asNew().call(() ->
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(priority).setDataString(st))
     );
     await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
       try {
