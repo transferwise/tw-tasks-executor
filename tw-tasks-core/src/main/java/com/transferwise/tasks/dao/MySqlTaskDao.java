@@ -130,7 +130,8 @@ public class MySqlTaskDao implements ITaskDao {
         + " and next_event_time<? order by next_event_time limit ?";
     getStuckTasksSql1 = "select id,version,next_event_time from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time desc limit ?";
-    prepareStuckOnProcessingTaskForResumingSql = "select id,version,type,priority from " + taskTable + " where status=? and processing_client_id=?";
+    prepareStuckOnProcessingTaskForResumingSql =
+        "select id,version,type,priority from " + taskTable + " where status=? and next_event_time>? and processing_client_id=?";
     prepareStuckOnProcessingTaskForResumingSql1 = "update " + taskTable + " set status=?,next_event_time=?"
         + ",state_time=?,time_updated=?,version=? where id=? and version=?";
     // Tests only, not efficient.
@@ -288,7 +289,12 @@ public class MySqlTaskDao implements ITaskDao {
     Timestamp now = Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).toInstant());
     List<StuckTask> result = new ArrayList<>();
 
-    jdbcTemplate.query(prepareStuckOnProcessingTaskForResumingSql, args(TaskStatus.PROCESSING, clientId),
+    // We use this to make PostgreSql to always prefer the (id, version) index.
+    // Otherwise we had cases were we end up in full-scan.
+    Timestamp nextEventTimeFrom =
+        Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge().multipliedBy(2)).toInstant());
+
+    jdbcTemplate.query(prepareStuckOnProcessingTaskForResumingSql, args(TaskStatus.PROCESSING, nextEventTimeFrom, clientId),
         rs -> {
           Object id = rs.getObject(1);
           long version = rs.getLong(2);

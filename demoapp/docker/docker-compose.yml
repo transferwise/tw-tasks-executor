@@ -72,15 +72,15 @@ services:
     --innodb_buffer_pool_size=2g
     --character-set-server=utf8mb4
     --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED"
-#  postgres:
-#    image: postgres:10
-#    ports:
-#      - "15432:5432"
-#    environment:
-#      POSTGRES_PASSWORD: example-password-change-me
-#    volumes:
-#      - ./postgres//postgre-initdb.d:/docker-entrypoint-initdb.d
-#    command: -c 'max_connections=200'
+  postgres:
+    image: postgres:10
+    ports:
+      - "15432:5432"
+    environment:
+      POSTGRES_PASSWORD: example-password-change-me
+    volumes:
+      - ./postgres//postgre-initdb.d:/docker-entrypoint-initdb.d
+    command: -c 'max_connections=200'
 
 networks:
   default:

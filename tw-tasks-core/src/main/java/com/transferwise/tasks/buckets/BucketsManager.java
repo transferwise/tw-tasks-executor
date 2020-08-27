@@ -57,7 +57,7 @@ public class BucketsManager implements IBucketsManager {
 
     for (String bucketId : bucketIds) {
       globalProcessingState.getBuckets().put(bucketId,
-          new GlobalProcessingState.Bucket(priorityManager.getMinPriority(), priorityManager.getMaxPriority())
+          new GlobalProcessingState.Bucket(priorityManager.getHighestPriority(), priorityManager.getLowestPriority())
               .setBucketId(bucketId));
     }
   }

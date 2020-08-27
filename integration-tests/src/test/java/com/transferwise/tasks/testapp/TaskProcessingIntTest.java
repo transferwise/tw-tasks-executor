@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testapp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -21,6 +22,7 @@ import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -227,6 +229,33 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
       return false;
     }));
+  }
+
+  @Test
+  void highestPriorityTasksWillBeProcessedFirst() {
+    List<Integer> processedPriorities = new CopyOnWriteArrayList<>();
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      processedPriorities.add(task.getPriority());
+      return new ProcessResult().setResultCode(ResultCode.DONE);
+    });
+
+    testTasksService.stopProcessing();
+
+    transactionsHelper.withTransaction().asNew().call(() -> {
+      tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(7));
+      tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(1));
+      tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(4));
+      tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(2));
+      return null;
+    });
+
+    testTasksService.resumeProcessing();
+
+    await().atMost(Duration.ofMinutes(10)).until(() -> processedPriorities.size() == 4);
+
+    // As task finding loop and a thread filling tasks memory table are running in parallel, it is likely, that
+    // first task is not "1". Rest however should be processed in expected order.
+    assertThat(processedPriorities.subList(1,4)).isSorted();
   }
 
   @Test

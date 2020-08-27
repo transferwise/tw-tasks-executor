@@ -19,7 +19,7 @@ public interface ITasksService {
    * <p>If you want to schedule a task to run only after a specific time, provide runAfterTime value. Otherwise the task will be run immediately
    * after transaction commit. A scheduled task will be resumed by the leader node polling for it (less efficient).
    *
-   * <p>Default priority is 5. The higher the number, the higher the priority and the higher the chance the task will be run before other tasks.
+   * <p>Default priority is 5. The lower the number, the higher the priority, meaning the higher the chance the task will be run before other tasks.
    *
    * <p>If a task with provided id or key already exists, an ALREADY_EXISTS result is given.
    *
