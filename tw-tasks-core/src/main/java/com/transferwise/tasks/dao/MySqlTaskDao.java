@@ -289,8 +289,8 @@ public class MySqlTaskDao implements ITaskDao {
     Timestamp now = Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).toInstant());
     List<StuckTask> result = new ArrayList<>();
 
-    // We use this to make PostgreSql to always prefer the (id, version) index.
-    // Otherwise we had cases were we end up in full-scan.
+    // We use this to make PostgreSql to always prefer the `(status, next_event_time)` index.
+    // Otherwise we had cases were we ended up with db full-scan.
     Timestamp nextEventTimeFrom =
         Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge().multipliedBy(2)).toInstant());
 

@@ -4,7 +4,7 @@ Describes notable changes.
 
 #### 1.11.0 - 2020/08/27
 - Optimized a TasksResumer query executed on startup for Postgres.
-Postgres was likely to decide to not use `(id,version)` and do a full scan instead.
+Postgres was likely to decide to not use `(status, next_event_time)` and do a full scan instead.
 - Properties `minPriority` and `maxPriority` on `tw-tasks.core` were renamed to `highestPriority` and `lowestPriority`.
 It will hopefully make it more clear, that lower priority numbers mean higher chance to be executed first. 
 
