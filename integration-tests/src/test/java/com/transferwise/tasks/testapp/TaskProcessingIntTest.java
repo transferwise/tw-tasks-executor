@@ -251,7 +251,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
     testTasksService.resumeProcessing();
 
-    await().atMost(Duration.ofMinutes(10)).until(() -> processedPriorities.size() == 4);
+    await().until(() -> processedPriorities.size() == 4);
 
     // As task finding loop and a thread filling tasks memory table are running in parallel, it is likely, that
     // first task is not "1". Rest however should be processed in expected order.
