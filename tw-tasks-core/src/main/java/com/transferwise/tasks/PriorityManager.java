@@ -8,25 +8,25 @@ public class PriorityManager implements IPriorityManager {
   private TasksProperties tasksProperties;
 
   @Override
-  public int getMinPriority() {
-    return tasksProperties.getMinPriority();
+  public int getHighestPriority() {
+    return tasksProperties.getHighestPriority();
   }
 
   @Override
-  public int getMaxPriority() {
-    return tasksProperties.getMaxPriority();
+  public int getLowestPriority() {
+    return tasksProperties.getLowestPriority();
   }
 
   @Override
   public int normalize(Integer priority) {
     if (priority == null) {
-      return (getMaxPriority() + 1 - getMinPriority()) / 2;
+      return (getLowestPriority() + 1 - getHighestPriority()) / 2;
     }
-    if (priority > getMaxPriority()) {
-      return getMaxPriority();
+    if (priority > getLowestPriority()) {
+      return getLowestPriority();
     }
-    if (priority < getMinPriority()) {
-      return getMinPriority();
+    if (priority < getHighestPriority()) {
+      return getHighestPriority();
     }
     return priority;
   }

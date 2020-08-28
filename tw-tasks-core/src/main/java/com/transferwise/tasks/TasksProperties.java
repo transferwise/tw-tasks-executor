@@ -125,13 +125,13 @@ public class TasksProperties {
    */
   private int asyncTaskTriggeringsConcurrency = 10;
   /**
-   * Minimum task priority allowed.
+   * Highest task priority allowed.
    */
-  private int minPriority = 0;
+  private int highestPriority = 0;
   /**
-   * Maximum task priority allowed.
+   * Lowest task priority allowed.
    */
-  private int maxPriority = 9;
+  private int lowestPriority = 9;
   /**
    * When we lose the offset of a triggering topic, where do we rewind? Only used for task triggering. For usual topics listeners, the spring-kafka
    * configuration is used.
@@ -230,7 +230,7 @@ public class TasksProperties {
   private Duration interruptTasksAfterShutdownTime = null;
 
   private boolean debugMetricsEnabled = false;
-  
+
   public enum DbType {
     MYSQL, POSTGRES
   }
