@@ -6,6 +6,7 @@ spring:
       request.timeout.ms: 11000
       session.timeout.ms: 10000
       max.partition.fetch.bytes: 10485760
+      partitioner.class: org.apache.kafka.clients.producer.RoundRobinPartitioner
     producer:
       acks: 'all'
     consumer:

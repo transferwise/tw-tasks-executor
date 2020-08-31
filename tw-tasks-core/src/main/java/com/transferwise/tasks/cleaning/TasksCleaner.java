@@ -9,7 +9,9 @@ import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
-import com.transferwise.common.leaderselector.LeaderSelector;
+import com.transferwise.common.leaderselector.ILock;
+import com.transferwise.common.leaderselector.LeaderSelectorV2;
+import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -23,7 +25,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
@@ -36,11 +37,11 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
   @Autowired
   private IExecutorServicesProvider executorServicesProvider;
   @Autowired
-  private CuratorFramework curatorFramework;
+  private SharedReentrantLockBuilderFactory lockBuilderFactory;
   @Autowired
   private IMeterHelper meterHelper;
 
-  private LeaderSelector leaderSelector;
+  private LeaderSelectorV2 leaderSelector;
 
   private final List<DeletableStatus> deletableStatuses = new ArrayList<>();
 
@@ -56,35 +57,37 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
     }
 
     ExecutorService executorService = new ThreadNamingExecutorServiceWrapper("tw-tasks-cleaner", executorServicesProvider.getGlobalExecutorService());
-    leaderSelector = new LeaderSelector(curatorFramework, nodePath, executorService,
-        control -> {
-          ScheduledTaskExecutor scheduledTaskExecutor = executorServicesProvider.getGlobalScheduledTaskExecutor();
-          MutableObject<ScheduledTaskExecutor.TaskHandle> taskHandleHolder = new MutableObject<>();
+    ILock lock = lockBuilderFactory.createBuilder(nodePath).build();
 
-          control.workAsyncUntilShouldStop(
-              () -> {
-                taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(
-                    this::deleteFinishedOldTasks,
-                    tasksProperties.getTasksCleaningInterval(),
-                    tasksProperties.getTasksCleaningInterval()));
-                log.info("Started to clean finished tasks older than " + tasksProperties.getFinishedTasksHistoryToKeep() + ".");
-              },
-              () -> {
-                log.info("Stopping tasks cleaner.");
-                if (taskHandleHolder.getValue() != null) {
-                  taskHandleHolder.getValue().stop();
-                  taskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
-                }
-                for (DeletableStatus deletableStatus : deletableStatuses) {
-                  // We don't want old values, 0-s or -1s to be shown in Grafana when we are not even doing any work.
-                  if (deletableStatus.metricHandle != null) {
-                    meterHelper.unregisterMetric(deletableStatus.metricHandle);
-                    deletableStatus.metricHandle = null;
-                  }
-                }
-                log.info("Tasks cleaner stopped.");
-              });
-        });
+    leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).setLeader(control -> {
+      ScheduledTaskExecutor scheduledTaskExecutor = executorServicesProvider.getGlobalScheduledTaskExecutor();
+      MutableObject<ScheduledTaskExecutor.TaskHandle> taskHandleHolder = new MutableObject<>();
+
+      control.workAsyncUntilShouldStop(
+          () -> {
+            taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(
+                this::deleteFinishedOldTasks,
+                tasksProperties.getTasksCleaningInterval(),
+                tasksProperties.getTasksCleaningInterval()));
+            log.info("Started to clean finished tasks older than " + tasksProperties.getFinishedTasksHistoryToKeep() + " for '" + tasksProperties
+                .getGroupId() + "'.");
+          },
+          () -> {
+            log.info("Stopping tasks cleaner " + " for '" + tasksProperties.getGroupId() + "'.");
+            if (taskHandleHolder.getValue() != null) {
+              taskHandleHolder.getValue().stop();
+              taskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
+            }
+            for (DeletableStatus deletableStatus : deletableStatuses) {
+              // We don't want old values, 0-s or -1s to be shown in Grafana when we are not even doing any work.
+              if (deletableStatus.metricHandle != null) {
+                meterHelper.unregisterMetric(deletableStatus.metricHandle);
+                deletableStatus.metricHandle = null;
+              }
+            }
+            log.info("Tasks cleaner stopped.");
+          });
+    }).build();
   }
 
   @Trace(dispatcher = true)

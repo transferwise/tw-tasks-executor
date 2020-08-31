@@ -85,7 +85,7 @@ public class ToKafkaTaskHandlerConfiguration {
 
   private void registerSentMessage(String topic) {
     if (meterRegistry != null) {
-      meterRegistry.counter(IMeterHelper.METRIC_PREFIX + "toKafka.sentMessagesCount", Tags.of("topic", topic));
+      meterRegistry.counter(IMeterHelper.METRIC_PREFIX + "toKafka.sentMessagesCount", Tags.of("topic", topic)).increment();
     }
   }
 }

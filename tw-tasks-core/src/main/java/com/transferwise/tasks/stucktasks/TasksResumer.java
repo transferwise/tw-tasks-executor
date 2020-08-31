@@ -8,8 +8,10 @@ import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
+import com.transferwise.common.leaderselector.ILock;
 import com.transferwise.common.leaderselector.Leader;
-import com.transferwise.common.leaderselector.LeaderSelector;
+import com.transferwise.common.leaderselector.LeaderSelectorV2;
+import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
@@ -35,20 +37,30 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.curator.framework.CuratorFramework;
+import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @RequiredArgsConstructor
 public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
 
-  private final ITasksExecutionTriggerer tasksExecutionTriggerer;
-  private final ITaskHandlerRegistry taskHandlerRegistry;
-  private final TasksProperties tasksProperties;
-  private final ITaskDao taskDao;
-  private final CuratorFramework curatorFramework;
-  private final IExecutorServicesProvider executorServicesProvider;
-  private final IMeterHelper meterHelper;
+  @Autowired
+  private ITasksExecutionTriggerer tasksExecutionTriggerer;
+  @Autowired
+  private ITaskHandlerRegistry taskHandlerRegistry;
+  @Autowired
+  private TasksProperties tasksProperties;
+  @Autowired
+  private ITaskDao taskDao;
+  @Autowired
+  private CuratorFramework curatorFramework;
+  @Autowired
+  private SharedReentrantLockBuilderFactory lockBuilderFactory;
+  @Autowired
+  private IExecutorServicesProvider executorServicesProvider;
+  @Autowired
+  private IMeterHelper meterHelper;
 
-  private LeaderSelector leaderSelector;
+  private LeaderSelectorV2 leaderSelector;
 
   private volatile boolean shuttingDown = false;
   // For tests.
@@ -63,49 +75,51 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
 
     verifyCorrectCuratorConfig();
 
-    leaderSelector = new LeaderSelector(curatorFramework, nodePath, executorService,
-        control -> {
-          ScheduledTaskExecutor scheduledTaskExecutor = executorServicesProvider.getGlobalScheduledTaskExecutor();
-          MutableObject<ScheduledTaskExecutor.TaskHandle> stuckTaskHandleHolder = new MutableObject<>();
-          MutableObject<ScheduledTaskExecutor.TaskHandle> scheduledTaskHandleHolder = new MutableObject<>();
+    ILock lock = lockBuilderFactory.createBuilder(nodePath).build();
+    leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).setLeader(control -> {
+      ScheduledTaskExecutor scheduledTaskExecutor = executorServicesProvider.getGlobalScheduledTaskExecutor();
+      MutableObject<ScheduledTaskExecutor.TaskHandle> stuckTaskHandleHolder = new MutableObject<>();
+      MutableObject<ScheduledTaskExecutor.TaskHandle> scheduledTaskHandleHolder = new MutableObject<>();
 
-          control.workAsyncUntilShouldStop(
-              () -> {
-                stuckTaskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(() -> resumeStuckTasks(control),
-                    tasksProperties.getStuckTasksPollingInterval(), tasksProperties.getStuckTasksPollingInterval()));
+      control.workAsyncUntilShouldStop(
+          () -> {
+            stuckTaskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(() -> resumeStuckTasks(control),
+                tasksProperties.getStuckTasksPollingInterval(), tasksProperties.getStuckTasksPollingInterval()));
 
-                log.info("Started to resume stuck tasks after each " + tasksProperties.getStuckTasksPollingInterval() + ".");
+            log.info("Started to resume stuck tasks after each " + tasksProperties.getStuckTasksPollingInterval() + " for '"
+                + tasksProperties.getGroupId() + "'.");
 
-                scheduledTaskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(() -> {
-                  if (paused) {
-                    return;
-                  }
-                  resumeWaitingTasks(control);
-                }, tasksProperties.getWaitingTasksPollingInterval(), tasksProperties.getWaitingTasksPollingInterval()));
+            scheduledTaskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(() -> {
+              if (paused) {
+                return;
+              }
+              resumeWaitingTasks(control);
+            }, tasksProperties.getWaitingTasksPollingInterval(), tasksProperties.getWaitingTasksPollingInterval()));
 
-                log.info("Started to resume scheduled tasks after each " + tasksProperties.getWaitingTasksPollingInterval() + ".");
-              },
-              () -> {
-                log.info("Stopping stuck tasks resumer.");
-                if (stuckTaskHandleHolder.getValue() != null) {
-                  stuckTaskHandleHolder.getValue().stop();
-                }
+            log.info("Started to resume scheduled tasks after each " + tasksProperties.getWaitingTasksPollingInterval() + " for '"
+                + tasksProperties.getGroupId() + "'.");
+          },
+          () -> {
+            log.info("Stopping stuck tasks resumer for '" + tasksProperties.getGroupId() + "'.");
+            if (stuckTaskHandleHolder.getValue() != null) {
+              stuckTaskHandleHolder.getValue().stop();
+            }
 
-                log.info("Stopping scheduled tasks executor.");
-                if (scheduledTaskHandleHolder.getValue() != null) {
-                  scheduledTaskHandleHolder.getValue().stop();
-                }
+            log.info("Stopping scheduled tasks executor for '" + tasksProperties.getGroupId() + "'.");
+            if (scheduledTaskHandleHolder.getValue() != null) {
+              scheduledTaskHandleHolder.getValue().stop();
+            }
 
-                if (stuckTaskHandleHolder.getValue() != null) {
-                  stuckTaskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
-                }
-                log.info("Stuck tasks resumer stopped.");
-                if (scheduledTaskHandleHolder.getValue() != null) {
-                  scheduledTaskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
-                }
-                log.info("Scheduled tasks executor stopped.");
-              });
-        });
+            if (stuckTaskHandleHolder.getValue() != null) {
+              stuckTaskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
+            }
+            log.info("Stuck tasks resumer stopped for '" + tasksProperties.getGroupId() + "'.");
+            if (scheduledTaskHandleHolder.getValue() != null) {
+              scheduledTaskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
+            }
+            log.info("Scheduled tasks executor stopped '" + tasksProperties.getGroupId() + "'.");
+          });
+    }).build();
   }
 
   /**
