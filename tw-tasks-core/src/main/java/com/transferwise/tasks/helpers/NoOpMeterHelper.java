@@ -2,6 +2,7 @@ package com.transferwise.tasks.helpers;
 
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
+import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -125,5 +126,10 @@ public class NoOpMeterHelper implements IMeterHelper {
   @Override
   public void debugTaskTriggeringQueueEmpty(String bucketId, int priority, String taskType) {
 
+  }
+  
+  @Override
+  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data){
+    
   }
 }

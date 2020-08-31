@@ -1,8 +1,8 @@
 package com.transferwise.tasks.testapp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.tasks.BaseIntTest;
@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -121,11 +122,17 @@ class KafkaIntTest extends BaseIntTest {
     );
   }
 
+  /**
+   * Works well with `org.apache.kafka.clients.producer.RoundRobinPartitioner`.
+   * 
+   * <p>Can be flaky with `org.apache.kafka.clients.producer.internals.DefaultPartitioner`.
+   */
   @ParameterizedTest(name = "sending batch messages to Kafka works with 5 partitions, iteration {0}")
   @ValueSource(ints = {0, 1, 2, 3})
+  @SneakyThrows
   void sendingBatchMessagesToKafkaWorksWith5Partitions(int iteration) {
     String topic = "toKafkaBatchTestTopic5Partitions";
-    int n = 1000;
+    int n = 10000;
 
     Map<String, AtomicInteger> messagesMap = new ConcurrentHashMap<>();
     for (int i = 0; i < n; i++) {
@@ -167,7 +174,8 @@ class KafkaIntTest extends BaseIntTest {
         messagesMap.values().stream().noneMatch(v -> v.get() != 1)
     );
     for (int i = 0; i < 5; i++) {
-      assertTrue(partitionsMap.get(i).get() > 0);
+      assertThat(partitionsMap.get(i)).as("Partition " + i + " is not empty.").isNotNull();
+      assertThat(partitionsMap.get(i).get()).as("Partition " + i + " is not empty.").isNotNull().isGreaterThan(0);
     }
   }
 

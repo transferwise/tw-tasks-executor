@@ -8,7 +8,9 @@ import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
-import com.transferwise.common.leaderselector.LeaderSelector;
+import com.transferwise.common.leaderselector.ILock;
+import com.transferwise.common.leaderselector.LeaderSelectorV2;
+import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -32,7 +34,6 @@ import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
@@ -47,9 +48,9 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   @Autowired
   private IMeterHelper meterHelper;
   @Autowired
-  private CuratorFramework curatorFramework;
+  private SharedReentrantLockBuilderFactory lockBuilderFactory;
 
-  LeaderSelector leaderSelector;
+  LeaderSelectorV2 leaderSelector;
 
   private List<Pair<String, Integer>> erroneousTasksCountPerType;
   private Map<String, AtomicInteger> erroneousTasksCounts;
@@ -70,28 +71,28 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_state_monitor";
 
     ExecutorService executorService = new ThreadNamingExecutorServiceWrapper("tw-tasks-tsm", executorServicesProvider.getGlobalExecutorService());
-    leaderSelector = new LeaderSelector(curatorFramework, nodePath, executorService,
-        control -> {
-          ScheduledTaskExecutor scheduledTaskExecutor = executorServicesProvider.getGlobalScheduledTaskExecutor();
-          MutableObject<ScheduledTaskExecutor.TaskHandle> taskHandleHolder = new MutableObject<>();
+    ILock lock = lockBuilderFactory.createBuilder(nodePath).build();
+    leaderSelector = new LeaderSelectorV2.Builder().setLock(lock).setExecutorService(executorService).setLeader(control -> {
+      ScheduledTaskExecutor scheduledTaskExecutor = executorServicesProvider.getGlobalScheduledTaskExecutor();
+      MutableObject<ScheduledTaskExecutor.TaskHandle> taskHandleHolder = new MutableObject<>();
 
-          control.workAsyncUntilShouldStop(
-              () -> {
-                resetState(true);
-                taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(this::check, Duration.ofSeconds(0),
-                    Duration.ofSeconds(30)));
-                log.info("Started to monitor tasks state.");
-              },
-              () -> {
-                log.info("Stopping monitoring of tasks state.");
-                if (taskHandleHolder.getValue() != null) {
-                  taskHandleHolder.getValue().stop();
-                  taskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
-                }
-                resetState(false);
-                log.info("Monitoring of tasks state stopped.");
-              });
-        });
+      control.workAsyncUntilShouldStop(
+          () -> {
+            resetState(true);
+            taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(this::check, Duration.ofSeconds(0),
+                Duration.ofSeconds(30)));
+            log.info("Started to monitor tasks state for '" + tasksProperties.getGroupId() + "'.");
+          },
+          () -> {
+            log.info("Stopping monitoring of tasks state for '" + tasksProperties.getGroupId() + "'.");
+            if (taskHandleHolder.getValue() != null) {
+              taskHandleHolder.getValue().stop();
+              taskHandleHolder.getValue().waitUntilStopped(Duration.ofMinutes(1));
+            }
+            resetState(false);
+            log.info("Monitoring of tasks state stopped.");
+          });
+    }).build();
   }
 
   protected void resetState(boolean forInit) {

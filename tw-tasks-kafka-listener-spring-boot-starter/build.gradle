@@ -39,7 +39,7 @@ dockerCompose {
 
     // Set to true if you have anomalies
     stopContainers = true
-    removeContainers = false
+    removeContainers = true
 
     environment.put "KAFKA_RANDOM_PORT", "${freePort}"
 }

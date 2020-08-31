@@ -130,23 +130,8 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ITasksResumer.class)
-  public TasksResumer twTasksTasksResumer(
-      ITasksExecutionTriggerer tasksExecutionTriggerer,
-      ITaskHandlerRegistry taskHandlerRegistry,
-      TasksProperties tasksProperties,
-      ITaskDao taskDao,
-      CuratorFramework curatorFramework,
-      IExecutorServicesProvider executorServicesProvider,
-      IMeterHelper meterHelper) {
-    return new TasksResumer(
-        tasksExecutionTriggerer,
-        taskHandlerRegistry,
-        tasksProperties,
-        taskDao,
-        curatorFramework,
-        executorServicesProvider,
-        meterHelper
-    );
+  public TasksResumer twTasksTasksResumer() {
+    return new TasksResumer();
   }
 
   @Bean

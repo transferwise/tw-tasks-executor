@@ -108,6 +108,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
               .setType(request.getType()).setTaskId(request.getTaskId())
               .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority));
 
+      meterHelper.registerTaskAdding(request.getType(), request.getKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
+      
       if (!insertTaskResponse.isInserted()) {
         meterHelper.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
         if (request.isWarnWhenTaskExists()) {

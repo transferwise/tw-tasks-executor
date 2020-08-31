@@ -1,7 +1,7 @@
 ext {
-    twContextVersion = "0.4.0"
+    twContextVersion = "0.5.0"
     twLeaderSelectorVersion = "1.3.1"
-    springBootVersion = "2.2.8.RELEASE"
+    springBootVersion = "2.3.3.RELEASE"
 
 
     libraries = [
@@ -11,7 +11,7 @@ ext {
             apacheCommonsCollections    : "org.apache.commons:commons-collections4:4.4",
             commonsIo                   : "commons-io:commons-io:2.6",
             guava                       : "com.google.guava:guava:29.0-jre",
-            twGracefulShutdown          : "com.transferwise.common:tw-graceful-shutdown:1.2.8",
+            twGracefulShutdown          : "com.transferwise.common:tw-graceful-shutdown:1.2.9",
             twGracefulShutdownIntefaces : "com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2",
             twContext                   : "com.transferwise.common:tw-context:${twContextVersion}",
             twContextStarter            : "com.transferwise.common:tw-context-starter:${twContextVersion}",

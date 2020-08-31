@@ -2,6 +2,13 @@
 
 Describes notable changes.
 
+#### 1.12.0 - 2020/08/31
+- Moving away from deprecated LeaderSelector to LeaderSelectorV2.
+- Added new metric `twTasks.task.addings.count` for tracking adding of new tasks.
+- Background jobs start and stop messages contain `group.id`.
+It allows quickly to understand, if some service is using another service's identifier.
+- Upgraded external libraries to latest.
+
 #### 1.11.0 - 2020/08/27
 - Optimized a TasksResumer query executed on startup for Postgres.
 Postgres was likely to decide to not use `(status, next_event_time)` and do a full scan instead.
