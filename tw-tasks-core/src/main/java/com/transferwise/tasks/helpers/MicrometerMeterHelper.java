@@ -201,9 +201,14 @@ public class MicrometerMeterHelper implements IMeterHelper {
 
   @Override
   public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data) {
-    meterRegistry.counter(METRIC_TASKS_ADDINGS_COUNT, TAG_TASK_TYPE, type, TAG_HAS_KEY, key == null ? "false" : "true",
-        TAG_IS_DUPLICATE, inserted ? "false" : "true", TAG_IS_SCHEDULED, runAfterTime == null ? "false" : "true", TAG_DATA_SIZE,
-        getDataSizeBucket(data));
+    meterRegistry.counter(
+        METRIC_TASKS_ADDINGS_COUNT,
+        TAG_TASK_TYPE, type,
+        TAG_HAS_KEY, Boolean.toString(key != null),
+        TAG_IS_DUPLICATE, Boolean.toString(!inserted),
+        TAG_IS_SCHEDULED, Boolean.toString(runAfterTime != null),
+        TAG_DATA_SIZE, getDataSizeBucket(data)
+    ).increment();
   }
 
   @Override
