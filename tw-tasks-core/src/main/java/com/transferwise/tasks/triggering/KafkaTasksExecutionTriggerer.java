@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
-import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
@@ -28,10 +27,7 @@ import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
-import java.time.Instant;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,13 +50,10 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
-import org.apache.kafka.clients.consumer.internals.NoOpConsumerRebalanceListener;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.WakeupException;
@@ -190,7 +183,6 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         });
   }
 
-  @SuppressWarnings({"rawtypes", "unchecked"})
   public ConsumerBucket getConsumerBucket(String bucketId) {
     return ExceptionUtils.doUnchecked(() -> {
       ConsumerBucket consumerBucket = consumerBuckets.get(bucketId);
@@ -215,76 +207,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         consumerBucket.setTopicConfigured(true);
       }
 
-      KafkaConsumer<String, String> kafkaConsumer = consumerBucket.getKafkaConsumer();
-      if (kafkaConsumer == null) {
-        String groupId = (String) kafkaConsumerProps.get(ConsumerConfig.GROUP_ID_CONFIG);
-        if (groupId == null) {
-          throw new IllegalStateException("Kafka consumer group id is not set.");
-        }
-
-        if (bucketProperties.getTriggerSameTaskInAllNodes()) {
-          log.info("Using same task triggering on all nodes strategy for bucket '" + bucketId + "'.");
-          groupId += "." + tasksProperties.getClientId();
-        }
-
-        Map<String, Object> kafkaConsumerProps = new HashMap<>(this.kafkaConsumerProps);
-        kafkaConsumerProps.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, bucketProperties.getTriggersFetchSize());
-        kafkaConsumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-        kafkaConsumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-        kafkaConsumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG,
-            kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.bucket." + bucketId);
-
-        if (bucketProperties.getAutoResetOffsetToDuration() != null) {
-          kafkaConsumerProps.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-        } else {
-          kafkaConsumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, tasksProperties.getAutoResetOffsetTo());
-        }
-
-        consumerBucket.setKafkaConsumer(kafkaConsumer = new KafkaConsumer<>(kafkaConsumerProps));
-
-        List<String> topics = getTopics(bucketId);
-        log.info("Subscribing to Kafka topics '" + topics + "'");
-
-        KafkaConsumer kafkaConsumerRef = kafkaConsumer;
-        kafkaConsumer.subscribe(topics, bucketProperties.getAutoResetOffsetToDuration() != null ? new ConsumerRebalanceListener() {
-          @Override
-          public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
-          }
-
-          @Override
-          public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
-            Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
-            long timestampToSearchMs =
-                ZonedDateTime.now(TwContextClockHolder.getClock()).plus(bucketProperties.getAutoResetOffsetToDuration()).toInstant()
-                    .toEpochMilli();
-
-            for (TopicPartition partition : partitions) {
-              try {
-                if (kafkaConsumerRef.committed(partition) == null) {
-                  timestampsToSearch.put(partition, timestampToSearchMs);
-                }
-              } catch (Throwable t) {
-                timestampsToSearch.put(partition, timestampToSearchMs);
-              }
-            }
-            List<TopicPartition> seekToBeginningPartitions = new ArrayList<>();
-            if (!timestampsToSearch.isEmpty()) {
-              Map<TopicPartition, OffsetAndTimestamp> offsets = kafkaConsumerRef.offsetsForTimes(timestampsToSearch);
-              offsets.forEach((k, v) -> {
-                if (v != null) {
-                  log.warn("No offset was commited for '" + k + "', seeking to offset " + v.offset() + ", @" + Instant.ofEpochMilli(v.timestamp()));
-                  kafkaConsumerRef.seek(k, v.offset());
-                } else {
-                  log.warn("No offset was commited for '" + k + "', seeking to beginning");
-                  seekToBeginningPartitions.add(k);
-                }
-              });
-            }
-            if (!seekToBeginningPartitions.isEmpty()) {
-              kafkaConsumerRef.seekToBeginning(seekToBeginningPartitions);
-            }
-          }
-        } : new NoOpConsumerRebalanceListener());
+      if (consumerBucket.getKafkaConsumer() == null) {
+        consumerBucket.setKafkaConsumer(initKafkaConsumer(bucketId, bucketProperties));
       }
       return consumerBucket;
     });
@@ -471,6 +395,40 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     if (errorLoggingThrottler.canLogError()) {
       log.error("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
     }
+  }
+
+  private KafkaConsumer<String, String> initKafkaConsumer(String bucketId, BucketProperties bucketProperties) {
+    String groupId = (String) kafkaConsumerProps.get(ConsumerConfig.GROUP_ID_CONFIG);
+    if (groupId == null) {
+      throw new IllegalStateException("Kafka consumer group id is not set.");
+    }
+
+    if (bucketProperties.getTriggerSameTaskInAllNodes()) {
+      log.info("Using same task triggering on all nodes strategy for bucket '{}'.", bucketId);
+      groupId += "." + tasksProperties.getClientId();
+    }
+
+    Map<String, Object> configs = new HashMap<>(kafkaConsumerProps);
+    configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, bucketProperties.getTriggersFetchSize());
+    configs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+    configs.put(ConsumerConfig.CLIENT_ID_CONFIG, configs.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.bucket." + bucketId);
+
+    if (bucketProperties.getAutoResetOffsetToDuration() != null) {
+      configs.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    } else {
+      configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, tasksProperties.getAutoResetOffsetTo());
+    }
+
+    KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(configs);
+    List<String> topics = getTopics(bucketId);
+    log.info("Subscribing to Kafka topics '{}'", topics);
+    if (bucketProperties.getAutoResetOffsetToDuration() == null) {
+      kafkaConsumer.subscribe(topics);
+    } else {
+      kafkaConsumer.subscribe(topics, new SeekToDurationOnRebalance(kafkaConsumer, bucketProperties.getAutoResetOffsetToDuration()));
+    }
+    return kafkaConsumer;
   }
 
   private void closeKafkaConsumer(ConsumerBucket consumerBucket) {

@@ -26,6 +26,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private IMeterHelper meterHelper;
 
   private ExecutorService afterCommitExecutorService;
+  private TxSyncAdapterFactory txSyncAdapterFactory;
+
   private final AtomicInteger inProgressAfterCommitTasks = new AtomicInteger();
   private final AtomicInteger activeAfterCommitTasks = new AtomicInteger();
 
@@ -61,6 +64,9 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   public void init() {
     if (tasksProperties.isAsyncTaskTriggering()) {
       afterCommitExecutorService = executorsHelper.newScheduledExecutorService("tsac", tasksProperties.getAsyncTaskTriggeringsConcurrency());
+      txSyncAdapterFactory = AsynchronouslyTriggerTaskTxSyncAdapter::new;
+    } else {
+      txSyncAdapterFactory = SynchronouslyTriggerTaskTxSyncAdapter::new;
     }
 
     log.info("Tasks service initialized for client '" + tasksProperties.getClientId() + "'.");
@@ -215,60 +221,79 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
    * this deadlock problem does not exist and we may trigger in the same thread.
    */
   protected void triggerTask(BaseTask task) {
-    TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
-      @Override
-      public void afterCommit() {
-        Runnable triggeringLogic = () -> {
-          activeAfterCommitTasks.incrementAndGet();
-          try {
-            MdcContext.with(() -> {
-              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-              try {
-                // TODO: If trigger would not need a database connection or at least no new transaction, deadlock situation could be prevented.
-                // TODO: Do we want to mark NEW tasks immediately as SUBMITTED and then even remove the separate SUBMITTED state?
-                // TODO: We probably still need SUBMITTED to separate NEW and WAITING.
-                tasksExecutionTriggerer.trigger(task);
-                if (log.isDebugEnabled()) {
-                  log.debug("Task {} triggered. AfterCommit queue size is {}.", LogUtils.asParameter(task.getVersionId()),
-                      inProgressAfterCommitTasks.get());
-                }
-              } catch (Throwable t) {
-                log.error("Triggering task '" + task.getVersionId() + "' failed.", t);
-              }
-            });
-          } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-          } finally {
-            inProgressAfterCommitTasks.decrementAndGet();
-            activeAfterCommitTasks.decrementAndGet();
-          }
-        };
-        if (afterCommitExecutorService == null) {
-          inProgressAfterCommitTasks.incrementAndGet();
-          triggeringLogic.run();
-        } else {
-          if (inProgressAfterCommitTasks.incrementAndGet() >= tasksProperties.getMaxAsyncTaskTriggerings()) {
-            // Need to ignore, if we wait for empty space, we can create deadlock with database resources.
-            log.warn("Task {} was not triggered, because resources have been exhausted.", LogUtils.asParameter(task.getVersionId()));
-            inProgressAfterCommitTasks.decrementAndGet();
-            return;
-          }
-          afterCommitExecutorService.submit(new Runnable() {
-            @Override
-            @Trace(dispatcher = true)
-            public void run() {
-              NewRelic.setTransactionName("TwTasksEngine", "Triggering");
-              triggeringLogic.run();
-            }
-          });
-        }
-      }
-    });
-
+    TransactionSynchronizationManager.registerSynchronization(txSyncAdapterFactory.create(task));
   }
 
   @Override
   public boolean canShutdown() {
     return inProgressAfterCommitTasks.get() == 0;
+  }
+
+  private void doTriggerTask(BaseTask task) {
+    activeAfterCommitTasks.incrementAndGet();
+    try {
+      // TODO: If trigger would not need a database connection or at least no new transaction, deadlock situation could be prevented.
+      // TODO: Do we want to mark NEW tasks immediately as SUBMITTED and then even remove the separate SUBMITTED state?
+      // TODO: We probably still need SUBMITTED to separate NEW and WAITING.
+      tasksExecutionTriggerer.trigger(task);
+      if (log.isDebugEnabled()) {
+        log.debug("Task {} triggered. AfterCommit queue size is {}.", LogUtils.asParameter(task.getVersionId()), inProgressAfterCommitTasks.get());
+      }
+    } catch (Throwable t) {
+      log.error("Triggering task '{}' failed.", task.getVersionId(), t);
+    } finally {
+      activeAfterCommitTasks.decrementAndGet();
+    }
+  }
+
+  @FunctionalInterface
+  private interface TxSyncAdapterFactory {
+    TransactionSynchronizationAdapter create(BaseTask task);
+  }
+
+  @RequiredArgsConstructor
+  private class SynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
+    private final BaseTask task;
+
+    @Override
+    public void afterCommit() {
+      inProgressAfterCommitTasks.incrementAndGet();
+      try {
+        doTriggerTask(task);
+      } finally {
+        inProgressAfterCommitTasks.decrementAndGet();
+      }
+    }
+  }
+
+  @RequiredArgsConstructor
+  private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
+    private final BaseTask task;
+
+    @Override
+    public void afterCommit() {
+      if (inProgressAfterCommitTasks.incrementAndGet() >= tasksProperties.getMaxAsyncTaskTriggerings()) {
+        // Need to ignore, if we wait for empty space, we can create deadlock with database resources.
+        log.warn("Task {} was not triggered, because resources have been exhausted.", LogUtils.asParameter(task.getVersionId()));
+        inProgressAfterCommitTasks.decrementAndGet();
+        return;
+      }
+
+      afterCommitExecutorService.submit(new Runnable() {
+        @Override
+        @Trace(dispatcher = true)
+        public void run() {
+          NewRelic.setTransactionName("TwTasksEngine", "Triggering");
+          try {
+            MdcContext.with(() -> {
+              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
+              doTriggerTask(task);
+            });
+          } finally {
+            inProgressAfterCommitTasks.decrementAndGet();
+          }
+        }
+      });
+    }
   }
 }
