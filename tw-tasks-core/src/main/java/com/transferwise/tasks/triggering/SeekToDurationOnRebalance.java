@@ -18,9 +18,11 @@ import org.apache.kafka.common.TopicPartition;
 
 /**
  * For any partition that doesn't have offset committed for a given consumer
- * - seeks to the earliest offset that is greater than {@code now() - autoResetOffsetToDuration}.
+ * - seeks to the earliest offset that is greater than {@code now() + autoResetOffsetToDuration}.
  * Seeks to the beginning in case the timestamp of the very first record in partition
- * has value greater than {@code now() - autoResetOffsetToDuration}.
+ * has value greater than {@code now() + autoResetOffsetToDuration}.
+ *
+ * <p>Note that {@code autoResetOffsetToDuration} is normally a negative duration.
  */
 @Slf4j
 @RequiredArgsConstructor
