@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.13.0 - 2020/09/10
+- Old tasks are now cleaned by ids only and not checking their versions. It allows to execute multivalue queries, which should be more efficient.
+Previous situation can be set by `TasksProperties.paranoidTasksCleaning=true`.
+
 #### 1.12.0 - 2020/08/31
 - Moving away from deprecated LeaderSelector to LeaderSelectorV2.
 - Added new metric `twTasks.task.addings.count` for tracking adding of new tasks.

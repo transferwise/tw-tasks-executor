@@ -81,8 +81,8 @@ public class GlobalProcessingState {
       if (ttA == ttB) {
         return 0;
       }
-      TaskTriggering ttAPeek = ttA.getTasks().peek();
-      TaskTriggering ttBPeek = ttB.getTasks().peek();
+      TaskTriggering ttAPeek = ttA.peek();
+      TaskTriggering ttBPeek = ttB.peek();
       if (ttAPeek == null && ttBPeek != null) {
         return 1;
       } else if (ttAPeek != null && ttBPeek == null) {
@@ -106,7 +106,26 @@ public class GlobalProcessingState {
   public static class TypeTasks {
 
     private String type;
+    private AtomicInteger size = new AtomicInteger();
     private Queue<TaskTriggering> tasks = new ConcurrentLinkedQueue<>();
+
+    public TaskTriggering peek() {
+      return tasks.peek();
+    }
+
+    public TaskTriggering poll() {
+      TaskTriggering taskTriggering = tasks.poll();
+      if (taskTriggering != null) {
+        size.decrementAndGet();
+      }
+      return taskTriggering;
+    }
+
+    public void add(TaskTriggering taskTriggering) {
+      if (tasks.add(taskTriggering)) {
+        size.incrementAndGet();
+      }
+    }
   }
 }
 

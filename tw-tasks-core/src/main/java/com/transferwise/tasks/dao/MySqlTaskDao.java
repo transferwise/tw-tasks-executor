@@ -102,6 +102,9 @@ public class MySqlTaskDao implements ITaskDao {
   protected String getTasksSql;
   protected String getEarliesTaskNextEventTimeSql;
   protected String getTaskVersionSql;
+  protected String deleteTasksByIdBatchesSql;
+  protected String deleteUniqueTaskKeysByIdBatchesSql;
+  protected String deleteFinishedOldTasksSql2;
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
 
@@ -152,8 +155,11 @@ public class MySqlTaskDao implements ITaskDao {
     deleteTasksSqls = new String[]{"select id,version from " + taskTable + " where type=?", " and sub_type=?", " and status in (??)"};
     deleteTaskSql = "delete from " + taskTable + " where id=? and version=?";
     deleteUniqueTaskKeySql = "delete from " + uniqueTaskKeyTable + " where task_id=?";
+    deleteTasksByIdBatchesSql = "delete from " + taskTable + " where id in (??)";
+    deleteUniqueTaskKeysByIdBatchesSql = "delete from " + uniqueTaskKeyTable + " where task_id in (??)";
     deleteFinishedOldTasksSql = "select id,version from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
     deleteFinishedOldTasksSql1 = "select next_event_time from " + taskTable + " where id=?";
+    deleteFinishedOldTasksSql2 = "select id from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
     getTasksInErrorStatusSql = "select id,version,state_time,type,sub_type from " + taskTable
         + " where status='" + TaskStatus.ERROR.name() + "' order by next_event_time desc limit ?";
     getTasksInStatusSql = "select id,version,state_time,type,sub_type,status,next_event_time from " + taskTable
@@ -491,6 +497,79 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class)
   public DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize) {
+    if (tasksProperties.isParanoidTasksCleaning()) {
+      return deleteOldTasksParanoid(taskStatus, age, batchSize);
+    }
+
+    DeleteFinishedOldTasksResult result = new DeleteFinishedOldTasksResult();
+    Timestamp deletedBeforeTime = Timestamp.from(Instant.now(TwContextClockHolder.getClock()).minus(age));
+
+    List<Object> taskIds = jdbcTemplate.query(deleteFinishedOldTasksSql2,
+        args(taskStatus.name(), deletedBeforeTime, batchSize), (rs, rowNum) -> rs.getObject(1));
+
+    if (!taskIds.isEmpty()) {
+      UUID firstDeletedTaskId = toUuid(taskIds.get(0));
+      result.setFirstDeletedTaskId(firstDeletedTaskId);
+      ZonedDateTime nextEventTime = getFirst(jdbcTemplate.query(deleteFinishedOldTasksSql1,
+          args(firstDeletedTaskId),
+          (rs, rowNum) -> TimeUtils.toZonedDateTime(rs.getTimestamp(1))));
+
+      result.setFirstDeletedTaskNextEventTime(nextEventTime);
+    }
+
+    int deletedTasksCount = 0;
+    int deletedUniqueTaskKeysCount = 0;
+    int processedIdsCount = 0;
+
+    for (int b = questionBuckets.length - 1; b >= 0; b--) {
+      int bucketSize = questionBuckets[b];
+      while (taskIds.size() - processedIdsCount >= bucketSize) {
+
+        String tasksDeleteSql = cachedSql(sqlKey("deleteTasksByIdBatchesSql", bucketSize),
+            () -> getExpandedSql(deleteTasksByIdBatchesSql, bucketSize));
+
+        final int currentProcessedIdsCount = processedIdsCount;
+        deletedTasksCount += jdbcTemplate.update(con -> {
+          PreparedStatement ps = con.prepareStatement(tasksDeleteSql);
+          try {
+            for (int i = 0; i < bucketSize; i++) {
+              ps.setObject(1 + i, taskIds.get(i + currentProcessedIdsCount));
+            }
+          } catch (Throwable t) {
+            ps.close();
+            throw t;
+          }
+          return ps;
+        });
+
+        String uniqueTaskKeysDeleteSql = cachedSql(sqlKey("deleteUniqueTaskKeysByIdBatchesSql", bucketSize),
+            () -> getExpandedSql(deleteUniqueTaskKeysByIdBatchesSql, bucketSize));
+        deletedUniqueTaskKeysCount += jdbcTemplate.update(con -> {
+          PreparedStatement ps = con.prepareStatement(uniqueTaskKeysDeleteSql);
+          try {
+            for (int i = 0; i < bucketSize; i++) {
+              ps.setObject(1 + i, taskIds.get(i + currentProcessedIdsCount));
+            }
+          } catch (Throwable t) {
+            ps.close();
+            throw t;
+          }
+          return ps;
+        });
+
+        processedIdsCount += bucketSize;
+      }
+    }
+
+    result.setDeletedTasksCount(deletedTasksCount);
+    result.setDeletedUniqueKeysCount(deletedUniqueTaskKeysCount);
+    result.setFoundTasksCount(taskIds.size());
+    result.setDeletedBeforeTime(TimeUtils.toZonedDateTime(deletedBeforeTime));
+
+    return result;
+  }
+
+  protected DeleteFinishedOldTasksResult deleteOldTasksParanoid(TaskStatus taskStatus, Duration age, int batchSize) {
     DeleteFinishedOldTasksResult result = new DeleteFinishedOldTasksResult();
     Timestamp deletedBeforeTime = Timestamp.from(Instant.now(TwContextClockHolder.getClock()).minus(age));
 

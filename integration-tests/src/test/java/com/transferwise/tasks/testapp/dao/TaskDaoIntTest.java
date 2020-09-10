@@ -7,10 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableSet;
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.DaoTask1;
 import com.transferwise.tasks.dao.ITaskDao.DeleteFinishedOldTasksResult;
@@ -31,18 +31,33 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
 
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
+
+  @Autowired
+  private TasksProperties tasksProperties;
+
   @BeforeEach
   void taskDaoIntTestSetup() {
     testTasksService.stopProcessing();
+  }
+
+  @AfterEach
+  void taskDaoIntTestCleanup() {
+    tasksProperties.setParanoidTasksCleaning(false);
   }
 
   @Test
@@ -242,7 +257,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     testClock.tick(Duration.ofMillis(1));
 
     GetStuckTasksResponse result = taskDao.getStuckTasks(2, TaskStatus.SUBMITTED);
-    
+
     assertFalse(result.isHasMore());
     assertEquals(2, result.getStuckTasks().size());
     assertEquals(0, result.getStuckTasks().get(0).getVersionId().getVersion());
@@ -472,8 +487,11 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertEquals(1, remainingTasks.size());
   }
 
-  @Test
-  void deletingOldTasksIsHappeningInBatches() {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void deletingOldTasksIsHappeningInBatches(boolean paranoid) {
+    testTasksService.stopProcessing();
+    tasksProperties.setParanoidTasksCleaning(paranoid);
     final TestClock testClock = new TestClock();
     TwContextClockHolder.setClock(testClock);
 
@@ -491,6 +509,41 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
     assertEquals(0, taskDao.getTasksCountInStatus(10, TaskStatus.DONE));
     assertEquals(1, result.getDeletedTasksCount());
+    assertNotNull(result.getFirstDeletedTaskNextEventTime());
+  }
+
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  void deletingMultipleOldTasksIsReusingSqls(boolean paranoid) {
+    testTasksService.stopProcessing();
+    tasksProperties.setParanoidTasksCleaning(paranoid);
+    final TestClock testClock = new TestClock();
+    TwContextClockHolder.setClock(testClock);
+
+    for (int i = 0; i < 117; i++) {
+      taskDao.insertTask(new ITaskDao.InsertTaskRequest()
+          .setType("Test").setData("Test").setPriority(5)
+          .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
+          .setKey(UUID.randomUUID().toString())
+          .setStatus(TaskStatus.DONE)
+      );
+    }
+
+    testClock.tick(Duration.ofMinutes(11));
+    DeleteFinishedOldTasksResult result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
+
+    assertEquals(117 - 60, taskDao.getTasksCountInStatus(1000, TaskStatus.DONE));
+    assertEquals(117 - 60, getUniqueTaskKeysCount());
+    assertEquals(60, result.getDeletedTasksCount());
+    assertEquals(60, result.getDeletedUniqueKeysCount());
+    assertNotNull(result.getFirstDeletedTaskNextEventTime());
+
+    result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
+
+    assertEquals(0, taskDao.getTasksCountInStatus(1000, TaskStatus.DONE));
+    assertEquals(0, getUniqueTaskKeysCount());
+    assertEquals(117 - 60, result.getDeletedTasksCount());
+    assertEquals(117 - 60, result.getDeletedUniqueKeysCount());
     assertNotNull(result.getFirstDeletedTaskNextEventTime());
   }
 
@@ -626,6 +679,12 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertNull(task1.getProcessingClientId());
     assertNotNull(task1.getStateTime());
     assertNotNull(task1.getNextEventTime());
+  }
+
+  private int getUniqueTaskKeysCount() {
+    Integer cnt = jdbcTemplate.queryForObject("select count(*) from unique_tw_task_key", Integer.class);
+    // Just keep the spotbugs happy.
+    return cnt == null ? 0 : cnt;
   }
 
   private InsertTaskResponse addTask() {
