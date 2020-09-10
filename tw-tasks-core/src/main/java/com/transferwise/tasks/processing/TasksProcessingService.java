@@ -184,7 +184,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
           continue;
         }
 
-        TaskTriggering taskTriggering = typeTasks.getTasks().peek();
+        TaskTriggering taskTriggering = typeTasks.peek();
         if (taskTriggering == null) {
           if (tasksProperties.isDebugMetricsEnabled()) {
             meterHelper.debugTaskTriggeringQueueEmpty(bucketId, priority, type);
@@ -214,7 +214,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
           if (taskProcessed) {
             taskTriggeringProcessingListener.accept(taskTriggering);
             prioritySlot.getOrderedTypeTasks().remove(typeTasks);
-            typeTasks.getTasks().poll();
+            typeTasks.poll();
             log.debug("Removed task '{}' triggering from processingState.", task.getVersionId());
             prioritySlot.getOrderedTypeTasks().add(typeTasks);
             bucket.increaseVersion();
@@ -241,13 +241,18 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       GlobalProcessingState.TypeTasks typeTasks = prioritySlot.getTypeTasks().get(taskType);
       if (typeTasks == null) {
         prioritySlot.getTypeTasks().put(taskType, typeTasks = new GlobalProcessingState.TypeTasks().setType(taskType));
+        
+        GlobalProcessingState.TypeTasks finalTypeTasks = typeTasks;
+        Map<String, String> tags = ImmutableMap.of("bucketId", bucket.getBucketId(), "type", taskType);
+        meterHelper.registerGauge(METRIC_PREFIX + "processing.typeTriggersCount", tags, () -> finalTypeTasks.getSize().get());
+        
         prioritySlot.getOrderedTypeTasks().add(typeTasks);
       }
-      boolean emptyQueue = typeTasks.getTasks().peek() == null;
+      boolean emptyQueue = typeTasks.peek() == null;
       if (emptyQueue) {
         prioritySlot.getOrderedTypeTasks().remove(typeTasks);
       }
-      typeTasks.getTasks().add(taskTriggering);
+      typeTasks.add(taskTriggering);
       if (emptyQueue) {
         prioritySlot.getOrderedTypeTasks().add(typeTasks);
       }

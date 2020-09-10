@@ -230,6 +230,8 @@ public class TasksProperties {
   private Duration interruptTasksAfterShutdownTime = null;
 
   private boolean debugMetricsEnabled = false;
+  
+  private boolean paranoidTasksCleaning = false;
 
   public enum DbType {
     MYSQL, POSTGRES
