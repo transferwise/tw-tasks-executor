@@ -59,7 +59,9 @@ services:
 #    environment:
 #      MYSQL_DATABASE: demoapp
 #      MYSQL_ROOT_PASSWORD: example-password-change-me
-#    command: mysqld --max_connections=200 --ssl=0 --innodb_buffer_pool_size=256m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED
+#    command: "mysqld --max_connections=200 --ssl=0 --innodb_buffer_pool_size=2g --innodb_flush_method=O_DIRECT_NO_FSYNC 
+#    --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED"
+
   mariadb:
     image: mariadb:10.3
     hostname: mysql
@@ -73,14 +75,20 @@ services:
     --character-set-server=utf8mb4
     --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED"
   postgres:
-    image: postgres:10
+    image: postgres:12
     ports:
       - "15432:5432"
     environment:
       POSTGRES_PASSWORD: example-password-change-me
     volumes:
-      - ./postgres//postgre-initdb.d:/docker-entrypoint-initdb.d
-    command: -c 'max_connections=200'
+      - ./postgres/postgre-initdb.d:/docker-entrypoint-initdb.d
+# Those are restricted settings for a server with about total of 512MB memory.
+# Use higher values for unhindered throughput testing.
+    command: "-c 'max_connections=200' -c 'shared_buffers=128MB' -c 'effective_cache_size=384MB' -c 'maintenance_work_mem=32MB'
+    -c 'checkpoint_completion_target=0.9' -c 'wal_buffers=3932kB' -c 'default_statistics_target=100' -c 'random_page_cost=1.1'
+    -c 'effective_io_concurrency=200' -c 'work_mem=327kB' -c 'min_wal_size=2GB' -c 'max_wal_size=8GB' -c 'max_worker_processes=4'
+    -c 'max_parallel_workers_per_gather=2' -c 'max_parallel_workers=4' -c 'max_parallel_maintenance_workers=2'
+    -c 'shared_preload_libraries=pg_stat_statements'"
 
 networks:
   default:

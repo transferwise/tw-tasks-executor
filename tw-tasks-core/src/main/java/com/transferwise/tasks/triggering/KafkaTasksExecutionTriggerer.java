@@ -5,6 +5,7 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
@@ -32,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -164,7 +164,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     // TODO: Future improvement: try to also trigger in the same node, if there is room or more specifically if it is idle (for min latency)
     // TODO: Maybe needs another concurrency control for that. E.g. only trigger in node, when conc < 5, even max conc is 10.
 
-    kafkaConfiguration.getKafkaTemplate().send(getTopic(processingBucketId), UUID.randomUUID().toString(), taskSt).addCallback(
+    kafkaConfiguration.getKafkaTemplate().send(getTopic(processingBucketId), UuidUtils.generatePrefixCombUuid().toString(), taskSt).addCallback(
         result -> {
           if (log.isDebugEnabled()) {
             MdcContext.with(() -> {

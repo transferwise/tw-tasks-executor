@@ -8,4 +8,6 @@ import lombok.experimental.Accessors;
 public class Email {
 
   private Long id;
+  
+  private String noise;
 }

@@ -4,10 +4,17 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd">
 
-  <changeSet id="14.09.2020.1" author="Kristo Kuusküll" runOnChange="false">
+  <changeSet id="02.05.2017.1" author="Kristo Kuusküll" runOnChange="false">
+    <comment>
+      This form is much better for cases where the application can not keep the UUIDs sequential. For example when Kafka messages are coming in
+      with random UUIDs.
+      The trick here is to create a sequential primary key index. So unordered unique index will have issues but with very large datasets not
+      realistic in Transferwise.
+    </comment>
     <sql>
       CREATE TABLE tw_task (
-      id VARBINARY(16) PRIMARY KEY NOT NULL,
+      aid BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+      id VARBINARY(16) NOT NULL,
       status ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED'),
       next_event_time DATETIME(6) NULL,
       state_time DATETIME(6) NOT NULL,
@@ -20,9 +27,10 @@
       type VARCHAR(250) CHARACTER SET latin1 NOT NULL,
       sub_type VARCHAR(250) CHARACTER SET latin1 NULL,
       processing_client_id VARCHAR(250) CHARACTER SET latin1 NULL,
-      data LONGTEXT NOT NULL);
+      data LONGTEXT NOT NULL) ;
 
       CREATE INDEX tw_task_idx1 ON tw_task (status, next_event_time);
+      CREATE UNIQUE INDEX tw_task_idx2 ON tw_task (id);
 
       CREATE TABLE unique_tw_task_key (
       task_id VARBINARY(16) PRIMARY KEY,
@@ -33,5 +41,3 @@
     </sql>
   </changeSet>
 </databaseChangeLog>
-
-  

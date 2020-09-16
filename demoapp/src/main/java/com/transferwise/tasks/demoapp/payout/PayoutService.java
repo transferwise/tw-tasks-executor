@@ -1,7 +1,7 @@
 package com.transferwise.tasks.demoapp.payout;
 
 import com.transferwise.tasks.ITasksService;
-import java.util.UUID;
+import com.transferwise.tasks.demoapp.NoiseGenerator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -15,10 +15,13 @@ public class PayoutService {
   @Autowired
   private ITasksService tasksService;
 
+  @Autowired
+  private NoiseGenerator noiseGenerator;
+
   public void submitPayout(PayoutInstruction poi) {
+    poi.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
         .setType(PayoutProcessingTaskHandlerConfiguration.TASK_TYPE_SUBMITTING)
-        .setTaskId(UUID.randomUUID())
         .setData(poi)
         .setPriority(poi.getPriority())
     );
