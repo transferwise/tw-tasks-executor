@@ -88,6 +88,7 @@ class DemoAppRealTest {
    * Test is more suitable for testing any kind of database limits.
    * 
    * <p>So far best results have been observed for 1mln tasks: 280s postgres, 450s mariadb.
+   * 
    * <p>Postgres has much more favourable architecture for tw-task in general.
    */
   @Test
