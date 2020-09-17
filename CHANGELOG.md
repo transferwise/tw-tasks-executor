@@ -2,7 +2,7 @@
 
 Describes notable changes.
 
-#### 1.14.0 - 2020/09/10
+#### 1.14.0 - 2020/09/16
 - We are starting to use sequential UUIDs, which are more suitable for database storage.
 Gains are especially large and exponential on MariaDb.
 1mln tasks 2x speed on db perf test.

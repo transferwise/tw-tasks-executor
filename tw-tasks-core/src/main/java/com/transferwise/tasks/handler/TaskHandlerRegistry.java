@@ -12,7 +12,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
@@ -36,9 +35,9 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
     for (ITaskHandler taskHandler : getHandlers()) {
       if (taskHandler.handles(task)) {
         if (result != null) {
-          List<ITaskHandler> results = getHandlers().stream().filter(h -> h.handles(task)).collect(Collectors.toList());
-          String resultsSt = StringUtils.join(results.stream().map(p -> p.getClass().getSimpleName()).collect(Collectors.toList()), ",");
-          throw new IllegalStateException("Too many handlers are able to handle task of type '" + task.getType() + "': " + resultsSt);
+          String handlersSt = getHandlers().stream().filter(h -> h.handles(task)).map(h -> h.getClass().getSimpleName())
+              .collect(Collectors.joining(","));
+          throw new IllegalStateException("Too many handlers are able to handle task of type '" + task.getType() + "': " + handlersSt);
         } else {
           result = taskHandler;
         }
