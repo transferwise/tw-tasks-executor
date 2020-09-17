@@ -14,6 +14,7 @@ import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.mdc.MdcContext;
@@ -53,6 +54,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private IXRequestIdHolder requestIdHolder;
   @Autowired
   private IMeterHelper meterHelper;
+  @Autowired
+  private ITaskHandlerRegistry taskHandlerRegistry;
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -115,7 +118,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
               .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority));
 
       meterHelper.registerTaskAdding(request.getType(), request.getKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
-      
+
       if (!insertTaskResponse.isInserted()) {
         meterHelper.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
         if (request.isWarnWhenTaskExists()) {
@@ -162,7 +165,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
       }
 
       if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
-        if (!taskDao.setStatus(taskId, TaskStatus.SUBMITTED, version++)) {
+        if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
           meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
           if (log.isDebugEnabled()) {
             log.debug("Can not resume task '" + taskId + "', expected version " + request.getVersion()
@@ -179,7 +182,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
         } else {
           log.warn("Task '" + taskId + "' will be force resumed. Status will change from '" + task.getStatus() + "' to 'SUBMITTED'.");
         }
-        if (!taskDao.setStatus(taskId, TaskStatus.SUBMITTED, version++)) {
+        if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
           meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
           log.debug("Can not resume task {}, it has wrong version '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
           return false;
@@ -248,11 +251,13 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
   @FunctionalInterface
   private interface TxSyncAdapterFactory {
+
     TransactionSynchronizationAdapter create(BaseTask task);
   }
 
   @RequiredArgsConstructor
   private class SynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
+
     private final BaseTask task;
 
     @Override
@@ -268,6 +273,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
   @RequiredArgsConstructor
   private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
+
     private final BaseTask task;
 
     @Override
@@ -296,4 +302,5 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
       });
     }
   }
+
 }

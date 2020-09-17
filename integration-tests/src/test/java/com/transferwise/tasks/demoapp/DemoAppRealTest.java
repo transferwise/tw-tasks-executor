@@ -44,7 +44,9 @@ class DemoAppRealTest {
     executorService.awaitTermination(1, TimeUnit.DAYS);
   }
 
-  // 78000 tasks have to be finised < 50s.
+  // 78000 tasks have to be finished < 50s.
+  // 780000 tasks - 960s vs 2700s combID vs randomID.
+
   @Test
   void allWorks() throws Exception {
     int submitThreads = 30;
@@ -76,6 +78,45 @@ class DemoAppRealTest {
       for (int i = 0; i < emailsCnt; i++) {
         executor.submit(() -> sendEmail(id.incrementAndGet()));
       }
+    }
+
+    executor.shutdown();
+    executor.awaitTermination(1, TimeUnit.DAYS);
+  }
+
+  /**
+   * Test is more suitable for testing any kind of database limits.
+   * 
+   * <p>So far best results have been observed for 1mln tasks: 280s postgres, 450s mariadb.
+   * 
+   * <p>Postgres has much more favourable architecture for tw-task in general.
+   */
+  @Test
+  void dbPerfTest() throws Exception {
+    int submitThreads = 30;
+    int tasks = 10000;
+    int depth = 100;
+
+    log.info("Expected tasks count is " + tasks * depth + ".");
+
+    ExecutorService executor = new ThreadPoolExecutor(
+        submitThreads,
+        submitThreads,
+        0L, TimeUnit.MILLISECONDS,
+        new LinkedBlockingQueue<>(submitThreads * 10),
+        (r, ex) -> ExceptionUtils.doUnchecked(() -> ex.getQueue().offer(r, 1, TimeUnit.DAYS))
+    );
+
+    for (int i = 0; i < tasks; i++) {
+      long finalI = i;
+      executor.submit(() -> {
+        try {
+          exchange(
+              finalI, "/v1/dbPerfTest/addTask", String.valueOf(depth));
+        } catch (Throwable t) {
+          log.error(t.getMessage(), t);
+        }
+      });
     }
 
     executor.shutdown();

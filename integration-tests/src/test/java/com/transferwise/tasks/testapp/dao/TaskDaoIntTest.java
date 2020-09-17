@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testapp.dao;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -7,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.google.common.collect.ImmutableSet;
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
@@ -30,6 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -62,7 +65,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void insertingATaskInsertsOnlyOneTaskForAGivenId() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     InsertTaskResponse result1 = addTask(taskId, TaskStatus.SUBMITTED);
     InsertTaskResponse result2 = addTask(taskId, TaskStatus.DONE);
@@ -105,7 +108,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingATaskReturnsTheCorrectTaskForBaseTask1() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId);
     addTask();
 
@@ -120,7 +123,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingATaskReturnsTehCorrectTaskForFullTaskRecord() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId);
     addTask();
 
@@ -141,7 +144,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void settingToBeRetriedSetsTheCorrectRetryTime() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     ZonedDateTime retryTime = ZonedDateTime.now().plusHours(2);
     addTask(taskId);
 
@@ -160,7 +163,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void grabbingForProcessingIncrementsTheProcessingTriesCount() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     Instant processingDeadline = Instant.now().plus(Duration.ofHours(2));
     addTask(taskId, TaskStatus.SUBMITTED);
@@ -180,7 +183,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void settingToBeRetriedResetTriesCountIfSpecified() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     ZonedDateTime retryTime = ZonedDateTime.now().plusHours(2);
     addTask(taskId, TaskStatus.SUBMITTED);
@@ -201,11 +204,11 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void grabbingForProcessingReturnsNullIfNoTaskMatchesTheOnePassed() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     Instant processingDeadline = Instant.now().plus(Duration.ofHours(2));
     addTask(taskId, TaskStatus.SUBMITTED);
-    Task task = new Task().setId(UUID.randomUUID());
+    Task task = new Task().setId(UuidUtils.generatePrefixCombUuid());
 
     Task returnedTask = taskDao.grabForProcessing(task.toBaseTask(), nodeId, processingDeadline);
 
@@ -219,7 +222,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void settingStatusUpdatesTheStatusCorrectly() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.SUBMITTED);
 
     boolean result = taskDao.setStatus(taskId, TaskStatus.WAITING, 0);
@@ -234,7 +237,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   //TODO: Flaky test. WAITING task can be picked up and moved to ERROR, before we assert.
   @Test
   void schedulingTaskForImmediateExecutionPutsTheTaskInWaitingState() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.SUBMITTED);
 
     boolean result = taskDao.scheduleTaskForImmediateExecution(taskId, 0);
@@ -250,7 +253,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void getStuckTasksReturnsAllTasksToRetry() {
     final TestClock testClock = new TestClock();
     TwContextClockHolder.setClock(testClock);
-    final UUID taskId = UUID.randomUUID();
+    final UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.SUBMITTED);
     final ZonedDateTime oldNextEventTime = taskDao.getTask(taskId, FullTaskRecord.class).getNextEventTime();
     addRandomTask(TaskStatus.SUBMITTED);
@@ -274,7 +277,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void markAsSubmittedAndSetNextEventTimePutsTheTaskInSubmittedStateAndUpdatesNextEventTime() {
     ZonedDateTime maxStuckTime = ZonedDateTime.now().plusHours(2);
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.NEW);
     addRandomTask(TaskStatus.NEW);
 
@@ -290,7 +293,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void preparingStuckOnProcessingTasksForResumingPutsTheTaskInSubmittedState() {
     Instant processingDeadline = ZonedDateTime.now().plusHours(2).toInstant();
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     addTask(taskId, TaskStatus.SUBMITTED);
     Task task = taskDao.getTask(taskId, Task.class);
@@ -311,7 +314,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void markingAsSubmittedUpdatesTheStateCorrectly() {
     ZonedDateTime maxStuckTime = ZonedDateTime.now().plusHours(2);
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING);
 
     boolean result = taskDao.markAsSubmitted(taskId, 0, maxStuckTime);
@@ -325,7 +328,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void findingTasksByTypeReturnsTheCorrectTasks() {
     String type = "MY_TYPE";
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING, type);
     addRandomTask();
 
@@ -348,7 +351,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void findingTasksByTypeAndSubtypeReturnsTheCorrectTasks() {
     String type = "MY_TYPE";
     String subType = "MY_SUBTYPE";
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING, type, subType);
     addRandomTask();
 
@@ -362,7 +365,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void findingTasksByTypeAndStatusReturnsTheCorrectTasks() {
     String type = "MY_TYPE";
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING, type);
     addRandomTask();
 
@@ -431,7 +434,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void deletingAllTasksShouldDeleteAllTasks() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING);
 
     taskDao.deleteAllTasks();
@@ -443,7 +446,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void deletingTasksByTypeDeletesTheCorrectTasks() {
     String type = "MY_TYPE";
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING, type);
     addRandomTask();
 
@@ -460,9 +463,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void deletingTasksByTypeAndSubtypeDeletesTheCorrectTasks() {
     String type = "MY_TYPE";
     String subType = "MY_SUBTYPE";
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING, type, subType);
-    addTask(UUID.randomUUID(), TaskStatus.PROCESSING, "TEST", "SUBTYPE");
+    addTask(UuidUtils.generatePrefixCombUuid(), TaskStatus.PROCESSING, "TEST", "SUBTYPE");
 
     taskDao.deleteTasks(type, subType);
 
@@ -475,7 +478,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void deletingTasksByTypeAndStatusDeletesTheCorrectTasks() {
     String type = "MY_TYPE";
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.PROCESSING, type);
     addRandomTask();
 
@@ -524,7 +527,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
       taskDao.insertTask(new ITaskDao.InsertTaskRequest()
           .setType("Test").setData("Test").setPriority(5)
           .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
-          .setKey(UUID.randomUUID().toString())
+          .setKey(UuidUtils.generatePrefixCombUuid().toString())
           .setStatus(TaskStatus.DONE)
       );
     }
@@ -550,9 +553,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void deletingTaskByIdDeletedTheCorrectTask() {
     String type = "MY_TYPE";
-    UUID taskId1 = UUID.randomUUID();
+    UUID taskId1 = UuidUtils.generatePrefixCombUuid();
     addTask(taskId1, TaskStatus.PROCESSING, type);
-    UUID taskId2 = UUID.randomUUID();
+    UUID taskId2 = UuidUtils.generatePrefixCombUuid();
     addTask(taskId2, TaskStatus.PROCESSING, type);
 
     taskDao.deleteTask(taskId1, 0);
@@ -566,7 +569,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingTasksInErrorStatusReturnsTasksInTheLimitOfMaxCount() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId, TaskStatus.ERROR, "TYPE", "1");
     addRandomTask(TaskStatus.ERROR, 2);
     addRandomTask(TaskStatus.PROCESSING, 3);
@@ -616,7 +619,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void clearingPayloadAndMarkingDoneUpdateTheTaskCorrectly() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId);
 
     boolean result = taskDao.clearPayloadAndMarkDone(taskId, 0);
@@ -630,7 +633,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingTaskVersionReturnTheCorrectNumber() {
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     addTask(taskId);
     addTask();
 
@@ -641,13 +644,13 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingTasksByUuidListWorks() {
-    final UUID taskId1 = UUID.randomUUID();
-    final UUID taskId2 = UUID.randomUUID();
-    final UUID taskId3 = UUID.randomUUID();
-    final UUID taskId4 = UUID.randomUUID();
-    final UUID taskId5 = UUID.randomUUID();
-    final UUID taskId6 = UUID.randomUUID();
-    final UUID taskId7 = UUID.randomUUID();
+    final UUID taskId1 = UuidUtils.generatePrefixCombUuid();
+    final UUID taskId2 = UuidUtils.generatePrefixCombUuid();
+    final UUID taskId3 = UuidUtils.generatePrefixCombUuid();
+    final UUID taskId4 = UuidUtils.generatePrefixCombUuid();
+    final UUID taskId5 = UuidUtils.generatePrefixCombUuid();
+    final UUID taskId6 = UuidUtils.generatePrefixCombUuid();
+    final UUID taskId7 = UuidUtils.generatePrefixCombUuid();
 
     addTask(taskId1);
     addTask();
@@ -681,6 +684,30 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertNotNull(task1.getNextEventTime());
   }
 
+  @Test
+  @SneakyThrows
+  public void testUuids() {
+    TestClock clock = TestClock.createAndRegister();
+    String taskType = "UUID_TEST";
+    try {
+      for (int i = 0; i < 117; i++) {
+        taskDao.insertTask(new ITaskDao.InsertTaskRequest()
+            .setType(taskType).setData(String.valueOf(i)).setPriority(5)
+            .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
+            .setTaskId(UuidUtils.generatePrefixCombUuid())
+            .setStatus(TaskStatus.DONE)
+        );
+        clock.tick(Duration.ofMillis(2));
+      }
+
+      List<String> result = jdbcTemplate.queryForList("select data from tw_task where type=? order by id", String.class, taskType);
+      List<Integer> resultInts = result.stream().map(Integer::parseInt).collect(Collectors.toList());
+      assertThat(resultInts).isSorted();
+    } finally {
+      TestClock.reset();
+    }
+  }
+
   private int getUniqueTaskKeysCount() {
     Integer cnt = jdbcTemplate.queryForObject("select count(*) from unique_tw_task_key", Integer.class);
     // Just keep the spotbugs happy.
@@ -688,7 +715,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   private InsertTaskResponse addTask() {
-    return addTask(UUID.randomUUID());
+    return addTask(UuidUtils.generatePrefixCombUuid());
   }
 
   private InsertTaskResponse addTask(UUID id) {
@@ -727,18 +754,18 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   private ITaskDao.InsertTaskResponse addRandomTask(TaskStatus taskStatus) {
-    return addTask(UUID.randomUUID(), taskStatus);
+    return addTask(UuidUtils.generatePrefixCombUuid(), taskStatus);
   }
 
   private ITaskDao.InsertTaskResponse addRandomTask() {
-    return addTask(UUID.randomUUID(), TaskStatus.DONE);
+    return addTask(UuidUtils.generatePrefixCombUuid(), TaskStatus.DONE);
   }
 
   private ITaskDao.InsertTaskResponse addRandomTask(TaskStatus taskStatus, Integer id) {
-    return addTask(UUID.randomUUID(), taskStatus, "TEST", id.toString());
+    return addTask(UuidUtils.generatePrefixCombUuid(), taskStatus, "TEST", id.toString());
   }
 
   private ITaskDao.InsertTaskResponse addRandomTask(TaskStatus taskStatus, Integer id, String type) {
-    return addTask(UUID.randomUUID(), taskStatus, type, id == null ? "SUBTYPE" : id.toString());
+    return addTask(UuidUtils.generatePrefixCombUuid(), taskStatus, type, id == null ? "SUBTYPE" : id.toString());
   }
 }

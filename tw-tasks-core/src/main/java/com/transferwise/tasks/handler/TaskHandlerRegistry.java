@@ -1,14 +1,17 @@
 package com.transferwise.tasks.handler;
 
+import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
@@ -18,25 +21,45 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
   @Autowired
   private ApplicationContext applicationContext;
 
+  @Autowired
+  private TasksProperties tasksProperties;
+
   private volatile List<ITaskHandler> handlers;
 
   @Override
   public ITaskHandler getTaskHandler(IBaseTask task) {
-    List<ITaskHandler> results = getHandlers().stream().filter(h -> h.handles(task)).collect(Collectors.toList());
-
-    if (results.size() > 1) {
-      String resultsSt = StringUtils.join(results.stream().map(p -> p.getClass().getSimpleName()).collect(Collectors.toList()), ",");
-      throw new IllegalStateException("Too many handlers are able to handle task of type '" + task.getType() + "': " + resultsSt);
-    } else if (results.size() == 1) {
-      return results.get(0);
+    // TODO: Should we add caching here for larger applications?
+    // TODO: Or at least advice about keeping the number of handlers low in docs.
+    // TODO: Applications themselves can create hierarchical handlers themselves being able to handle most types of tasks. 
+    ITaskHandler result = null;
+    for (ITaskHandler taskHandler : getHandlers()) {
+      if (taskHandler.handles(task)) {
+        if (result != null) {
+          String handlersSt = getHandlers().stream().filter(h -> h.handles(task)).map(h -> h.getClass().getSimpleName())
+              .collect(Collectors.joining(","));
+          throw new IllegalStateException("Too many handlers are able to handle task of type '" + task.getType() + "': " + handlersSt);
+        } else {
+          result = taskHandler;
+        }
+      }
     }
-    return null;
+    return result;
   }
 
   @Override
   public ITaskProcessingPolicy getTaskProcessingPolicy(IBaseTask task) {
     ITaskHandler taskHandler = getTaskHandler(task);
     return taskHandler == null ? null : taskHandler.getProcessingPolicy(task);
+  }
+
+  @Override
+  public ZonedDateTime getExpectedProcessingMoment(IBaseTask task) {
+    ITaskProcessingPolicy taskProcessingPolicy = getTaskProcessingPolicy(task);
+    Duration timeout = taskProcessingPolicy != null ? taskProcessingPolicy.getExpectedQueueTime(task) : null;
+    if (timeout == null) {
+      timeout = tasksProperties.getTaskStuckTimeout();
+    }
+    return ZonedDateTime.now(TwContextClockHolder.getClock()).plus(timeout);
   }
 
   /**

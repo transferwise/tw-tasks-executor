@@ -30,7 +30,6 @@ public class PayoutSubmittingTaskProcessor implements ISyncTaskProcessor {
 
         tasksService.addTask(new ITasksService.AddTaskRequest()
             .setType(PayoutProcessingTaskHandlerConfiguration.TASK_TYPE_PROCESSING + "." + poi.getType())
-            .setTaskId(UUID.randomUUID())
             .setData(poi)
             .setPriority(poi.getPriority())
         );

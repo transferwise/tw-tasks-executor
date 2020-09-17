@@ -1,6 +1,7 @@
 package com.transferwise.tasks.test;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.TasksService;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.dao.ITaskDao;
@@ -123,7 +124,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
     track(request);
     if (newTaskInterceptPredicate != null && newTaskInterceptPredicate.test(request)) {
       interceptedNewTasks.add(request);
-      UUID taskId = request.getTaskId() == null ? UUID.randomUUID() : request.getTaskId();
+      UUID taskId = request.getTaskId() == null ? UuidUtils.generatePrefixCombUuid() : request.getTaskId();
       log.info("Intercepted task '" + taskId + "' with type '" + request.getType() + "'.");
       return new AddTaskResponse().setResult(AddTaskResponse.Result.OK).setTaskId(taskId);
     } else {

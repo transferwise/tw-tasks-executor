@@ -18,7 +18,7 @@ ext {
             twIncidents                 : 'com.transferwise.common:tw-incidents:1.0.1',
             twLeaderSelector            : "com.transferwise.common:tw-leader-selector:${twLeaderSelectorVersion}",
             twLeaderSelectorStarter     : "com.transferwise.common:tw-leader-selector-starter:${twLeaderSelectorVersion}",
-            twBaseUtils                 : "com.transferwise.common:tw-base-utils:1.2.8",
+            twBaseUtils                 : "com.transferwise.common:tw-base-utils:1.3.0",
             spotbugsAnnotations         : "com.github.spotbugs:spotbugs-annotations:3.1.12",
             newRelic                    : "com.newrelic.agent.java:newrelic-api:5.14.0",
             awaitility                  : 'org.awaitility:awaitility:4.0.3',

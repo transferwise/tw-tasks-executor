@@ -11,4 +11,6 @@ public class PayoutInstruction {
   private String payload;
   private String type;
   private Integer priority;
+  
+  private String noise;
 }

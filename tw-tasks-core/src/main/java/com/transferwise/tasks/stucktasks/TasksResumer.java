@@ -191,7 +191,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
           }
           MdcContext.with(() -> {
             MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-            ZonedDateTime nextEventTime = getMaxStuckTime(taskHandlerRegistry.getTaskProcessingPolicy(task), task);
+            ZonedDateTime nextEventTime = taskHandlerRegistry.getExpectedProcessingMoment(task);
             if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), nextEventTime)) {
               log.debug("Were not able to mark task '" + task.getVersionId() + "' as submitted.");
               meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);

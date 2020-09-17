@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.test.ITestTasksService;
@@ -35,7 +36,7 @@ public class TaskResumingIntTest extends BaseIntTest {
   @Test
   void taskCanBeSuccessfullyResumed() {
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    UUID taskId = UUID.randomUUID();
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()
@@ -55,7 +56,7 @@ public class TaskResumingIntTest extends BaseIntTest {
   void taskWillNotBeResumedIfVersionHasAlreadyChanged() {
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     final long initialFailedStatusChangeCount = getFailedStatusChangeCount();
-    final UUID taskId = UUID.randomUUID();
+    final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()

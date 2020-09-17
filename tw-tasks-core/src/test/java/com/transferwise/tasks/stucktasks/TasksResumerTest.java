@@ -9,7 +9,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
@@ -26,7 +26,6 @@ import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.apache.curator.framework.CuratorFramework;
@@ -83,7 +82,7 @@ class TasksResumerTest {
     StuckTask task = new ITaskDao.StuckTask()
         .setType("TEST")
         .setStatus(TaskStatus.SUBMITTED.name())
-        .setVersionId(new TaskVersionId(UUID.randomUUID(), 0));
+        .setVersionId(new TaskVersionId(UuidUtils.generatePrefixCombUuid(), 0));
     AtomicInteger numResumed = new AtomicInteger();
 
     service.handleStuckTask(task, numResumed, null, null);
@@ -123,7 +122,7 @@ class TasksResumerTest {
     StuckTask task = new ITaskDao.StuckTask()
         .setType("TEST")
         .setStatus(TaskStatus.PROCESSING.name())
-        .setVersionId(new TaskVersionId(UUID.randomUUID(), 0));
+        .setVersionId(new TaskVersionId(UuidUtils.generatePrefixCombUuid(), 0));
     service.handleStuckTask(task, numResumed, numError, numFailed);
 
     verify(tasksExecutionTriggerer, times(resumed)).trigger(argThat(

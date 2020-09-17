@@ -8,7 +8,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import com.fasterxml.jackson.databind.ser.std.StdSerializer;
-import com.transferwise.tasks.utils.UuidUtils;
+import com.transferwise.tasks.utils.TwTasksUuidUtils;
 import java.io.IOException;
 import java.util.UUID;
 import lombok.Data;
@@ -59,7 +59,7 @@ public class TaskVersionId implements ITaskVersionId {
       String val = p.getValueAsString();
       int idx = StringUtils.lastIndexOf(val, '-');
 
-      return new TaskVersionId().setId(UuidUtils.toUuid(StringUtils.substring(val, 0, idx)))
+      return new TaskVersionId().setId(TwTasksUuidUtils.toUuid(StringUtils.substring(val, 0, idx)))
           .setVersion(Integer.parseInt(StringUtils.substring(val, idx + 1)));
     }
   }

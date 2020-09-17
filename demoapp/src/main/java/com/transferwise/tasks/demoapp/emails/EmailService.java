@@ -1,6 +1,7 @@
 package com.transferwise.tasks.demoapp.emails;
 
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.demoapp.NoiseGenerator;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,9 +14,12 @@ public class EmailService {
   @Autowired
   private ITasksService tasksService;
 
+  @Autowired
+  private NoiseGenerator noiseGenerator;
+  
   public void sendEmail(Email email) {
+    email.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
-        .setTaskId(UUID.randomUUID())
         .setData(email)
         .setType(EmailsTaskHandlerConfiguration.TASK_TYPE_SEND_EMAILS));
   }

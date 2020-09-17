@@ -2,6 +2,31 @@
 
 Describes notable changes.
 
+#### 1.14.0 - 2020/09/16
+- We are starting to use sequential UUIDs, which are more suitable for database storage.
+Gains are especially large and exponential on MariaDb.
+1mln tasks 2x speed on db perf test.
+2mln tasks 4x speed on db perf test.
+
+Technically we use 38 bit timestamp (millis) prefix on random UUID as implicit task ids.
+
+https://www.informit.com/articles/article.aspx?p=25862
+https://www.2ndquadrant.com/en/blog/sequential-uuid-generators/
+https://en.wikipedia.org/wiki/Universally_unique_identifier#As_database_keys
+
+- (id,version) index was removed on Postgres as well, making db perf test to run 25% faster. 
+
+- MariaDb schema for new services was redesigned.
+However, the code is still working and keeps working with older schema as well.
+
+- Another, more optimal table schema was tested and proposed for MariaDb applications which for whatever reasons are forced
+to use random UUIDs with large number of tw tasks. 
+
+- Added a db perf test to `demoapp` and `DemoAppRealTest`, which is more suitable to compare database bottlenecks tests.
+
+- When a task is being set to a final state, the next_event_time is set to current time.
+This will make the task cleaning process more accurate. 
+
 #### 1.13.0 - 2020/09/10
 - Old tasks are now cleaned by ids only and not checking their versions. It allows to execute multivalue queries, which should be more efficient.
 Previous situation can be set by `TasksProperties.paranoidTasksCleaning=true`.

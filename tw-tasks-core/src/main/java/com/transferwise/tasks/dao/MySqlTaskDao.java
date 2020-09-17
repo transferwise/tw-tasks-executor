@@ -1,8 +1,9 @@
 package com.transferwise.tasks.dao;
 
 import static com.transferwise.tasks.utils.TimeUtils.toZonedDateTime;
-import static com.transferwise.tasks.utils.UuidUtils.toUuid;
+import static com.transferwise.tasks.utils.TwTasksUuidUtils.toUuid;
 
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.domain.BaseTask;
@@ -12,7 +13,6 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.utils.TimeUtils;
-import com.transferwise.tasks.utils.UuidUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -51,7 +51,6 @@ import org.springframework.transaction.annotation.Transactional;
 // problem.
 //TODO: Replace all methods setting status and nextEventTime with one single method.
 //TODO: Replace StuckTask with BaseTask1.
-//TODO: Upgrade version field to long. For short periodic cron tasks, int may get exhausted.
 //TODO: Move methods only used in tests to separate DAO class?
 //TODO: Add check, that updatedCount is not more than intended?
 //TODO: Separate interface methods to Engine, Management and Tests and annotate them.
@@ -76,7 +75,6 @@ public class MySqlTaskDao implements ITaskDao {
   protected String setToBeRetriedSql1;
   protected String grabForProcessingSql;
   protected String setStatusSql;
-  protected String setStatusSql1;
   protected String scheduleTaskForImmediateExecutionSql;
   protected String getStuckTasksSql;
   protected String getStuckTasksSql1;
@@ -125,8 +123,7 @@ public class MySqlTaskDao implements ITaskDao {
     grabForProcessingSql = "update " + taskTable + " set processing_client_id=?,status=?"
         + ",processing_start_time=?,next_event_time=?,processing_tries_count=processing_tries_count+1"
         + ",state_time=?,time_updated=?,version=? where id=? and version=? and status=?";
-    setStatusSql = "update " + taskTable + " set status=?,state_time=?,time_updated=?,version=? where id=? and version=?";
-    setStatusSql1 = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
+    setStatusSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     scheduleTaskForImmediateExecutionSql = "update " + taskTable + " set status=?"
         + ",next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     getStuckTasksSql = "select id,version,type,priority,status from " + taskTable + " where status=?"
@@ -181,7 +178,7 @@ public class MySqlTaskDao implements ITaskDao {
     String key = request.getKey();
     boolean keyProvided = key != null;
 
-    UUID taskId = uuidProvided ? request.getTaskId() : UUID.randomUUID();
+    UUID taskId = uuidProvided ? request.getTaskId() : UuidUtils.generatePrefixCombUuid();
 
     if (keyProvided) {
       Integer keyHash = key.hashCode();
@@ -235,7 +232,7 @@ public class MySqlTaskDao implements ITaskDao {
   @Transactional(rollbackFor = Exception.class)
   public boolean setStatus(UUID taskId, TaskStatus status, long version) {
     Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
-    int updatedCount = jdbcTemplate.update(setStatusSql, args(status, now, now, version + 1, taskId, version));
+    int updatedCount = jdbcTemplate.update(setStatusSql, args(status, now, now, now, version + 1, taskId, version));
     return updatedCount == 1;
   }
 
@@ -320,10 +317,7 @@ public class MySqlTaskDao implements ITaskDao {
   @Transactional(rollbackFor = Exception.class)
   public boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime) {
     Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
-
-    int updatedCount = jdbcTemplate.update(setStatusSql1, args(TaskStatus.SUBMITTED, maxStuckTime,
-        now, now, version + 1, taskId, version));
-
+    int updatedCount = jdbcTemplate.update(setStatusSql, args(TaskStatus.SUBMITTED, maxStuckTime, now, now, version + 1, taskId, version));
     return updatedCount == 1;
   }
 

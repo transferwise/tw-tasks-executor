@@ -19,12 +19,11 @@
             time_created TIMESTAMPTZ(3) NOT NULL,
             time_updated TIMESTAMPTZ(3) NOT NULL,
             processing_tries_count INT NOT NULL,
-            version INT NOT NULL,
+            version BIGINT NOT NULL,
             priority INT NOT NULL DEFAULT 5
             );
 
             CREATE INDEX tw_task_idx1 ON tw_task (status, next_event_time);
-            CREATE INDEX tw_task_idx2 ON tw_task (id, version);
 
             CREATE TABLE unique_tw_task_key (
             task_id UUID PRIMARY KEY,
