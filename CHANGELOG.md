@@ -2,7 +2,7 @@
 
 Describes notable changes.
 
-#### 1.14.1 - 2020/09/16
+#### 1.14.1 - 2020/09/21
 - Added metrics for knowing approximate tasks count in the database.
 
 #### 1.14.0 - 2020/09/16
