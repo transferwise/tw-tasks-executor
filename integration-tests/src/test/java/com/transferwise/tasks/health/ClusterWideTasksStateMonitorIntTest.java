@@ -52,7 +52,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     await().until(() -> stuckTasksGauge.value() == 0);
 
     assertThat(meterRegistry.get("twTasks.state.approximateTasks").gauge().value()).isGreaterThan(-1);
-    assertThat(meterRegistry.get("twTasks.state.approximateTasks").gauge().value()).isGreaterThan(-1);
+    assertThat(meterRegistry.get("twTasks.state.approximateUniqueKeys").gauge().value()).isGreaterThan(-1);
 
     clusterWideTasksStateMonitor.leaderSelector.stop();
 
@@ -63,7 +63,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     assertEquals(0, meterRegistry.find("twTasks.health.stuckTasksCount").gauges().size());
     assertEquals(0, meterRegistry.find("twTasks.health.tasksHistoryLengthSeconds").gauges().size());
     assertThat(meterRegistry.find("twTasks.state.approximateTasks").gauges().size()).isEqualTo(0);
-    assertThat(meterRegistry.find("twTasks.state.approximateTasks").gauges().size()).isEqualTo(0);
+    assertThat(meterRegistry.find("twTasks.state.approximateUniqueKeys").gauges().size()).isEqualTo(0);
 
     // everything works when the node gets leader back
     clusterWideTasksStateMonitor.leaderSelector.start();
