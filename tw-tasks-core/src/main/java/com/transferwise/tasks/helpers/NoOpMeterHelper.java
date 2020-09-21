@@ -115,7 +115,7 @@ public class NoOpMeterHelper implements IMeterHelper {
 
   @Override
   public void debugPriorityQueueCheck(String bucketId, int priority) {
-    
+
   }
 
   @Override
@@ -127,9 +127,13 @@ public class NoOpMeterHelper implements IMeterHelper {
   public void debugTaskTriggeringQueueEmpty(String bucketId, int priority, String taskType) {
 
   }
-  
+
   @Override
-  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data){
-    
+  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data) {
+
+  }
+
+  @Override
+  public void registerLibrary() {
   }
 }

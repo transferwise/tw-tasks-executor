@@ -152,7 +152,7 @@ public class TasksProperties {
    * <p>TODO: Implement dynamic, adaptive configuration/system for that instead. Batch Size could be constant, but interval should learn from current
    * situation. Can use TCP/IP flow control algorithms.
    */
-  private int tasksHistoryDeletingBatchSize = 150;
+  private int tasksHistoryDeletingBatchSize = 2 * 125;
 
   //TODO: This does not make sense as generic parameter.
   //      taskhandler should provide this info programmatically.
@@ -196,6 +196,7 @@ public class TasksProperties {
 
   private String taskTableName = "tw_task";
   private String uniqueTaskKeyTableName = "unique_tw_task_key";
+  private String taskTablesSchemaName = "";
 
   /**
    * For extremely latency sensitive scenarios or for tests, we allow to trigger directly in the same process, instead of going through the kafka
@@ -230,7 +231,7 @@ public class TasksProperties {
   private Duration interruptTasksAfterShutdownTime = null;
 
   private boolean debugMetricsEnabled = false;
-  
+
   private boolean paranoidTasksCleaning = false;
 
   public enum DbType {

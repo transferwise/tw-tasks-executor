@@ -708,6 +708,16 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     }
   }
 
+  @Test
+  void approximateTaskCountCanBeRetrieved() {
+    assertThat(taskDao.getApproximateTasksCount()).isGreaterThan(-1);
+  }
+
+  @Test
+  void approximateUniqueKeysCountCanBeRetrieved() {
+    assertThat(taskDao.getApproximateUniqueKeysCount()).isGreaterThan(-1);
+  }
+
   private int getUniqueTaskKeysCount() {
     Integer cnt = jdbcTemplate.queryForObject("select count(*) from unique_tw_task_key", Integer.class);
     // Just keep the spotbugs happy.

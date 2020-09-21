@@ -57,6 +57,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private AtomicInteger erroneousTasksCount;
 
   private AtomicInteger stuckTasksCount;
+  private AtomicLong approximateTasksCount;
+  private AtomicLong approximateUniqueKeysCount;
 
   private Map<TaskStatus, AtomicLong> tasksHistoryLengthSeconds;
 
@@ -93,11 +95,25 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
             log.info("Monitoring of tasks state stopped.");
           });
     }).build();
+
+    registerLibrary();
+  }
+
+  /**
+   * Here we are fine with every node registering it's own library version.
+   */
+  protected void registerLibrary() {
+    meterHelper.registerLibrary();
   }
 
   protected void resetState(boolean forInit) {
     stateLock.lock();
     try {
+      /*
+        The main idea between unregistering the metrics, is to not left 0 or old values lying around in Grafana but make this metric disappear from
+         current node.
+        This will make the picture much more clear and accurate. 
+       */
       if (registeredMetricHandles != null) {
         for (Object metricHandle : registeredMetricHandles) {
           meterHelper.unregisterMetric(metricHandle);
@@ -105,6 +121,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       }
 
       stuckTasksCount = null;
+      approximateTasksCount = null;
+      approximateUniqueKeysCount = null;
 
       erroneousTasksCount = null;
       erroneousTasksCounts = new HashMap<>();
@@ -129,6 +147,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       checkErroneousTasks();
       checkStuckTasks();
       measureTasksHistoryLength();
+      checkApproximateTasksCount();
+      checkApproximateUniqueKeysCount();
     } finally {
       stateLock.unlock();
     }
@@ -205,6 +225,28 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCount::get));
     } else {
       stuckTasksCount.set(stuckTasksCountValue);
+    }
+  }
+
+  protected void checkApproximateTasksCount() {
+    long approximateTasksCountValue = taskDao.getApproximateTasksCount();
+
+    if (approximateTasksCount == null) {
+      approximateTasksCount = new AtomicLong(approximateTasksCountValue);
+      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateTasks", approximateTasksCount::get));
+    } else {
+      approximateTasksCount.set(approximateTasksCountValue);
+    }
+  }
+
+  protected void checkApproximateUniqueKeysCount() {
+    long approximateUniqueKeysCountValue = taskDao.getApproximateUniqueKeysCount();
+
+    if (approximateUniqueKeysCount == null) {
+      approximateUniqueKeysCount = new AtomicLong(approximateUniqueKeysCountValue);
+      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateUniqueKeys", approximateUniqueKeysCount::get));
+    } else {
+      approximateUniqueKeysCount.set(approximateUniqueKeysCountValue);
     }
   }
 

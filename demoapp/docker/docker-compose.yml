@@ -73,7 +73,15 @@ services:
     command: "mysqld --innodb_flush_log_at_trx_commit=1 --innodb_flush_method=O_DIRECT_NO_FSYNC --max_connections=200 --ssl=0
     --innodb_buffer_pool_size=2g
     --character-set-server=utf8mb4
+    --innodb_flush_neighbors=0
     --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED"
+
+#    --innodb_log_file_size=10g
+#    --innodb_fill_factor=50
+#    --innodb_log_files_in_group=3
+#    --innodb_adaptive_hash_index=OFF
+
+
   postgres:
     image: postgres:12
     ports:
@@ -85,10 +93,16 @@ services:
 # Those are restricted settings for a server with about total of 512MB memory.
 # Use higher values for unhindered throughput testing.
     command: "-c 'max_connections=200' -c 'shared_buffers=128MB' -c 'effective_cache_size=384MB' -c 'maintenance_work_mem=32MB'
-    -c 'checkpoint_completion_target=0.9' -c 'wal_buffers=3932kB' -c 'default_statistics_target=100' -c 'random_page_cost=1.1'
-    -c 'effective_io_concurrency=200' -c 'work_mem=327kB' -c 'min_wal_size=2GB' -c 'max_wal_size=8GB' -c 'max_worker_processes=4'
+    -c 'wal_buffers=3932kB'
+    -c 'work_mem=327kB' -c 'max_worker_processes=4'
     -c 'max_parallel_workers_per_gather=2' -c 'max_parallel_workers=4' -c 'max_parallel_maintenance_workers=2'
     -c 'shared_preload_libraries=pg_stat_statements'"
+
+# -c 'effective_io_concurrency=200' 
+# -c 'random_page_cost=1.1'
+# -c 'min_wal_size=2GB' -c 'max_wal_size=8GB'
+# -c 'checkpoint_completion_target=0.9' 
+# -c 'default_statistics_target=100'
 
 networks:
   default:
