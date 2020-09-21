@@ -150,4 +150,9 @@ public interface ITaskDao {
   Long getTaskVersion(UUID id);
 
   List<FullTaskRecord> getTasks(List<UUID> uuids);
+
+  long getApproximateTasksCount();
+  
+  long getApproximateUniqueKeysCount();
+
 }

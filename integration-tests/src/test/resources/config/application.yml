@@ -24,6 +24,7 @@ tw-tasks:
     stuck-tasks-polling-interval: PT1S
     configure-kafka-topics: true
     generic-medium-delay: 500ms
+    taskTablesSchemaName: "tw-tasks-test"
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN
@@ -97,6 +98,7 @@ tw-tasks.core:
   db-type: postgres
   group-id: test-postgres
   client-id: test-postgres
+  taskTablesSchemaName: "public"
 
 spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-postgres.xml
 

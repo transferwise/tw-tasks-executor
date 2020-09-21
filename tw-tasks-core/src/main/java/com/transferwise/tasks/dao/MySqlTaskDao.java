@@ -34,6 +34,7 @@ import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -103,6 +104,10 @@ public class MySqlTaskDao implements ITaskDao {
   protected String deleteTasksByIdBatchesSql;
   protected String deleteUniqueTaskKeysByIdBatchesSql;
   protected String deleteFinishedOldTasksSql2;
+  protected String getApproximateTasksCountSql;
+  protected String getApproximateTasksCountSql1;
+  protected String getApproximateUniqueKeysCountSql;
+  protected String getApproximateUniqueKeysCountSql1;
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
 
@@ -111,8 +116,8 @@ public class MySqlTaskDao implements ITaskDao {
 
   @PostConstruct
   public void init() {
-    String taskTable = tasksProperties.getTaskTableName();
-    String uniqueTaskKeyTable = tasksProperties.getUniqueTaskKeyTableName();
+    String taskTable = getTaskTableIdentifier();
+    String uniqueTaskKeyTable = getUniqieTaskKeyIdentifier();
 
     insertTaskSql = "insert ignore into " + taskTable + "(id,type,sub_type,status,data,next_event_time"
         + ",state_time,time_created,time_updated,processing_tries_count,version,priority) values (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -166,6 +171,12 @@ public class MySqlTaskDao implements ITaskDao {
         + ",next_event_time,processing_client_id from " + taskTable + " where id in (??)";
     getEarliesTaskNextEventTimeSql = "select min(next_event_time) from " + taskTable + " where status=?";
     getTaskVersionSql = "select version from " + taskTable + " where id=?";
+    getApproximateTasksCountSql = "select table_rows from information_schema.tables where table_name = '" + taskTable + "'";
+    getApproximateTasksCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
+        + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getTaskTableName() + "'";
+    getApproximateUniqueKeysCountSql = "select table_rows from information_schema.tables where table_name = '" + uniqueTaskKeyTable + "'";
+    getApproximateUniqueKeysCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
+        + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getUniqueTaskKeyTableName() + "'";
   }
 
   @Override
@@ -713,6 +724,21 @@ public class MySqlTaskDao implements ITaskDao {
     }
   }
 
+  @Override
+  public long getApproximateTasksCount() {
+    String sql = StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName()) ? getApproximateTasksCountSql1 : getApproximateTasksCountSql;
+    List<Long> rows = jdbcTemplate.queryForList(sql, Long.class);
+    return rows.isEmpty() ? -1 : rows.get(0);
+  }
+
+  @Override
+  public long getApproximateUniqueKeysCount() {
+    String sql =
+        StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName()) ? getApproximateUniqueKeysCountSql1 : getApproximateUniqueKeysCountSql;
+    List<Long> rows = jdbcTemplate.queryForList(sql, Long.class);
+    return rows.isEmpty() ? -1 : rows.get(0);
+  }
+
   //////////////////////////
 
   protected <T> T getFirst(List<T> list) {
@@ -750,6 +776,20 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected Object asUuidArg(UUID arg) {
     return UuidUtils.toBytes(arg);
+  }
+
+  protected String getTaskTableIdentifier() {
+    if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
+      return "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getTaskTableName() + "`";
+    }
+    return "`" + tasksProperties.getTaskTableName() + "`";
+  }
+
+  protected String getUniqieTaskKeyIdentifier() {
+    if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
+      return "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getUniqueTaskKeyTableName() + "`";
+    }
+    return "`" + tasksProperties.getUniqueTaskKeyTableName() + "`";
   }
 
   protected class ArgumentPreparedStatementSetter implements PreparedStatementSetter {

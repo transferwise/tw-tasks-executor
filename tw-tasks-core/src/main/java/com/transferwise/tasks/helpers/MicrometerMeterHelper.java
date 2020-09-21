@@ -25,6 +25,8 @@ import org.apache.commons.lang3.tuple.Triple;
 @Slf4j
 public class MicrometerMeterHelper implements IMeterHelper {
 
+  private static final String METRIC_LIBRARY_INFO = "tw.library.info";
+
   private static final String METRIC_TASKS_MARKED_AS_ERROR_COUNT = METRIC_PREFIX + "tasks.markedAsErrorCount";
   private static final String METRIC_TASKS_PROCESSINGS_COUNT = METRIC_PREFIX + "tasks.processingsCount";
   private static final String METRIC_TASKS_ONGOING_PROCESSINGS_COUNT = METRIC_PREFIX + "tasks.ongoingProcessingsCount";
@@ -233,6 +235,19 @@ public class MicrometerMeterHelper implements IMeterHelper {
     meterRegistry.counter(name, convert(tags)).increment(delta);
   }
 
+  @Override
+  public void registerLibrary() {
+    String version = this.getClass().getPackage().getImplementationVersion();
+    if (version == null) {
+      version = "Unknown";
+    }
+
+    Gauge.builder(METRIC_LIBRARY_INFO, () -> 1d).tags("version", version, "library", "tw-tasks-core")
+        .description("Provides metadata about the library, for example the version.")
+        .register(meterRegistry);
+
+  }
+
   protected String resolveBucketId(String bucketId) {
     return bucketId == null ? "unknown" : bucketId;
   }
@@ -245,7 +260,7 @@ public class MicrometerMeterHelper implements IMeterHelper {
     }
     return Tags.empty();
   }
-  
+
   protected String getDataSizeBucket(String data) {
     int dataSize = data == null ? 0 : data.length();
     for (int i = 0; i < DATA_SIZE_BUCKETS.length; i++) {

@@ -9,7 +9,7 @@
       CREATE TABLE tw_task (
       id VARBINARY(16) PRIMARY KEY NOT NULL,
       status ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED'),
-      next_event_time DATETIME(6) NULL,
+      next_event_time DATETIME(6) NOT NULL,
       state_time DATETIME(6) NOT NULL,
       version BIGINT NOT NULL,
       priority INT NOT NULL DEFAULT 5,

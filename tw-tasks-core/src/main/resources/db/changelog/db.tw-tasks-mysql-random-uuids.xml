@@ -16,7 +16,7 @@
       aid BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
       id VARBINARY(16) NOT NULL,
       status ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED'),
-      next_event_time DATETIME(6) NULL,
+      next_event_time DATETIME(6) NOT NULL,
       state_time DATETIME(6) NOT NULL,
       version BIGINT NOT NULL,
       priority INT NOT NULL DEFAULT 5,
