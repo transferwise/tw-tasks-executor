@@ -113,6 +113,7 @@ TwTask depends on and needs following infrastructure services.
 ```groovy
 implementation("com.transferwise.tasks:tw-tasks-core-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-kafka-publisher-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-kafka-listener-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-management-spring-boot-starter:${twTasksVersion}")
 
 testImplementation("com.transferwise.tasks:tw-tasks-kafka-publisher-test:${twTasksVersion}")
