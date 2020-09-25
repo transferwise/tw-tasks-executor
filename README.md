@@ -115,6 +115,7 @@ implementation("com.transferwise.tasks:tw-tasks-core-spring-boot-starter:${twTas
 implementation("com.transferwise.tasks:tw-tasks-kafka-publisher-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-kafka-listener-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-management-spring-boot-starter:${twTasksVersion}")
+implementation("com.transferwise.tasks:tw-tasks-incidents-spring-boot-starter:${twTasksVersion}")
 
 testImplementation("com.transferwise.tasks:tw-tasks-kafka-publisher-test:${twTasksVersion}")
 testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}")
