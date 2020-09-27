@@ -171,8 +171,8 @@ public class MySqlTaskDao implements ITaskDao {
         + ",next_event_time,processing_client_id from " + taskTable + " where id in (??)";
     getEarliesTaskNextEventTimeSql = "select min(next_event_time) from " + taskTable + " where status=?";
     getTaskVersionSql = "select version from " + taskTable + " where id=?";
-    getApproximateTasksCountSql = "select table_rows from information_schema.tables where table_schema=DATABASE() and " +
-        "table_name = '" + tasksProperties.getTaskTableName() + "'";
+    getApproximateTasksCountSql = "select table_rows from information_schema.tables where table_schema=DATABASE() and "
+        + "table_name = '" + tasksProperties.getTaskTableName() + "'";
     getApproximateTasksCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
         + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getTaskTableName() + "'";
     getApproximateUniqueKeysCountSql =
