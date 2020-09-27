@@ -76,6 +76,12 @@ services:
     --innodb_flush_neighbors=0
     --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED"
 
+
+#  --thread_handling=pool-of-threads
+#  --thread_pool_idle_timeout=60
+#  --thread_pool_size=12
+#  --thread_pool_max_threads=60
+
 #    --innodb_log_file_size=10g
 #    --innodb_fill_factor=50
 #    --innodb_log_files_in_group=3
