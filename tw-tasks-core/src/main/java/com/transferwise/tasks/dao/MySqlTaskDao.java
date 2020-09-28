@@ -219,8 +219,7 @@ public class MySqlTaskDao implements ITaskDao {
           SQLWarning warnings = ps.getWarnings();
 
           if (insertedCount == 0) {
-            // 1062 is both for primary and unique key failures. Tested on MariaDb and MySql.
-            if (warnings != null && warnings.getErrorCode() != 1062) {
+            if (!didInsertFailDueToDuplicateKeyConflict(warnings)) {
               throw new IllegalStateException("Task insertion did not succeed. The warning code is unknown: " + warnings.getErrorCode());
             }
             return new InsertTaskResponse().setInserted(false);
@@ -787,6 +786,17 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected String cachedSql(Pair<String, Integer> key, Supplier<String> supplier) {
     return sqlCache.computeIfAbsent(key, ignored -> supplier.get());
+  }
+
+  /**
+   * For safety reasons, we expect warnings to be present as well.
+   *
+   * <p>If someone really needs to disable warnings on JDBC driver level, we can provide a configuration option for that.
+   *
+   * <p>1062 is both for primary and unique key failures. Tested on MariaDb and MySql.
+   */
+  protected boolean didInsertFailDueToDuplicateKeyConflict(SQLWarning warnings) {
+    return warnings != null && warnings.getErrorCode() == 1062;
   }
 
   // Assumes there are not more than 8 different values in each weight.

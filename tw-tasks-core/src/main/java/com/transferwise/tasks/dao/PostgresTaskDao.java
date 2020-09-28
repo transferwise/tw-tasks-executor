@@ -1,5 +1,6 @@
 package com.transferwise.tasks.dao;
 
+import java.sql.SQLWarning;
 import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
@@ -44,6 +45,7 @@ public class PostgresTaskDao extends MySqlTaskDao {
     return uuid;
   }
 
+  @Override
   protected String getTaskTableIdentifier() {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       return tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getTaskTableName();
@@ -51,6 +53,7 @@ public class PostgresTaskDao extends MySqlTaskDao {
     return tasksProperties.getTaskTableName();
   }
 
+  @Override
   protected String getUniqieTaskKeyIdentifier() {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       return tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getUniqueTaskKeyTableName();
@@ -58,4 +61,8 @@ public class PostgresTaskDao extends MySqlTaskDao {
     return tasksProperties.getUniqueTaskKeyTableName();
   }
 
+  @Override
+  protected boolean didInsertFailDueToDuplicateKeyConflict(SQLWarning warnings) {
+    return warnings == null;
+  }
 }
