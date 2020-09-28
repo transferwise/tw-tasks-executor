@@ -7,7 +7,7 @@
   <changeSet id="14.09.2020.1" author="Kristo Kuusküll" runOnChange="false">
     <sql>
       CREATE TABLE tw_task (
-      id VARBINARY(16) PRIMARY KEY NOT NULL,
+      id BINARY(16) PRIMARY KEY NOT NULL,
       status ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED'),
       next_event_time DATETIME(6) NOT NULL,
       state_time DATETIME(6) NOT NULL,
@@ -25,7 +25,7 @@
       CREATE INDEX tw_task_idx1 ON tw_task (status, next_event_time);
 
       CREATE TABLE unique_tw_task_key (
-      task_id VARBINARY(16) PRIMARY KEY,
+      task_id BINARY(16) PRIMARY KEY,
       key_hash INT NOT NULL,
       `key` VARCHAR(150) CHARACTER SET latin1 NOT NULL,
       UNIQUE KEY uidx1 (key_hash, `key`)

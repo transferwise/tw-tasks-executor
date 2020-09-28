@@ -3,6 +3,7 @@ package com.transferwise.tasks.dao;
 import static com.transferwise.tasks.utils.TimeUtils.toZonedDateTime;
 import static com.transferwise.tasks.utils.TwTasksUuidUtils.toUuid;
 
+import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
@@ -14,8 +15,10 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.utils.TimeUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.SQLWarning;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -45,6 +48,7 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.SqlParameterValue;
 import org.springframework.jdbc.core.SqlTypeValue;
 import org.springframework.jdbc.core.StatementCreatorUtils;
+import org.springframework.jdbc.datasource.DataSourceUtils;
 import org.springframework.transaction.annotation.Transactional;
 
 //TODO: We should delete state_time all together. time_updated should be enough.
@@ -171,10 +175,12 @@ public class MySqlTaskDao implements ITaskDao {
         + ",next_event_time,processing_client_id from " + taskTable + " where id in (??)";
     getEarliesTaskNextEventTimeSql = "select min(next_event_time) from " + taskTable + " where status=?";
     getTaskVersionSql = "select version from " + taskTable + " where id=?";
-    getApproximateTasksCountSql = "select table_rows from information_schema.tables where table_name = '" + taskTable + "'";
+    getApproximateTasksCountSql = "select table_rows from information_schema.tables where table_schema=DATABASE() and "
+        + "table_name = '" + tasksProperties.getTaskTableName() + "'";
     getApproximateTasksCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
         + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getTaskTableName() + "'";
-    getApproximateUniqueKeysCountSql = "select table_rows from information_schema.tables where table_name = '" + uniqueTaskKeyTable + "'";
+    getApproximateUniqueKeysCountSql =
+        "select table_rows from information_schema.tables where table_name = '" + tasksProperties.getUniqueTaskKeyTableName() + "'";
     getApproximateUniqueKeysCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
         + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getUniqueTaskKeyTableName() + "'";
   }
@@ -182,32 +188,53 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class)
   public InsertTaskResponse insertTask(InsertTaskRequest request) {
-    Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
-    ZonedDateTime nextEventTime = request.getRunAfterTime() == null ? request.getMaxStuckTime() : request.getRunAfterTime();
+    return ExceptionUtils.doUnchecked(() -> {
+      Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
+      ZonedDateTime nextEventTime = request.getRunAfterTime() == null ? request.getMaxStuckTime() : request.getRunAfterTime();
 
-    boolean uuidProvided = request.getTaskId() != null;
-    String key = request.getKey();
-    boolean keyProvided = key != null;
+      boolean uuidProvided = request.getTaskId() != null;
+      String key = request.getKey();
+      boolean keyProvided = key != null;
 
-    UUID taskId = uuidProvided ? request.getTaskId() : UuidUtils.generatePrefixCombUuid();
+      UUID taskId = uuidProvided ? request.getTaskId() : UuidUtils.generatePrefixCombUuid();
 
-    if (keyProvided) {
-      Integer keyHash = key.hashCode();
-      int insertedCount = jdbcTemplate.update(insertUniqueTaskKeySql, args(taskId, keyHash, key));
-      if (insertedCount == 0) {
-        log.debug("Task with key '{}' and hash '{}' was not unique.", key, keyHash);
-        return new InsertTaskResponse().setInserted(false);
+      if (keyProvided) {
+        Integer keyHash = key.hashCode();
+        int insertedCount = jdbcTemplate.update(insertUniqueTaskKeySql, args(taskId, keyHash, key));
+        if (insertedCount == 0) {
+          log.debug("Task with key '{}' and hash '{}' was not unique.", key, keyHash);
+          return new InsertTaskResponse().setInserted(false);
+        }
       }
-    }
 
-    int insertedCount = jdbcTemplate.update(insertTaskSql, args(taskId, request.getType(), request.getSubType(),
-        request.getStatus(), request.getData(), nextEventTime, now, now, now, 0, 0, request.getPriority()));
+      Connection con = DataSourceUtils.getConnection(jdbcTemplate.getDataSource());
+      try {
+        try (PreparedStatement ps = con.prepareStatement(insertTaskSql)) {
+          args(taskId, request.getType(), request.getSubType(),
+              request.getStatus(), request.getData(), nextEventTime, now, now, now, 0, 0, request.getPriority())
+              .setValues(ps);
 
-    if (insertedCount == 0) {
-      return new InsertTaskResponse().setInserted(false);
-    }
+          int insertedCount = ps.executeUpdate();
 
-    return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
+          SQLWarning warnings = ps.getWarnings();
+
+          if (insertedCount == 0) {
+            if (!didInsertFailDueToDuplicateKeyConflict(warnings)) {
+              throw new IllegalStateException("Task insertion did not succeed. The warning code is unknown: " + warnings.getErrorCode());
+            }
+            return new InsertTaskResponse().setInserted(false);
+          } else if (warnings != null) {
+            // Notice, that INSERT IGNORE actually does ignore everything, even null checks or invalid data.
+            // For protecting sensitive data, we can only give out the error/vendor code.
+            throw new IllegalStateException("Task insertion succeeded, but with warnings. Error code: " + warnings.getErrorCode());
+          }
+        }
+      } finally {
+        DataSourceUtils.releaseConnection(con, jdbcTemplate.getDataSource());
+      }
+
+      return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
+    });
   }
 
   @Override
@@ -759,6 +786,17 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected String cachedSql(Pair<String, Integer> key, Supplier<String> supplier) {
     return sqlCache.computeIfAbsent(key, ignored -> supplier.get());
+  }
+
+  /**
+   * For safety reasons, we expect warnings to be present as well.
+   *
+   * <p>If someone really needs to disable warnings on JDBC driver level, we can provide a configuration option for that.
+   *
+   * <p>1062 is both for primary and unique key failures. Tested on MariaDb and MySql.
+   */
+  protected boolean didInsertFailDueToDuplicateKeyConflict(SQLWarning warnings) {
+    return warnings != null && warnings.getErrorCode() == 1062;
   }
 
   // Assumes there are not more than 8 different values in each weight.

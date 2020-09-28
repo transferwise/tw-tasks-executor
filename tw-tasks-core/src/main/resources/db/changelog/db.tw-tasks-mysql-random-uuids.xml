@@ -14,7 +14,7 @@
     <sql>
       CREATE TABLE tw_task (
       aid BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT,
-      id VARBINARY(16) NOT NULL,
+      id BINARY(16) NOT NULL,
       status ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED'),
       next_event_time DATETIME(6) NOT NULL,
       state_time DATETIME(6) NOT NULL,
@@ -33,7 +33,7 @@
       CREATE UNIQUE INDEX tw_task_idx2 ON tw_task (id);
 
       CREATE TABLE unique_tw_task_key (
-      task_id VARBINARY(16) PRIMARY KEY,
+      task_id BINARY(16) PRIMARY KEY,
       key_hash INT NOT NULL,
       `key` VARCHAR(150) CHARACTER SET latin1 NOT NULL,
       UNIQUE KEY uidx1 (key_hash, `key`)

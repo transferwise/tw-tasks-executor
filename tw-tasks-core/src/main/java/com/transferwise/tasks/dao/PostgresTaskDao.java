@@ -1,5 +1,6 @@
 package com.transferwise.tasks.dao;
 
+import java.sql.SQLWarning;
 import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
@@ -24,11 +25,15 @@ public class PostgresTaskDao extends MySqlTaskDao {
         + "(?,?,?,?,?,?,?,?,?,?,?,?) on conflict do nothing";
     insertUniqueTaskKeySql = "insert into " + uniqueTaskKeyTable + "(task_id,key_hash,key) values"
         + "(?, ?, ?) on conflict (key_hash, key) do nothing";
-    getApproximateTasksCountSql = "SELECT reltuples as approximate_row_count FROM pg_class WHERE relname = '" + taskTable + "'";
-    getApproximateTasksCountSql1 = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
-        + " pg_class.relnamespace=pg_namespace.oid and nspname='" + tasksProperties.getTaskTablesSchemaName() + "' and relname = '" + tasksProperties
+    getApproximateTasksCountSql = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
+        + "pg_class.relnamespace=pg_namespace.oid and nspname=current_schema() and relname = '" + tasksProperties
         .getTaskTableName() + "'";
-    getApproximateUniqueKeysCountSql = "SELECT reltuples as approximate_row_count FROM pg_class WHERE relname = '" + uniqueTaskKeyTable + "'";
+    getApproximateTasksCountSql1 = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
+        + "pg_class.relnamespace=pg_namespace.oid and nspname='" + tasksProperties.getTaskTablesSchemaName() + "' and relname = '" + tasksProperties
+        .getTaskTableName() + "'";
+    getApproximateUniqueKeysCountSql = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
+        + " pg_class.relnamespace=pg_namespace.oid and nspname=current_schema() and relname = '" + tasksProperties
+        .getUniqueTaskKeyTableName() + "'";
     getApproximateUniqueKeysCountSql1 = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
         + " pg_class.relnamespace=pg_namespace.oid and nspname='" + tasksProperties.getTaskTablesSchemaName() + "' and relname = '" + tasksProperties
         .getUniqueTaskKeyTableName() + "'";
@@ -40,6 +45,7 @@ public class PostgresTaskDao extends MySqlTaskDao {
     return uuid;
   }
 
+  @Override
   protected String getTaskTableIdentifier() {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       return tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getTaskTableName();
@@ -47,6 +53,7 @@ public class PostgresTaskDao extends MySqlTaskDao {
     return tasksProperties.getTaskTableName();
   }
 
+  @Override
   protected String getUniqieTaskKeyIdentifier() {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       return tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getUniqueTaskKeyTableName();
@@ -54,4 +61,8 @@ public class PostgresTaskDao extends MySqlTaskDao {
     return tasksProperties.getUniqueTaskKeyTableName();
   }
 
+  @Override
+  protected boolean didInsertFailDueToDuplicateKeyConflict(SQLWarning warnings) {
+    return warnings == null;
+  }
 }
