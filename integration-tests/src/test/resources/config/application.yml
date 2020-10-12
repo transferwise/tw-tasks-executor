@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: ${testenv.kafka.host:localhost}:${testenv.kafka.port}
+    bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}
     properties:
       max.request.size: 10000012
       request.timeout.ms: 11000
@@ -17,7 +17,7 @@ spring:
 
 tw-tasks:
   core:
-    zookeeper-connect-string: ${testenv.zookeeper.host:localhost}:${testenv.zookeeper.port}
+    zookeeper-connect-string: ${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}
     topic-replication-factor: 1
     waiting-tasks-polling-interval: PT0.1S
     additional-processing-buckets: manualStart
@@ -40,7 +40,7 @@ tw-incidents:
   slack:
     enabled: false
 tw-curator:
-  zookeeper-connect-string: ${testenv.zookeeper.host:localhost}:${testenv.zookeeper.port}
+  zookeeper-connect-string: ${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}
 ---
 
 spring:
@@ -59,14 +59,12 @@ testenv:
     host: zk-service1
     port: 2181
 
-testcontainers.enabled: false
-
 ---
 
 spring:
   profiles: mysql
   datasource:
-    url: jdbc:mariadb://${testenv.mysql.host:localhost}:${testenv.mysql.port}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
+    url: jdbc:mariadb://${MARIADB_TCP_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
     username: root
     password: example-password-change-me
   kafka:
@@ -86,7 +84,7 @@ spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-mysql.xml
 spring:
   profiles: postgres
   datasource:
-    url: jdbc:postgresql://${testenv.postgres.host:localhost}:${testenv.postgres.port}/postgres
+    url: jdbc:postgresql://${POSTGRES_TCP_HOST:localhost}:${POSTGRES_TCP_5432}/postgres
     username: postgres
     password: example-password-change-me
   kafka:

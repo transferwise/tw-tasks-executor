@@ -13,7 +13,6 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
-import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessageRequest;
@@ -46,14 +45,11 @@ class ToKafkaSenderServiceTest {
   @Mock
   private ITasksService taskService;
 
-  @Mock
-  private IXRequestIdHolder ixRequestIdHolder;
-
   private ToKafkaSenderService toKafkaSenderService;
 
   @BeforeEach
   void setup() {
-    toKafkaSenderService = new ToKafkaSenderService(objectMapper, taskService, 8, ixRequestIdHolder);
+    toKafkaSenderService = new ToKafkaSenderService(objectMapper, taskService, 8);
   }
 
   @Test

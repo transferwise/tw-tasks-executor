@@ -1,8 +1,11 @@
-package com.transferwise.tasks.helpers.kafka.messagetotask;
+package com.transferwise.tasks.ext.kafkalistener;
 
+import static com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration.TOPIC_A;
+import static com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration.TOPIC_B;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.tasks.BaseIntTest;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,12 +18,10 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.kafka.core.KafkaTemplate;
 
-@SpringBootTest(classes = {TestApplication.class})
 @Slf4j
-public class CoreKafkaListenerIntTest {
+public class CoreKafkaListenerIntTest extends BaseIntTest {
 
   @Autowired
   private KafkaTemplate<String, String> kafkaTemplate;
@@ -46,17 +47,17 @@ public class CoreKafkaListenerIntTest {
     };
     testMessagesListeners.addListener(listener);
 
-    sendDirectMessage(TestApplication.TOPIC_A, "MessageA");
-    sendDirectMessage(TestApplication.TOPIC_B, "MessageB");
+    sendDirectMessage(TOPIC_A, "MessageA");
+    sendDirectMessage(TOPIC_B, "MessageB");
     try {
       Awaitility.await().until(() -> receivedValues.size() == 2
           && receivedValues.contains("MessageA") && receivedValues.contains("MessageB"));
 
       assertThat(
-          meterRegistry.get("twTasks.coreKafka.processedMessagesCount").tags("topic", TestApplication.TOPIC_A, "shard", "0").counter().count())
+          meterRegistry.get("twTasks.coreKafka.processedMessagesCount").tags("topic", TOPIC_A, "shard", "0").counter().count())
           .isEqualTo(1);
       assertThat(
-          meterRegistry.get("twTasks.coreKafka.processedMessagesCount").tags("topic", TestApplication.TOPIC_B, "shard", "1").counter().count())
+          meterRegistry.get("twTasks.coreKafka.processedMessagesCount").tags("topic", TOPIC_B, "shard", "1").counter().count())
           .isEqualTo(1);
     } finally {
       testMessagesListeners.removeListener(listener);
@@ -71,7 +72,7 @@ public class CoreKafkaListenerIntTest {
 
     CountDownLatch shard0Blocker = new CountDownLatch(1);
     ITestMessagesListener listener = record -> {
-      if (record.topic().equals(TestApplication.TOPIC_A)) {
+      if (record.topic().equals(TOPIC_A)) {
         if (shard0Count.get() == 0) {
           log.info("Blocking shard 0 processing.");
           ExceptionUtils.doUnchecked(() -> {
@@ -82,7 +83,7 @@ public class CoreKafkaListenerIntTest {
           log.info("Resuming shard 1 processing.");
         }
         shard0Count.incrementAndGet();
-      } else if (record.topic().equals(TestApplication.TOPIC_B)) {
+      } else if (record.topic().equals(TOPIC_B)) {
         shard1Count.incrementAndGet();
       } else {
         log.error("Unexpected record received: " + record.value());
@@ -91,8 +92,8 @@ public class CoreKafkaListenerIntTest {
     testMessagesListeners.addListener(listener);
     try {
       for (int i = 0; i < 1000; i++) {
-        sendDirectMessage(TestApplication.TOPIC_A, "MessageA");
-        sendDirectMessage(TestApplication.TOPIC_B, "MessageB");
+        sendDirectMessage(TOPIC_A, "MessageA");
+        sendDirectMessage(TOPIC_B, "MessageB");
       }
 
       Awaitility.await().until(() -> shard1Count.get() == 1000);

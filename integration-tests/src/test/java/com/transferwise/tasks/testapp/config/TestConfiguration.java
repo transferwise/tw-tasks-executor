@@ -1,11 +1,11 @@
 package com.transferwise.tasks.testapp.config;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.domain.ITask;
+import com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.test.JobsTestConfiguration;
@@ -25,14 +25,13 @@ import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
 @Configuration
 @Slf4j
-@Import(JobsTestConfiguration.class)
+@Import({JobsTestConfiguration.class, KafkaListenerExtTestConfiguration.class})
 public class TestConfiguration {
 
   public static final String KAFKA_TEST_TOPIC_A = "myTopicA";
@@ -74,12 +73,6 @@ public class TestConfiguration {
       }
       processor.run();
     };
-  }
-
-  @Bean
-  @ConditionalOnProperty(value = "testcontainers.enabled", matchIfMissing = true)
-  public TestContainersManager testContainersManager() {
-    return new TestContainersManager();
   }
 
   @Bean

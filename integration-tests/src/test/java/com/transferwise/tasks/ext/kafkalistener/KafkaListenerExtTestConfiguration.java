@@ -1,14 +1,14 @@
-package com.transferwise.tasks.helpers.kafka.messagetotask;
+package com.transferwise.tasks.ext.kafkalistener;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-@SpringBootApplication
-public class TestApplication {
+@Configuration
+public class KafkaListenerExtTestConfiguration {
 
   public static final String TOPIC_A = "KafkaListenerTopicA";
   public static final String TOPIC_B = "KafkaListenerTopicB";
@@ -37,10 +37,5 @@ public class TestApplication {
         testMessagesListeners.messageReceived(record);
       }
     };
-  }
-
-  @Bean
-  public ObjectMapper objectMapper() {
-    return new ObjectMapper();
   }
 }

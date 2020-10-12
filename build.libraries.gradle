@@ -24,7 +24,6 @@ ext {
             awaitility                  : 'org.awaitility:awaitility:4.0.3',
             gafferJta                   : 'com.transferwise.common:tw-gaffer-jta:1.3.1',
             twEntryPointsStarter        : 'com.transferwise.common:tw-entrypoints-starter:2.1.0',
-            testcontainers              : 'org.testcontainers:testcontainers:1.14.3',
 
             // versions managed by spring-boot-dependencies platform
             springKafka                 : "org.springframework.kafka:spring-kafka",
