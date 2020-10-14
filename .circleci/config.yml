@@ -11,7 +11,7 @@ references:
         environment:
           MYSQL_ROOT_PASSWORD: example-password-change-me
           MYSQL_DATABASE: tw-tasks-test
-      - image: circleci/postgres:10
+      - image: circleci/postgres:12
         name: postgres1
         environment:
           POSTGRES_USER: postgres
