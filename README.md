@@ -453,9 +453,18 @@ And one topic for each additional bucket:
 
 Reference application where a configuration can be basically copied from is `demoapp`.
 
-To be able to see a task payload in production you have to configure which Role is able to do it. Any user with that role will be
-able to see plain payload, but the user and what data they queried will be logged.
-- `tasks-management.view-task-data-roles`
+To be able to see a task payload in production you have to configure which roles are able to do it. Any user with a suitable role will be
+able to see tasks plain payload, but the user and what data they queried will be logged.
+- `tw-tasks.core.tasks-management.view-task-data-roles`
+
+```yaml
+tw-tasks:
+  core:
+    tasks-management:
+      view-task-data-roles:
+        - ROLE_PAYIN_DEVEL
+        - ROLE_TW_TASK_VIEW
+```
 
 ### Custom Kafka Configuration
 `tw-tasks` library can be configured with custom Kafka config by defining `TwTasksKafkaConfiguration` bean in your application:
