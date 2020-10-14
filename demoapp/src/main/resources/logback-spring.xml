@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration debug="true">
     <property name="LOG_PATTERN"
-              value="%d %level [%logger{0}][%thread][%X{X-B3-TraceId:-}][%X{xRequestId}|%X{twTaskVersionId}|%X{lhvMessageId}] - %m%n"/>
+              value="%d %level [%logger{0}][%thread][%X{X-B3-TraceId:-}]|%X{twTaskVersionId}|%X{lhvMessageId}] - %m%n"/>
     <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
     <property name="CONSOLE_LOG_PATTERN" value="${LOG_PATTERN}"/>
     <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>

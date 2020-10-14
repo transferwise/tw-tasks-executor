@@ -1,3 +1,7 @@
+plugins {
+    id "docker-compose"
+}
+
 ext.projectName = "Transferwise Tasks Executor"
 ext.projectDescription = "Transferwise Tasks Executor - Fire and forget until Alert."
 ext.projectArtifactName = "tw-tasks-executor"
@@ -30,10 +34,30 @@ dependencies {
     testImplementation libraries.postgresql
     testImplementation libraries.mariadbJavaClient
     testImplementation libraries.springKafka
-    testImplementation libraries.testcontainers
     testImplementation libraries.awaitility
 }
 
 test {
     systemProperty("spring.profiles.include", System.getProperty("spring.profiles.include"))
+}
+
+
+if (!Boolean.parseBoolean(System.getenv('CI'))) {
+    dockerCompose.isRequiredBy(test)
+}
+
+ServerSocket ss = new ServerSocket(0)
+def freePort = ss.getLocalPort()
+ss.close()
+
+dockerCompose {
+    useComposeFiles = ["src/test/resources/docker-compose.yml"]
+    // Create some flakiness on slower comps
+    // waitForTcpPorts = false
+
+    // Set to true if you have anomalies
+    stopContainers = true
+    removeContainers = true
+
+    environment.put "KAFKA_RANDOM_PORT", "${freePort}"
 }

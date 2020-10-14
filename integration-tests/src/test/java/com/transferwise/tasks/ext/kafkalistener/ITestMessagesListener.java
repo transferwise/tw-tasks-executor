@@ -1,4 +1,4 @@
-package com.transferwise.tasks.helpers.kafka.messagetotask;
+package com.transferwise.tasks.ext.kafkalistener;
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 

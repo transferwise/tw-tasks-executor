@@ -5,8 +5,6 @@ import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.newrelic.api.agent.NewRelic;
 import com.newrelic.api.agent.Trace;
-import com.transferwise.common.baseutils.tracing.IWithXRequestId;
-import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.dao.ITaskDao;
@@ -50,8 +48,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private IExecutorsHelper executorsHelper;
   @Autowired
   private IPriorityManager priorityManager;
-  @Autowired(required = false)
-  private IXRequestIdHolder requestIdHolder;
   @Autowired
   private IMeterHelper meterHelper;
   @Autowired
@@ -92,13 +88,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
       String data;
       if (request.getDataString() == null) {
         Object dataObj = request.getData();
-        if (requestIdHolder != null && dataObj instanceof IWithXRequestId) {
-          IWithXRequestId withXRequestId = (IWithXRequestId) dataObj;
-
-          if (withXRequestId.getXRequestId() == null) {
-            withXRequestId.setXRequestId(requestIdHolder.current());
-          }
-        }
         data = JsonUtils.toJson(objectMapper, dataObj);
       } else {
         data = request.getDataString();

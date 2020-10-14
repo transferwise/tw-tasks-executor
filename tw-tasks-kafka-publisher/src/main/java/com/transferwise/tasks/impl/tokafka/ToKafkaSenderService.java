@@ -3,8 +3,6 @@ package com.transferwise.tasks.impl.tokafka;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Multimap;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.common.baseutils.tracing.IWithXRequestId;
-import com.transferwise.common.baseutils.tracing.IXRequestIdHolder;
 import com.transferwise.tasks.ITasksService;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,7 +22,6 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
   private final ObjectMapper objectMapper;
   private final ITasksService taskService;
   private final int batchSizeMb;
-  private final IXRequestIdHolder requestIdHolder;
 
   @Override
   @Transactional(rollbackFor = Exception.class)
@@ -108,22 +105,11 @@ public class ToKafkaSenderService implements IToKafkaSenderService {
             .setRunAfterTime(request.getSendAfterTime()));
   }
 
-  private void enrichXRequestId(Object dataObj) {
-    if (requestIdHolder != null && dataObj instanceof IWithXRequestId) {
-      IWithXRequestId withXRequestId = (IWithXRequestId) dataObj;
-
-      if (withXRequestId.getXRequestId() == null) {
-        withXRequestId.setXRequestId(requestIdHolder.current());
-      }
-    }
-  }
-
   private ToKafkaMessages.Message toKafkaMessage(String key, String payloadString, Object payload, Multimap<String, byte[]> headers) {
     ToKafkaMessages.Message toKafkaMessage = new ToKafkaMessages.Message().setKey(key);
     if (payloadString != null) {
       toKafkaMessage.setMessage(payloadString);
     } else {
-      enrichXRequestId(payload);
       toKafkaMessage.setMessage(ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsString(payload)));
     }
 

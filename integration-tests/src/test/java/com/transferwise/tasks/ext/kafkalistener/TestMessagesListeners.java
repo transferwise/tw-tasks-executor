@@ -1,4 +1,4 @@
-package com.transferwise.tasks.helpers.kafka.messagetotask;
+package com.transferwise.tasks.ext.kafkalistener;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.15.0 - 2020/10/14
+- Switched away from testcontainers, used docker-compose plugin for all integration tests.
+- Removed support for xRequestId.
+
 #### 1.14.2 - 2020/09/27
 - Minor bugfixes for approximate tasks count in the database, related to multi schema setups.
 - MySQL INSERT IGNORE has additional checks to make sure the failure was about duplicate records and not about something else. 

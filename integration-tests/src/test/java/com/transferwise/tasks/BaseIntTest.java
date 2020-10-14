@@ -7,7 +7,6 @@ import com.transferwise.tasks.testapp.IResultRegisteringSyncTaskProcessor;
 import com.transferwise.tasks.testapp.TestTaskHandler;
 import com.transferwise.tasks.testapp.config.TestApplication;
 import com.transferwise.tasks.testapp.config.TestConfiguration;
-import com.transferwise.tasks.testapp.config.TestContainersInitializer;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
@@ -27,7 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 @ActiveProfiles(profiles = {"test", "mysql"}, resolver = SystemPropertyActiveProfilesResolver.class)
 @SpringBootTest(classes = {TestConfiguration.class, TestApplication.class}, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ContextConfiguration(loader = SpringBootContextLoader.class, initializers = {TestContainersInitializer.class})
+@ContextConfiguration(loader = SpringBootContextLoader.class)
 @Slf4j
 @AutoConfigureMockMvc
 public abstract class BaseIntTest {

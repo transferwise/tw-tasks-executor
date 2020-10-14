@@ -11,7 +11,7 @@ references:
         environment:
           MYSQL_ROOT_PASSWORD: example-password-change-me
           MYSQL_DATABASE: tw-tasks-test
-      - image: circleci/postgres:10
+      - image: circleci/postgres:12
         name: postgres1
         environment:
           POSTGRES_USER: postgres
@@ -48,6 +48,8 @@ references:
       KAFKA_TCP_HOST: kafka1
       ZOOKEEPER_TCP_2181: 2181
       ZOOKEEPER_TCP_HOST: zk-service1
+      POSTGRES_TCP_HOST: postgres1
+      POSTGRES_TCP_5432: 5432
 jobs:
   test:
     <<: *container_config
@@ -57,7 +59,7 @@ jobs:
           key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
       - run:
           name: Run tests
-          command: ./gradlew --refresh-dependencies clean check -Din.circle=true -Dspring.profiles.include=circle --console=plain --no-daemon --stacktrace
+          command: ./gradlew --refresh-dependencies clean check -Dspring.profiles.include=circle --console=plain --no-daemon --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/

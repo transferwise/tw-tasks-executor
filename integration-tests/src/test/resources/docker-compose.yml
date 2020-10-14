@@ -51,4 +51,17 @@ services:
       MYSQL_ROOT_PASSWORD: example-password-change-me
     command: "mysqld --ssl=0
     --character-set-server=utf8mb4
-    --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED --innodb_autoinc_lock_mode=2"
+    --innodb_flush_log_at_trx_commit=0
+    --innodb_flush_method=O_DIRECT_NO_FSYNC
+    --innodb_flush_neighbors=0
+    --character-set-server=utf8mb4
+    --collation-server=utf8mb4_unicode_ci
+    --transaction-isolation=READ-COMMITTED
+    --innodb_autoinc_lock_mode=2"
+  postgres:
+    image: postgres:12
+    hostname: postgres
+    ports:
+      - 5432
+    environment:
+      POSTGRES_PASSWORD: example-password-change-me
