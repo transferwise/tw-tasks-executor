@@ -37,10 +37,6 @@ dependencies {
     testImplementation libraries.awaitility
 }
 
-// junit4 deps are not used, exclude those
-configurations.testImplementation.exclude group: 'junit', module: 'junit'
-configurations.testImplementation.exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-
 test {
     systemProperty("spring.profiles.include", System.getProperty("spring.profiles.include"))
 }

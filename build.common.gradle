@@ -61,6 +61,13 @@ dependencies {
     testImplementation libraries.assertJCore
 }
 
+configurations {
+    all {
+        exclude group: 'junit', module: 'junit'
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
