@@ -2,13 +2,16 @@
 
 Describes notable changes.
 
+#### 1.15.1 - 2020/20/16
+- Partitions manager will log a warn only when a topic is missing or configured number of partitions is different from existing ones.
+
 #### 1.15.0 - 2020/10/14
 - Switched away from testcontainers, used docker-compose plugin for all integration tests.
 - Removed support for xRequestId.
 
 #### 1.14.2 - 2020/09/27
 - Minor bugfixes for approximate tasks count in the database, related to multi schema setups.
-- MySQL INSERT IGNORE has additional checks to make sure the failure was about duplicate records and not about something else. 
+- MySQL INSERT IGNORE has additional checks to make sure the failure was about duplicate records and not about something else.
 
 #### 1.14.1 - 2020/09/21
 - Added metrics for knowing approximate tasks count in the database.
@@ -25,18 +28,18 @@ https://www.informit.com/articles/article.aspx?p=25862
 https://www.2ndquadrant.com/en/blog/sequential-uuid-generators/
 https://en.wikipedia.org/wiki/Universally_unique_identifier#As_database_keys
 
-- (id,version) index was removed on Postgres as well, making db perf test to run 25% faster. 
+- (id,version) index was removed on Postgres as well, making db perf test to run 25% faster.
 
 - MariaDb schema for new services was redesigned.
 However, the code is still working and keeps working with older schema as well.
 
 - Another, more optimal table schema was tested and proposed for MariaDb applications which for whatever reasons are forced
-to use random UUIDs with large number of tw tasks. 
+to use random UUIDs with large number of tw tasks.
 
 - Added a db perf test to `demoapp` and `DemoAppRealTest`, which is more suitable to compare database bottlenecks tests.
 
 - When a task is being set to a final state, the next_event_time is set to current time.
-This will make the task cleaning process more accurate. 
+This will make the task cleaning process more accurate.
 
 #### 1.13.0 - 2020/09/10
 - Old tasks are now cleaned by ids only and not checking their versions. It allows to execute multivalue queries, which should be more efficient.
@@ -53,7 +56,7 @@ It allows quickly to understand, if some service is using another service's iden
 - Optimized a TasksResumer query executed on startup for Postgres.
 Postgres was likely to decide to not use `(status, next_event_time)` and do a full scan instead.
 - Properties `minPriority` and `maxPriority` on `tw-tasks.core` were renamed to `highestPriority` and `lowestPriority`.
-It will hopefully make it more clear, that lower priority numbers mean higher chance to be executed first. 
+It will hopefully make it more clear, that lower priority numbers mean higher chance to be executed first.
 
 #### 1.10.1 - 2020/08/18
 - Fixes a bug, where using a max priority for a task causes a null pointer exception.
@@ -64,7 +67,7 @@ It is useful in scenarios where low latency processing is desired for a specific
 The downside of multiple shards is having more KafkaConsumers per application, possibly increasing the load on Kafka server.
 - tw-leader-selector was upgraded, it now brings in tw-curator.
 This in turn means, that you don't have to define a CuratorFramework bean in your application, it will be created
-automatically if missing. 
+automatically if missing.
 
 #### 1.9.0 - 2020/07/10
 - Optimized some queries for a case where there is enormous number of waiting or stuck tasks.
@@ -73,7 +76,7 @@ automatically if missing.
 - Debug metrics are disabled by default.
 
 #### 1.8.2 - 2020/07/09
-- We are marking all buckets as dirty, when some concurrency slot frees up. 
+- We are marking all buckets as dirty, when some concurrency slot frees up.
 To support cases where multiple buckets have the same concurrency policy.
 
 #### 1.8.1 - 2020/07/08
