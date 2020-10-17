@@ -1,5 +1,11 @@
 package com.transferwise.tasks.testapp.dao;
 
+import static com.transferwise.tasks.TaskTestBuilder.randomDoneTask;
+import static com.transferwise.tasks.TaskTestBuilder.randomErrorTask;
+import static com.transferwise.tasks.TaskTestBuilder.randomNewTask;
+import static com.transferwise.tasks.TaskTestBuilder.randomProcessingTask;
+import static com.transferwise.tasks.TaskTestBuilder.randomSubmittedTask;
+import static com.transferwise.tasks.TaskTestBuilder.randomWaitingTask;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -7,14 +13,13 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.google.common.collect.ImmutableSet;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.TaskTestBuilder;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
-import com.transferwise.tasks.dao.ITaskDao.DaoTask1;
 import com.transferwise.tasks.dao.ITaskDao.DeleteFinishedOldTasksResult;
 import com.transferwise.tasks.dao.ITaskDao.GetStuckTasksResponse;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskResponse;
@@ -28,7 +33,6 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -67,8 +71,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void insertingATaskInsertsOnlyOneTaskForAGivenId() {
     UUID taskId = UuidUtils.generatePrefixCombUuid();
 
-    InsertTaskResponse result1 = addTask(taskId, TaskStatus.SUBMITTED);
-    InsertTaskResponse result2 = addTask(taskId, TaskStatus.DONE);
+    InsertTaskResponse result1 = randomSubmittedTask().withId(taskId).save();
+    InsertTaskResponse result2 = randomDoneTask().withId(taskId).save();
 
     assertEquals(taskId, result1.getTaskId());
     assertTrue(result1.isInserted());
@@ -83,14 +87,14 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void insertingATaskWithUniqueKeyTwiceCreatesOnlyOneTask() {
     String key = "Hello World";
 
-    // TODO: Replace with a test-builder.
-    InsertTaskResponse response = taskDao.insertTask(new ITaskDao.InsertTaskRequest()
-        .setStatus(TaskStatus.NEW)
-        .setKey(key)
-        .setData("")
-        .setPriority(5)
-        .setMaxStuckTime(ZonedDateTime.now().plusMinutes(30))
-        .setType("Test"));
+    InsertTaskResponse response = TaskTestBuilder.newTask()
+        .withStatus(TaskStatus.NEW)
+        .withKey(key)
+        .withData("")
+        .withPriority(5)
+        .withMaxStuckTime(ZonedDateTime.now().plusMinutes(30))
+        .withType("Test")
+        .save();
 
     assertNotNull(response.getTaskId());
 
@@ -108,9 +112,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingATaskReturnsTheCorrectTaskForBaseTask1() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId);
-    addTask();
+    UUID taskId = randomDoneTask().save().getTaskId();
+    randomDoneTask().save();
 
     BaseTask1 task = taskDao.getTask(taskId, BaseTask1.class);
 
@@ -123,9 +126,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingATaskReturnsTehCorrectTaskForFullTaskRecord() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId);
-    addTask();
+    UUID taskId = randomDoneTask().save().getTaskId();
+    randomDoneTask().save();
 
     FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
 
@@ -144,9 +146,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void settingToBeRetriedSetsTheCorrectRetryTime() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
     ZonedDateTime retryTime = ZonedDateTime.now().plusHours(2);
-    addTask(taskId);
+    UUID taskId = randomDoneTask().save().getTaskId();
 
     boolean result = taskDao.setToBeRetried(taskId, retryTime, 0, false);
 
@@ -163,10 +164,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void grabbingForProcessingIncrementsTheProcessingTriesCount() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     Instant processingDeadline = Instant.now().plus(Duration.ofHours(2));
-    addTask(taskId, TaskStatus.SUBMITTED);
+    UUID taskId = randomSubmittedTask().save().getTaskId();
     Task task = taskDao.getTask(taskId, Task.class);
 
     Task returnedTask = taskDao.grabForProcessing(task.toBaseTask(), nodeId, processingDeadline);
@@ -183,10 +183,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void settingToBeRetriedResetTriesCountIfSpecified() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     ZonedDateTime retryTime = ZonedDateTime.now().plusHours(2);
-    addTask(taskId, TaskStatus.SUBMITTED);
+    UUID taskId = randomSubmittedTask().save().getTaskId();
     Task task = taskDao.getTask(taskId, Task.class);
     taskDao.grabForProcessing(task.toBaseTask(), nodeId, ZonedDateTime.now().plusHours(1).toInstant());
 
@@ -204,10 +203,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void grabbingForProcessingReturnsNullIfNoTaskMatchesTheOnePassed() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
     String nodeId = "testNode";
     Instant processingDeadline = Instant.now().plus(Duration.ofHours(2));
-    addTask(taskId, TaskStatus.SUBMITTED);
+    UUID taskId = randomSubmittedTask().save().getTaskId();
     Task task = new Task().setId(UuidUtils.generatePrefixCombUuid());
 
     Task returnedTask = taskDao.grabForProcessing(task.toBaseTask(), nodeId, processingDeadline);
@@ -222,25 +220,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void settingStatusUpdatesTheStatusCorrectly() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.SUBMITTED);
+    UUID taskId = randomSubmittedTask().save().getTaskId();
 
     boolean result = taskDao.setStatus(taskId, TaskStatus.WAITING, 0);
-
-    assertTrue(result);
-    FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
-    assertEquals(taskId, task.getId());
-    assertEquals("WAITING", task.getStatus());
-    assertEquals(1, task.getVersion());
-  }
-
-  //TODO: Flaky test. WAITING task can be picked up and moved to ERROR, before we assert.
-  @Test
-  void schedulingTaskForImmediateExecutionPutsTheTaskInWaitingState() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.SUBMITTED);
-
-    boolean result = taskDao.scheduleTaskForImmediateExecution(taskId, 0);
 
     assertTrue(result);
     FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
@@ -253,10 +235,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void getStuckTasksReturnsAllTasksToRetry() {
     final TestClock testClock = new TestClock();
     TwContextClockHolder.setClock(testClock);
-    final UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.SUBMITTED);
+    final UUID taskId = randomSubmittedTask().save().getTaskId();
     final ZonedDateTime oldNextEventTime = taskDao.getTask(taskId, FullTaskRecord.class).getNextEventTime();
-    addRandomTask(TaskStatus.SUBMITTED);
+    randomSubmittedTask().save();
     testClock.tick(Duration.ofMillis(1));
 
     GetStuckTasksResponse result = taskDao.getStuckTasks(2, TaskStatus.SUBMITTED);
@@ -277,9 +258,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void markAsSubmittedAndSetNextEventTimePutsTheTaskInSubmittedStateAndUpdatesNextEventTime() {
     ZonedDateTime maxStuckTime = ZonedDateTime.now().plusHours(2);
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.NEW);
-    addRandomTask(TaskStatus.NEW);
+    UUID taskId = randomSubmittedTask().save().getTaskId();
+    randomNewTask().save();
 
     boolean result = taskDao.markAsSubmitted(taskId, 0, maxStuckTime);
 
@@ -293,9 +273,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void preparingStuckOnProcessingTasksForResumingPutsTheTaskInSubmittedState() {
     Instant processingDeadline = ZonedDateTime.now().plusHours(2).toInstant();
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
+    UUID taskId = randomSubmittedTask().save().getTaskId();
     String nodeId = "testNode";
-    addTask(taskId, TaskStatus.SUBMITTED);
     Task task = taskDao.getTask(taskId, Task.class);
     taskDao.grabForProcessing(task.toBaseTask(), nodeId, processingDeadline);
 
@@ -314,8 +293,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void markingAsSubmittedUpdatesTheStateCorrectly() {
     ZonedDateTime maxStuckTime = ZonedDateTime.now().plusHours(2);
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING);
+    UUID taskId = randomProcessingTask().save().getTaskId();
 
     boolean result = taskDao.markAsSubmitted(taskId, 0, maxStuckTime);
 
@@ -326,61 +304,10 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   @Test
-  void findingTasksByTypeReturnsTheCorrectTasks() {
-    String type = "MY_TYPE";
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING, type);
-    addRandomTask();
-
-    List<Task> tasks = taskDao.findTasksByTypeSubTypeAndStatus(type, null);
-
-    assertEquals(1, tasks.size());
-
-    Task task = tasks.get(0);
-    assertEquals(taskId, task.getId());
-    assertEquals(type, task.getType());
-    assertEquals("SUBTYPE", task.getSubType());
-    assertEquals("DATA", task.getData());
-    assertEquals("PROCESSING", task.getStatus());
-    assertEquals(0, task.getVersion());
-    assertEquals(0, task.getProcessingTriesCount());
-    assertEquals(5, task.getPriority());
-  }
-
-  @Test
-  void findingTasksByTypeAndSubtypeReturnsTheCorrectTasks() {
-    String type = "MY_TYPE";
-    String subType = "MY_SUBTYPE";
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING, type, subType);
-    addRandomTask();
-
-    List<Task> tasks = taskDao.findTasksByTypeSubTypeAndStatus(type, subType);
-
-    assertEquals(1, tasks.size());
-    assertEquals(taskId, tasks.get(0).getId());
-    assertEquals(subType, tasks.get(0).getSubType());
-  }
-
-  @Test
-  void findingTasksByTypeAndStatusReturnsTheCorrectTasks() {
-    String type = "MY_TYPE";
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING, type);
-    addRandomTask();
-
-    List<Task> tasks = taskDao.findTasksByTypeSubTypeAndStatus(type, null, TaskStatus.PROCESSING);
-
-    assertEquals(1, tasks.size());
-    assertEquals(taskId, tasks.get(0).getId());
-    assertEquals("PROCESSING", tasks.get(0).getStatus());
-  }
-
-  @Test
   void gettingTaskCountInStatusReturnsTheCorrectValue() {
-    addRandomTask(TaskStatus.PROCESSING);
-    addRandomTask(TaskStatus.PROCESSING);
-    addRandomTask();
+    randomProcessingTask().save();
+    randomProcessingTask().save();
+    randomDoneTask().save();
 
     int count = taskDao.getTasksCountInStatus(10, TaskStatus.PROCESSING);
 
@@ -389,10 +316,10 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingErrorTasksInGroup() {
-    addRandomTask();
-    addRandomTask(TaskStatus.ERROR);
-    addRandomTask(TaskStatus.ERROR);
-    addRandomTask(TaskStatus.ERROR, 1, "XXX");
+    randomDoneTask().save();
+    randomErrorTask().save();
+    randomErrorTask().save();
+    randomErrorTask().withType("XXX").save();
 
     List<Pair<String, Integer>> tasksInErrorStatus = taskDao.getTasksCountInErrorGrouped(10);
 
@@ -405,11 +332,12 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingStuckTaskCountConsidersTheCorrectStatus() {
-    addRandomTask(TaskStatus.PROCESSING);
-    addRandomTask(TaskStatus.SUBMITTED);
-    addRandomTask(TaskStatus.NEW);
-    addRandomTask(TaskStatus.WAITING);
-    addRandomTask(TaskStatus.DONE);
+    randomProcessingTask().save();
+    randomSubmittedTask().save();
+    randomNewTask().save();
+    randomWaitingTask().save();
+    randomDoneTask().save();
+
     ZonedDateTime limitTime = ZonedDateTime.now().plusSeconds(1);
 
     int count = taskDao.getStuckTasksCount(limitTime, 10);
@@ -421,73 +349,15 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   void gettingStuckTaskCountConsidersTheLimitTime() {
     final TestClock testClock = new TestClock();
     TwContextClockHolder.setClock(testClock);
-    addRandomTask(TaskStatus.PROCESSING);
-    addRandomTask(TaskStatus.PROCESSING);
+    randomProcessingTask().save();
+    randomProcessingTask().save();
     ZonedDateTime limitTime = ZonedDateTime.now(testClock).plus(1, ChronoUnit.MILLIS);
     testClock.tick(Duration.ofMillis(1));
-    addRandomTask(TaskStatus.PROCESSING);
+    randomProcessingTask().save();
 
     int count = taskDao.getStuckTasksCount(limitTime, 10);
 
     assertEquals(2, count);
-  }
-
-  @Test
-  void deletingAllTasksShouldDeleteAllTasks() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING);
-
-    taskDao.deleteAllTasks();
-
-    FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
-    assertNull(fullTaskRecord);
-  }
-
-  @Test
-  void deletingTasksByTypeDeletesTheCorrectTasks() {
-    String type = "MY_TYPE";
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING, type);
-    addRandomTask();
-
-    taskDao.deleteTasks(type, null);
-
-    List<Task> deletedTasks = taskDao.findTasksByTypeSubTypeAndStatus(type, null);
-    assertEquals(0, deletedTasks.size());
-
-    List<Task> remainingTasks = taskDao.findTasksByTypeSubTypeAndStatus("TEST", null);
-    assertEquals(1, remainingTasks.size());
-  }
-
-  @Test
-  void deletingTasksByTypeAndSubtypeDeletesTheCorrectTasks() {
-    String type = "MY_TYPE";
-    String subType = "MY_SUBTYPE";
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING, type, subType);
-    addTask(UuidUtils.generatePrefixCombUuid(), TaskStatus.PROCESSING, "TEST", "SUBTYPE");
-
-    taskDao.deleteTasks(type, subType);
-
-    List<Task> deletedTasks = taskDao.findTasksByTypeSubTypeAndStatus(type, subType);
-    assertEquals(0, deletedTasks.size());
-    List<Task> remainingTasks = taskDao.findTasksByTypeSubTypeAndStatus("TEST", "SUBTYPE");
-    assertEquals(1, remainingTasks.size());
-  }
-
-  @Test
-  void deletingTasksByTypeAndStatusDeletesTheCorrectTasks() {
-    String type = "MY_TYPE";
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.PROCESSING, type);
-    addRandomTask();
-
-    taskDao.deleteTasks(type, null, TaskStatus.PROCESSING);
-
-    List<Task> deletedTasks = taskDao.findTasksByTypeSubTypeAndStatus(type, null, TaskStatus.PROCESSING);
-    assertEquals(0, deletedTasks.size());
-    List<Task> remainingTasks = taskDao.findTasksByTypeSubTypeAndStatus("TEST", null, TaskStatus.DONE);
-    assertEquals(1, remainingTasks.size());
   }
 
   @ParameterizedTest
@@ -498,8 +368,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     final TestClock testClock = new TestClock();
     TwContextClockHolder.setClock(testClock);
 
-    addRandomTask();
-    addRandomTask();
+    randomDoneTask().save();
+    randomDoneTask().save();
 
     testClock.tick(Duration.ofMinutes(11));
     DeleteFinishedOldTasksResult result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 1);
@@ -553,10 +423,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   @Test
   void deletingTaskByIdDeletedTheCorrectTask() {
     String type = "MY_TYPE";
-    UUID taskId1 = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId1, TaskStatus.PROCESSING, type);
-    UUID taskId2 = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId2, TaskStatus.PROCESSING, type);
+    UUID taskId1 = randomProcessingTask().withType(type).save().getTaskId();
+    UUID taskId2 = randomProcessingTask().withType(type).save().getTaskId();
 
     taskDao.deleteTask(taskId1, 0);
 
@@ -568,59 +436,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   @Test
-  void gettingTasksInErrorStatusReturnsTasksInTheLimitOfMaxCount() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId, TaskStatus.ERROR, "TYPE", "1");
-    addRandomTask(TaskStatus.ERROR, 2);
-    addRandomTask(TaskStatus.PROCESSING, 3);
-    addRandomTask(TaskStatus.ERROR, 4);
-
-    List<ITaskDao.DaoTask1> tasks = taskDao.getTasksInErrorStatus(2);
-
-    assertEquals(2, tasks.size());
-    for (DaoTask1 task : tasks) {
-      assertFalse(task.getSubType().contains("3"));
-    }
-  }
-
-  @Test
-  void gettingTasksInProcessingOrWaitingStatusReturnsTasksInTheLimitOfMaxCount() {
-    addRandomTask(TaskStatus.PROCESSING, 1);
-    addRandomTask(TaskStatus.ERROR, 2);
-    addRandomTask(TaskStatus.WAITING, 3);
-    addRandomTask(TaskStatus.PROCESSING, 4);
-    addRandomTask(TaskStatus.WAITING, 5);
-
-    List<ITaskDao.DaoTask3> tasks = taskDao.getTasksInProcessingOrWaitingStatus(3);
-
-    assertEquals(3, tasks.size());
-    assertEquals(3, tasks.stream().filter(t -> ImmutableSet.of("1", "3", "4", "5").contains(t.getSubType())).count());
-    assertEquals(
-        ImmutableSet.of(TaskStatus.PROCESSING.name(), TaskStatus.WAITING.name()),
-        tasks.stream()
-            .map(ITaskDao.DaoTask3::getStatus)
-            .collect(Collectors.toSet())
-    );
-  }
-
-  @Test
-  void gettingStuckTasksReturnsTasksInTheLimitOfMaxCount() {
-    addRandomTask(TaskStatus.PROCESSING);
-    addRandomTask(TaskStatus.SUBMITTED);
-    addRandomTask(TaskStatus.NEW);
-    addRandomTask(TaskStatus.WAITING);
-    addRandomTask(TaskStatus.DONE);
-    addRandomTask(TaskStatus.WAITING);
-
-    List<ITaskDao.DaoTask2> tasks = taskDao.getStuckTasks(4, Duration.ofMillis(-2));
-
-    assertEquals(4, tasks.size());
-  }
-
-  @Test
   void clearingPayloadAndMarkingDoneUpdateTheTaskCorrectly() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId);
+    UUID taskId = randomDoneTask().save().getTaskId();
 
     boolean result = taskDao.clearPayloadAndMarkDone(taskId, 0);
 
@@ -633,55 +450,12 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Test
   void gettingTaskVersionReturnTheCorrectNumber() {
-    UUID taskId = UuidUtils.generatePrefixCombUuid();
-    addTask(taskId);
-    addTask();
+    UUID taskId = randomDoneTask().save().getTaskId();
+    randomDoneTask().save();
 
     Long version = taskDao.getTaskVersion(taskId);
 
     assertEquals(0, version);
-  }
-
-  @Test
-  void gettingTasksByUuidListWorks() {
-    final UUID taskId1 = UuidUtils.generatePrefixCombUuid();
-    final UUID taskId2 = UuidUtils.generatePrefixCombUuid();
-    final UUID taskId3 = UuidUtils.generatePrefixCombUuid();
-    final UUID taskId4 = UuidUtils.generatePrefixCombUuid();
-    final UUID taskId5 = UuidUtils.generatePrefixCombUuid();
-    final UUID taskId6 = UuidUtils.generatePrefixCombUuid();
-    final UUID taskId7 = UuidUtils.generatePrefixCombUuid();
-
-    addTask(taskId1);
-    addTask();
-    addTask(taskId2);
-    addTask();
-    addTask(taskId3);
-    addTask(taskId4);
-    addTask(taskId5);
-    addTask(taskId6);
-    addTask(taskId7);
-
-    List<FullTaskRecord> tasks = taskDao.getTasks(Arrays.asList(taskId1, taskId2, taskId3, taskId4, taskId5, taskId6, taskId7));
-
-    assertEquals(7, tasks.size());
-    assertEquals(
-        ImmutableSet.of(taskId1, taskId2, taskId3, taskId4, taskId5, taskId6, taskId7),
-        tasks.stream().map(FullTaskRecord::getId).collect(Collectors.toSet())
-    );
-
-    // task is correctly populated
-    FullTaskRecord task1 = tasks.stream().filter(t -> t.getId().equals(taskId1)).findAny().get();
-    assertEquals("DONE", task1.getStatus());
-    assertEquals("TEST", task1.getType());
-    assertEquals(5, task1.getPriority());
-    assertEquals(0, task1.getVersion());
-    assertEquals("DATA", task1.getData());
-    assertEquals("SUBTYPE", task1.getSubType());
-    assertEquals(0, task1.getProcessingTriesCount());
-    assertNull(task1.getProcessingClientId());
-    assertNotNull(task1.getStateTime());
-    assertNotNull(task1.getNextEventTime());
   }
 
   @Test
@@ -722,60 +496,5 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     Integer cnt = jdbcTemplate.queryForObject("select count(*) from unique_tw_task_key", Integer.class);
     // Just keep the spotbugs happy.
     return cnt == null ? 0 : cnt;
-  }
-
-  private InsertTaskResponse addTask() {
-    return addTask(UuidUtils.generatePrefixCombUuid());
-  }
-
-  private InsertTaskResponse addTask(UUID id) {
-    return addTask(id, TaskStatus.DONE);
-  }
-
-  private InsertTaskResponse addTask(UUID id, TaskStatus status) {
-    return addTask(id, status, "TEST", "SUBTYPE", "DATA");
-  }
-
-  private InsertTaskResponse addTask(UUID id, TaskStatus status, String type) {
-    return addTask(id, status, type, "SUBTYPE", "DATA");
-  }
-
-  private InsertTaskResponse addTask(UUID id, TaskStatus status, String type, String subType) {
-    return addTask(id, status, type, subType, "DATA");
-  }
-
-  private InsertTaskResponse addTask(
-      UUID id,
-      TaskStatus taskStatus,
-      String type,
-      String subType,
-      String data
-  ) {
-    return taskDao.insertTask(
-        new ITaskDao.InsertTaskRequest()
-            .setData(data)
-            .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
-            .setTaskId(id)
-            .setPriority(5)
-            .setStatus(taskStatus)
-            .setType(type)
-            .setSubType(subType)
-    );
-  }
-
-  private ITaskDao.InsertTaskResponse addRandomTask(TaskStatus taskStatus) {
-    return addTask(UuidUtils.generatePrefixCombUuid(), taskStatus);
-  }
-
-  private ITaskDao.InsertTaskResponse addRandomTask() {
-    return addTask(UuidUtils.generatePrefixCombUuid(), TaskStatus.DONE);
-  }
-
-  private ITaskDao.InsertTaskResponse addRandomTask(TaskStatus taskStatus, Integer id) {
-    return addTask(UuidUtils.generatePrefixCombUuid(), taskStatus, "TEST", id.toString());
-  }
-
-  private ITaskDao.InsertTaskResponse addRandomTask(TaskStatus taskStatus, Integer id, String type) {
-    return addTask(UuidUtils.generatePrefixCombUuid(), taskStatus, type, id == null ? "SUBTYPE" : id.toString());
   }
 }

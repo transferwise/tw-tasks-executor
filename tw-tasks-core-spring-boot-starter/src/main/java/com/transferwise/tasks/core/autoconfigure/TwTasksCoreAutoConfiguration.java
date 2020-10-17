@@ -13,10 +13,11 @@ import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.dao.MySqlDbConvention;
 import com.transferwise.tasks.dao.MySqlTaskDao;
+import com.transferwise.tasks.dao.PostgresSqlDbConvention;
 import com.transferwise.tasks.dao.PostgresTaskDao;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
-import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
 import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
@@ -36,7 +37,6 @@ import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.MeterRegistry;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -100,6 +100,18 @@ public class TwTasksCoreAutoConfiguration {
       }
     }
     return new TwTasksDataSourceProvider(dataSource);
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
+  public PostgresSqlDbConvention postgresDbConvention(TasksProperties tasksProperties) {
+    return new PostgresSqlDbConvention(tasksProperties);
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
+  public MySqlDbConvention mysqlDbConvention(TasksProperties tasksProperties) {
+    return new MySqlDbConvention(tasksProperties);
   }
 
   @Bean

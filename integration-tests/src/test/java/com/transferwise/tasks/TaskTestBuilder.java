@@ -1,15 +1,57 @@
 package com.transferwise.tasks;
 
+import com.transferwise.common.baseutils.UuidUtils;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
+import com.transferwise.tasks.dao.ITaskDao.InsertTaskResponse;
 import com.transferwise.tasks.domain.TaskStatus;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
-public class TaskTestBuilder extends BaseTestBuilder<TaskTestBuilder, UUID> {
+public class TaskTestBuilder {
 
-  private static final int DEFAULT_PRIORITY = 5;
+  public static final String DEFAULT_SUBTYPE = "SUBTYPE";
+  public static final String DEFAULT_TYPE = "TEST";
+  public static final String DEFAULT_DATA = "DATA";
+  public static final int DEFAULT_PRIORITY = 5;
 
   private ITaskDao.InsertTaskRequest insertTaskRequest;
+
+  public static TaskTestBuilder randomWaitingTask() {
+    return randomDoneTask().withStatus(TaskStatus.WAITING);
+  }
+
+  public static TaskTestBuilder randomErrorTask() {
+    return randomTask().withStatus(TaskStatus.ERROR);
+  }
+
+  public static TaskTestBuilder randomNewTask() {
+    return randomDoneTask().withStatus(TaskStatus.NEW);
+  }
+
+  public static TaskTestBuilder randomProcessingTask() {
+    return randomDoneTask().withStatus(TaskStatus.PROCESSING);
+  }
+
+  public static TaskTestBuilder randomSubmittedTask() {
+    return randomDoneTask().withStatus(TaskStatus.SUBMITTED);
+  }
+
+  public static TaskTestBuilder randomDoneTask() {
+    return randomTask().withStatus(TaskStatus.DONE);
+  }
+
+  public static TaskTestBuilder randomTask() {
+    TaskTestBuilder builder = new TaskTestBuilder();
+    builder.insertTaskRequest = new InsertTaskRequest();
+    return builder.withType(DEFAULT_TYPE)
+        .withSubType(DEFAULT_SUBTYPE)
+        .withData(DEFAULT_DATA)
+        .withMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
+        .withId(UuidUtils.generatePrefixCombUuid())
+        .withPriority(DEFAULT_PRIORITY);
+  }
 
   public static TaskTestBuilder newTask() {
     TaskTestBuilder b = new TaskTestBuilder();
@@ -19,41 +61,50 @@ public class TaskTestBuilder extends BaseTestBuilder<TaskTestBuilder, UUID> {
 
   public TaskTestBuilder withPriority(int priority) {
     insertTaskRequest.setPriority(priority);
-    return me();
+    return this;
   }
 
   public TaskTestBuilder withData(String data) {
     insertTaskRequest.setData(data);
-    return me();
+    return this;
   }
 
   public TaskTestBuilder withType(String type) {
     insertTaskRequest.setType(type);
-    return me();
+    return this;
   }
 
   public TaskTestBuilder withSubType(String subType) {
     insertTaskRequest.setSubType(subType);
-    return me();
+    return this;
   }
 
   public TaskTestBuilder withId(UUID id) {
     insertTaskRequest.setTaskId(id);
-    return me();
+    return this;
   }
 
   public TaskTestBuilder inStatus(TaskStatus status) {
     insertTaskRequest.setStatus(status);
-    return me();
+    return this;
   }
 
   public TaskTestBuilder withMaxStuckTime(ZonedDateTime time) {
     insertTaskRequest.setMaxStuckTime(time);
-    return me();
+    return this;
   }
 
-  @Override
-  public UUID build() {
-    return TestApplicationContextHolder.getApplicationContext().getBean(ITaskDao.class).insertTask(insertTaskRequest).getTaskId();
+  public TaskTestBuilder withStatus(TaskStatus status) {
+    insertTaskRequest.setStatus(status);
+    return this;
+  }
+
+  public TaskTestBuilder withKey(String key) {
+    insertTaskRequest.setKey(key);
+    return this;
+  }
+
+  public InsertTaskResponse save() {
+    return TestApplicationContextHolder.getApplicationContext().getBean(ITaskDao.class).insertTask(insertTaskRequest);
   }
 }

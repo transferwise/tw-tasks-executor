@@ -1,7 +1,6 @@
 package com.transferwise.tasks.dao;
 
 import com.transferwise.tasks.domain.BaseTask;
-import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -17,8 +16,6 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public interface ITaskDao {
 
-  ZonedDateTime getEarliestTaskNextEventTime(TaskStatus status);
-
   @Data
   @Accessors(chain = true)
   class StuckTask implements IBaseTask {
@@ -27,89 +24,6 @@ public interface ITaskDao {
     private int priority;
     private String type;
     private String status;
-  }
-
-  List<StuckTask> prepareStuckOnProcessingTasksForResuming(String clientId, ZonedDateTime maxStuckTime);
-
-  boolean scheduleTaskForImmediateExecution(UUID taskId, long version);
-
-  GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus status);
-
-  List<DaoTask2> getStuckTasks(int maxCount, Duration delta);
-
-  @Data
-  @Accessors(chain = true)
-  class GetStuckTasksResponse {
-
-    private List<StuckTask> stuckTasks;
-    private boolean hasMore;
-  }
-
-  InsertTaskResponse insertTask(InsertTaskRequest request);
-
-  int getTasksCountInStatus(int maxCount, TaskStatus status);
-
-  List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount);
-
-  int getStuckTasksCount(ZonedDateTime age, int maxCount);
-
-  <T> T getTask(UUID taskId, Class<T> clazz);
-
-  void deleteTasks(String type, String subType, TaskStatus... statuses);
-
-  DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize);
-
-  @Data
-  @Accessors(chain = true)
-  class DeleteFinishedOldTasksResult {
-
-    private int foundTasksCount;
-    private int deletedTasksCount;
-    private int deletedUniqueKeysCount;
-    private UUID firstDeletedTaskId;
-    private ZonedDateTime firstDeletedTaskNextEventTime;
-    private ZonedDateTime deletedBeforeTime;
-  }
-
-  boolean deleteTask(UUID taskId, long version);
-
-  List<DaoTask1> getTasksInErrorStatus(int maxCount);
-
-  List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount);
-
-  boolean clearPayloadAndMarkDone(UUID taskId, long version);
-
-  @Data
-  @Accessors(chain = true)
-  class DaoTask1 {
-
-    private UUID id;
-    private long version;
-    private String type;
-    private String subType;
-    private ZonedDateTime stateTime;
-  }
-
-  @Data
-  @Accessors(chain = true)
-  class DaoTask2 {
-
-    private UUID id;
-    private long version;
-    private ZonedDateTime nextEventTime;
-  }
-
-  @Data
-  @Accessors(chain = true)
-  class DaoTask3 {
-
-    private UUID id;
-    private long version;
-    private String type;
-    private String subType;
-    private String status;
-    private ZonedDateTime stateTime;
-    private ZonedDateTime nextEventTime;
   }
 
   @Data
@@ -135,6 +49,48 @@ public interface ITaskDao {
     private boolean inserted;
   }
 
+  @Data
+  @Accessors(chain = true)
+  class GetStuckTasksResponse {
+
+    private List<StuckTask> stuckTasks;
+    private boolean hasMore;
+  }
+
+  @Data
+  @Accessors(chain = true)
+  class DeleteFinishedOldTasksResult {
+
+    private int foundTasksCount;
+    private int deletedTasksCount;
+    private int deletedUniqueKeysCount;
+    private UUID firstDeletedTaskId;
+    private ZonedDateTime firstDeletedTaskNextEventTime;
+    private ZonedDateTime deletedBeforeTime;
+  }
+
+  ZonedDateTime getEarliestTaskNextEventTime(TaskStatus status);
+
+  List<StuckTask> prepareStuckOnProcessingTasksForResuming(String clientId, ZonedDateTime maxStuckTime);
+
+  GetStuckTasksResponse getStuckTasks(int batchSize, TaskStatus status);
+
+  InsertTaskResponse insertTask(InsertTaskRequest request);
+
+  int getTasksCountInStatus(int maxCount, TaskStatus status);
+
+  List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount);
+
+  int getStuckTasksCount(ZonedDateTime age, int maxCount);
+
+  <T> T getTask(UUID taskId, Class<T> clazz);
+
+  DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize);
+
+  boolean deleteTask(UUID taskId, long version);
+
+  boolean clearPayloadAndMarkDone(UUID taskId, long version);
+
   boolean setToBeRetried(UUID id, ZonedDateTime retryTime, long version, boolean resetTriesCount);
 
   Task grabForProcessing(BaseTask task, String nodeId, Instant maxProcessingEndTime);
@@ -143,16 +99,9 @@ public interface ITaskDao {
 
   boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime);
 
-  List<Task> findTasksByTypeSubTypeAndStatus(String type, String subType, TaskStatus... statuses);
-
-  void deleteAllTasks();
-
   Long getTaskVersion(UUID id);
 
-  List<FullTaskRecord> getTasks(List<UUID> uuids);
-
   long getApproximateTasksCount();
-  
-  long getApproximateUniqueKeysCount();
 
+  long getApproximateUniqueKeysCount();
 }

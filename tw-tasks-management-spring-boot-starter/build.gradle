@@ -6,4 +6,7 @@ apply from: '../build.starter.gradle'
 
 dependencies {
     api project(":tw-tasks-management")
+
+    implementation project(":tw-tasks-core")
+    implementation project(":tw-tasks-core-spring-boot-starter")
 }

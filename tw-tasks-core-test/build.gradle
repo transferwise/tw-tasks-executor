@@ -7,4 +7,6 @@ apply from: '../build.ext.gradle'
 dependencies {
     implementation libraries.springTx
     implementation libraries.springBeans
+    implementation libraries.springJdbc
+    implementation libraries.springContext
 }

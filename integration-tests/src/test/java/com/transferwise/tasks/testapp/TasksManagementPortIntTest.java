@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.transferwise.common.baseutils.clock.ClockHolder;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
@@ -50,7 +49,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.ERROR)
             .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-            .build()
+            .save()
     );
 
     final UUID task1Id = transactionsHelper.withTransaction().asNew().call(() ->
@@ -59,7 +58,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .withType("T1")
             .withSubType("S1")
             .withMaxStuckTime(ZonedDateTime.now().plusDays(2))
-            .build()
+            .save()
+            .getTaskId()
     );
 
     ResponseEntity<GetTasksInErrorResponse> response = testRestTemplate.postForEntity(
@@ -82,18 +82,19 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   @SneakyThrows
   void stuckTaskWillBeCorrectlyFound() {
     testTasksService.stopProcessing();
-    
+
     transactionsHelper.withTransaction().asNew().call(() -> {
-      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2)).build();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2)).save();
       // It should not be found as we have 10s delta by default.
-      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now()).build();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now()).save();
       return null;
     });
     final UUID task1Id = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.SUBMITTED)
             .withMaxStuckTime(ZonedDateTime.now().minusDays(1))
-            .build()
+            .save()
+            .getTaskId()
     );
 
     ResponseEntity<ITasksManagementPort.GetTasksStuckResponse> response = testRestTemplate.postForEntity(
@@ -132,7 +133,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .inStatus(status)
             .withData("the payload")
             .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
-            .build()
+            .save()
+            .getTaskId()
     );
 
     ResponseEntity<ITasksManagementPort.TaskWithoutData> response = testRestTemplate.getForEntity(
@@ -168,7 +170,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.ERROR)
             .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-            .build()
+            .save()
+            .getTaskId()
     );
 
     ResponseEntity<ITasksManagementPort.MarkTasksAsFailedResponse> response = testRestTemplate.postForEntity(
@@ -190,7 +193,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.ERROR)
             .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-            .build()
+            .save()
+            .getTaskId()
     );
 
     testTasksService.stopProcessing();
@@ -216,7 +220,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
         TaskTestBuilder.newTask()
             .inStatus(TaskStatus.ERROR)
             .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
-            .build()
+            .save()
+            .getTaskId()
     );
 
     testTasksService.stopProcessing();

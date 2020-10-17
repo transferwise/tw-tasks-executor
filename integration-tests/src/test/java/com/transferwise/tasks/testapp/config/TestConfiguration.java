@@ -4,6 +4,8 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.core.autoconfigure.TwTasksCoreAutoConfiguration.TwTasksDataSourceProvider;
+import com.transferwise.tasks.dao.DbConvention;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
@@ -13,6 +15,8 @@ import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
+import com.transferwise.tasks.test.dao.SqlTestTaskDao;
+import com.transferwise.tasks.test.dao.TestTaskDao;
 import com.transferwise.tasks.utils.LogUtils;
 
 import java.time.ZonedDateTime;
@@ -58,6 +62,11 @@ public class TestConfiguration {
 
     adminClient.createTopics(newTopics);
     adminClient.close();
+  }
+
+  @Bean
+  public TestTaskDao testTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, DbConvention dbConvention) {
+    return new SqlTestTaskDao(twTasksDataSourceProvider.getDataSource(), dbConvention);
   }
 
   @Bean
