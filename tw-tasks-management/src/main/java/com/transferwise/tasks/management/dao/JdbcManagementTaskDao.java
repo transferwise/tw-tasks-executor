@@ -1,14 +1,13 @@
 package com.transferwise.tasks.management.dao;
 
-import static com.transferwise.tasks.utils.TwTasksUuidUtils.toUuid;
-
 import com.transferwise.common.context.TwContextClockHolder;
-import com.transferwise.tasks.dao.ArgumentPreparedStatementSetter;
-import com.transferwise.tasks.dao.CacheKey;
-import com.transferwise.tasks.dao.DbConvention;
-import com.transferwise.tasks.dao.SqlHelper;
+import com.transferwise.tasks.dao.TaskSqlMapper;
+import com.transferwise.tasks.dao.TwTaskTables;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
+import com.transferwise.tasks.helpers.sql.CacheKey;
+import com.transferwise.tasks.helpers.sql.SqlHelper;
 import com.transferwise.tasks.utils.TimeUtils;
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -24,7 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.annotation.Transactional;
 
-public class SqlManagementTaskDao implements ManagementTaskDao {
+public class JdbcManagementTaskDao implements ManagementTaskDao {
 
   private static class Queries {
 
@@ -36,17 +35,17 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
     final String getTasksInStatus;
     final String getTasks;
 
-    Queries(DbConvention dbConvention) {
-      scheduleTaskForImmediateExecution = "update " + dbConvention.getTaskTableIdentifier() + " set status=?"
+    Queries(TwTaskTables tables) {
+      scheduleTaskForImmediateExecution = "update " + tables.getTaskTableIdentifier() + " set status=?"
           + ",next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
-      getTasksInErrorStatus = "select id,version,state_time,type,sub_type from " + dbConvention.getTaskTableIdentifier()
+      getTasksInErrorStatus = "select id,version,state_time,type,sub_type from " + tables.getTaskTableIdentifier()
           + " where status='" + TaskStatus.ERROR.name() + "' order by next_event_time desc limit ?";
-      getStuckTasks = "select id,version,next_event_time from " + dbConvention.getTaskTableIdentifier() + " where status=?"
+      getStuckTasks = "select id,version,next_event_time from " + tables.getTaskTableIdentifier() + " where status=?"
           + " and next_event_time<? order by next_event_time desc limit ?";
-      getTasksInStatus = "select id,version,state_time,type,sub_type,status,next_event_time from " + dbConvention.getTaskTableIdentifier()
+      getTasksInStatus = "select id,version,state_time,type,sub_type,status,next_event_time from " + tables.getTaskTableIdentifier()
           + " where status in (?) order by next_event_time desc limit ?";
       getTasks = "select id,type,sub_type,data,status,version,processing_tries_count,priority,state_time"
-          + ",next_event_time,processing_client_id from " + dbConvention.getTaskTableIdentifier() + " where id in (??)";
+          + ",next_event_time,processing_client_id from " + tables.getTaskTableIdentifier() + " where id in (??)";
     }
   }
 
@@ -65,15 +64,15 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
 
   private final JdbcTemplate jdbcTemplate;
-  private final DbConvention dbConvention;
   private final Queries queries;
+  private final TaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> queriesCache;
 
-  public SqlManagementTaskDao(DataSource dataSource, DbConvention dbConvention) {
+  public JdbcManagementTaskDao(DataSource dataSource, TwTaskTables tables, TaskSqlMapper sqlMapper) {
     this.jdbcTemplate = new JdbcTemplate(dataSource);
+    this.queries = new Queries(tables);
+    this.sqlMapper = sqlMapper;
     this.queriesCache = new ConcurrentHashMap<>();
-    this.dbConvention = dbConvention;
-    this.queries = new Queries(dbConvention);
   }
 
   @Override
@@ -83,7 +82,7 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
         args(maxCount),
         (rs, rowNum) ->
             new DaoTask1()
-                .setId(toUuid(rs.getObject(1)))
+                .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
                 .setVersion(rs.getLong(2))
                 .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3)))
                 .setType(rs.getString(4))
@@ -113,7 +112,7 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
               args(taskStatus, timeThreshold, maxCount),
               (rs, rowNum) ->
                   new DaoTask2()
-                      .setId(toUuid(rs.getObject(1)))
+                      .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
                       .setVersion(rs.getLong(2))
                       .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3)))
           )
@@ -135,7 +134,7 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
               args(taskStatus, maxCount),
               (rs, rowNum) ->
                   new DaoTask3()
-                      .setId(toUuid(rs.getObject(1)))
+                      .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
                       .setVersion(rs.getLong(2))
                       .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(3)))
                       .setType(rs.getString(4))
@@ -181,7 +180,7 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
               args(taskIds.subList(idx, idx + questionsCount)),
               (rs, rowNum) ->
                   new FullTaskRecord()
-                      .setId(toUuid(rs.getObject(1)))
+                      .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
                       .setType(rs.getString(2))
                       .setSubType(rs.getString(3))
                       .setData(rs.getString(4))
@@ -197,7 +196,7 @@ public class SqlManagementTaskDao implements ManagementTaskDao {
     }
   }
 
-  private PreparedStatementSetter args(Object... args) {
-    return new ArgumentPreparedStatementSetter(dbConvention, args);
+  protected PreparedStatementSetter args(Object... args) {
+    return new ArgumentPreparedStatementSetter(sqlMapper::uuidToSqlTaskId, args);
   }
 }

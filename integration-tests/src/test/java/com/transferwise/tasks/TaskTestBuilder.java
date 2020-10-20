@@ -19,7 +19,7 @@ public class TaskTestBuilder {
   private ITaskDao.InsertTaskRequest insertTaskRequest;
 
   public static TaskTestBuilder randomWaitingTask() {
-    return randomDoneTask().withStatus(TaskStatus.WAITING);
+    return randomTask().withStatus(TaskStatus.WAITING);
   }
 
   public static TaskTestBuilder randomErrorTask() {
@@ -27,15 +27,15 @@ public class TaskTestBuilder {
   }
 
   public static TaskTestBuilder randomNewTask() {
-    return randomDoneTask().withStatus(TaskStatus.NEW);
+    return randomTask().withStatus(TaskStatus.NEW);
   }
 
   public static TaskTestBuilder randomProcessingTask() {
-    return randomDoneTask().withStatus(TaskStatus.PROCESSING);
+    return randomTask().withStatus(TaskStatus.PROCESSING);
   }
 
   public static TaskTestBuilder randomSubmittedTask() {
-    return randomDoneTask().withStatus(TaskStatus.SUBMITTED);
+    return randomTask().withStatus(TaskStatus.SUBMITTED);
   }
 
   public static TaskTestBuilder randomDoneTask() {

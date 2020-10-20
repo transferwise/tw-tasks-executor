@@ -1,4 +1,4 @@
-package com.transferwise.tasks.dao;
+package com.transferwise.tasks.helpers.sql;
 
 import com.google.common.base.Preconditions;
 import lombok.EqualsAndHashCode;

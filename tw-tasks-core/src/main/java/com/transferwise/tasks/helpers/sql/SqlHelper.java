@@ -1,4 +1,4 @@
-package com.transferwise.tasks.dao;
+package com.transferwise.tasks.helpers.sql;
 
 /**
  * Provides useful methods for working with plain sql queries.

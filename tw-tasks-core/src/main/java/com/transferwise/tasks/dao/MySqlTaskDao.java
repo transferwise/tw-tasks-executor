@@ -1,7 +1,6 @@
 package com.transferwise.tasks.dao;
 
 import static com.transferwise.tasks.utils.TimeUtils.toZonedDateTime;
-import static com.transferwise.tasks.utils.TwTasksUuidUtils.toUuid;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
@@ -13,6 +12,9 @@ import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
+import com.transferwise.tasks.helpers.sql.CacheKey;
+import com.transferwise.tasks.helpers.sql.SqlHelper;
 import com.transferwise.tasks.utils.TimeUtils;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -60,15 +62,18 @@ public class MySqlTaskDao implements ITaskDao {
   @Autowired
   protected TasksProperties tasksProperties;
 
-  @Autowired
-  protected DbConvention dbConvention;
-
   private final ConcurrentHashMap<CacheKey, String> sqlCache = new ConcurrentHashMap<>();
 
   private final JdbcTemplate jdbcTemplate;
+  private final TaskSqlMapper sqlMapper;
 
   public MySqlTaskDao(DataSource dataSource) {
+    this(dataSource, new MySqlTaskTypesMapper());
+  }
+
+  public MySqlTaskDao(DataSource dataSource, TaskSqlMapper sqlMapper) {
     jdbcTemplate = new JdbcTemplate(dataSource);
+    this.sqlMapper = sqlMapper;
   }
 
   protected String insertTaskSql;
@@ -105,10 +110,15 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected final TaskStatus[] stuckStatuses = new TaskStatus[]{TaskStatus.NEW, TaskStatus.SUBMITTED, TaskStatus.WAITING, TaskStatus.PROCESSING};
 
+  protected TwTaskTables twTaskTables(TasksProperties tasksProperties) {
+    return new MySqlTaskTables(tasksProperties);
+  }
+
   @PostConstruct
   public void init() {
-    String taskTable = dbConvention.getTaskTableIdentifier();
-    String uniqueTaskKeyTable = dbConvention.getUniqueTaskKeyTableIdentifier();
+    TwTaskTables tables = twTaskTables(tasksProperties);
+    String taskTable = tables.getTaskTableIdentifier();
+    String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();
 
     insertTaskSql = "insert ignore into " + taskTable + "(id,type,sub_type,status,data,next_event_time"
         + ",state_time,time_created,time_updated,processing_tries_count,version,priority) values (?,?,?,?,?,?,?,?,?,?,?,?)";
@@ -250,7 +260,7 @@ public class MySqlTaskDao implements ITaskDao {
 
     List<StuckTask> stuckTasks = jdbcTemplate.query(getStuckTasksSql, args(status, now, batchSize + 1), (rs, rowNum) ->
         new StuckTask()
-            .setVersionId(new TaskVersionId(toUuid(rs.getObject(1)), rs.getLong(2)))
+            .setVersionId(new TaskVersionId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)), rs.getLong(2)))
             .setType(rs.getString(3))
             .setPriority(rs.getInt(4)).setStatus(rs.getString(5)));
     boolean hasMore = stuckTasks.size() > batchSize;
@@ -284,7 +294,7 @@ public class MySqlTaskDao implements ITaskDao {
           int updatedCount = jdbcTemplate.update(prepareStuckOnProcessingTaskForResumingSql1, args(TaskStatus.SUBMITTED,
               maxStuckTime.toInstant(), now, now, version + 1, id, version));
           if (updatedCount == 1) {
-            result.add(new StuckTask().setVersionId(new TaskVersionId(toUuid(id), version + 1))
+            result.add(new StuckTask().setVersionId(new TaskVersionId(sqlMapper.sqlTaskIdToUuid(id), version + 1))
                 .setType(rs.getString(3)).setStatus(TaskStatus.SUBMITTED.name())
                 .setPriority(rs.getInt(4)));
           }
@@ -336,13 +346,13 @@ public class MySqlTaskDao implements ITaskDao {
     }
     if (clazz.equals(BaseTask1.class)) {
       List<BaseTask1> result = jdbcTemplate.query(getTaskSql, args(taskId), (rs, rowNum) ->
-          new BaseTask1().setId(toUuid(rs.getObject(1)))
+          new BaseTask1().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
               .setVersion(rs.getLong(2)).setType(rs.getString(3))
               .setStatus(rs.getString(4)).setPriority(rs.getInt(5)));
       return (T) getFirst(result);
     } else if (clazz.equals(Task.class)) {
       List<Task> result = jdbcTemplate.query(getTaskSql1, args(taskId), (rs, rowNum) ->
-          new Task().setId(toUuid(rs.getObject(1)))
+          new Task().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
               .setVersion(rs.getLong(2)).setType(rs.getString(3))
               .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
               .setSubType(rs.getString(6)).setData(rs.getString(7))
@@ -350,7 +360,7 @@ public class MySqlTaskDao implements ITaskDao {
       return (T) getFirst(result);
     } else if (clazz.equals(FullTaskRecord.class)) {
       List<FullTaskRecord> result = jdbcTemplate.query(getTaskSql2, args(taskId), (rs, rowNum) ->
-          new FullTaskRecord().setId(toUuid(rs.getObject(1)))
+          new FullTaskRecord().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
               .setVersion(rs.getLong(2)).setType(rs.getString(3))
               .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
               .setSubType(rs.getString(6)).setData(rs.getString(7))
@@ -378,7 +388,7 @@ public class MySqlTaskDao implements ITaskDao {
         args(taskStatus.name(), deletedBeforeTime, batchSize), (rs, rowNum) -> rs.getObject(1));
 
     if (!taskIds.isEmpty()) {
-      UUID firstDeletedTaskId = toUuid(taskIds.get(0));
+      UUID firstDeletedTaskId = sqlMapper.sqlTaskIdToUuid(taskIds.get(0));
       result.setFirstDeletedTaskId(firstDeletedTaskId);
       ZonedDateTime nextEventTime = getFirst(jdbcTemplate.query(deleteFinishedOldTasksSql1,
           args(firstDeletedTaskId),
@@ -453,7 +463,7 @@ public class MySqlTaskDao implements ITaskDao {
         (rs, rowNum) -> ImmutablePair.of(rs.getObject(1), rs.getLong(2)));
 
     if (!taskVersionIds.isEmpty()) {
-      UUID firstDeletedTaskId = toUuid(taskVersionIds.get(0).getLeft());
+      UUID firstDeletedTaskId = sqlMapper.sqlTaskIdToUuid(taskVersionIds.get(0).getLeft());
       result.setFirstDeletedTaskId(firstDeletedTaskId);
       ZonedDateTime nextEventTime = getFirst(jdbcTemplate.query(deleteFinishedOldTasksSql1,
           args(firstDeletedTaskId),
@@ -562,6 +572,6 @@ public class MySqlTaskDao implements ITaskDao {
   }
 
   protected PreparedStatementSetter args(Object... args) {
-    return new ArgumentPreparedStatementSetter(dbConvention, args);
+    return new ArgumentPreparedStatementSetter(sqlMapper::uuidToSqlTaskId, args);
   }
 }

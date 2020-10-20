@@ -1,12 +1,14 @@
 package com.transferwise.tasks.ext.management.autoconfigure;
 
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.core.autoconfigure.TwTasksCoreAutoConfiguration.TwTasksDataSourceProvider;
-import com.transferwise.tasks.dao.DbConvention;
 import com.transferwise.tasks.management.TasksManagementPortController;
 import com.transferwise.tasks.management.TasksManagementService;
 import com.transferwise.tasks.management.dao.ManagementTaskDao;
-import com.transferwise.tasks.management.dao.SqlManagementTaskDao;
+import com.transferwise.tasks.management.dao.MySqlManagementTaskDao;
+import com.transferwise.tasks.management.dao.PostgresManagementTaskDao;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -14,8 +16,15 @@ import org.springframework.context.annotation.Configuration;
 public class TwTasksExtManagementAutoConfiguration {
 
   @Bean
-  public ManagementTaskDao managementTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, DbConvention dbConvention) {
-    return new SqlManagementTaskDao(twTasksDataSourceProvider.getDataSource(), dbConvention);
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
+  public ManagementTaskDao postgresManagementTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, TasksProperties tasksProperties) {
+    return new PostgresManagementTaskDao(twTasksDataSourceProvider.getDataSource(), tasksProperties);
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
+  public ManagementTaskDao mysqlManagementTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, TasksProperties tasksProperties) {
+    return new MySqlManagementTaskDao(twTasksDataSourceProvider.getDataSource(), tasksProperties);
   }
 
   @Bean

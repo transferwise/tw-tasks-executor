@@ -1,13 +1,12 @@
 package com.transferwise.tasks.test.dao;
 
-import static com.transferwise.tasks.utils.TwTasksUuidUtils.toUuid;
-
-import com.transferwise.tasks.dao.ArgumentPreparedStatementSetter;
-import com.transferwise.tasks.dao.CacheKey;
-import com.transferwise.tasks.dao.DbConvention;
-import com.transferwise.tasks.dao.SqlHelper;
+import com.transferwise.tasks.dao.TaskSqlMapper;
+import com.transferwise.tasks.dao.TwTaskTables;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
+import com.transferwise.tasks.helpers.sql.CacheKey;
+import com.transferwise.tasks.helpers.sql.SqlHelper;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -21,9 +20,10 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.annotation.Transactional;
 
-public class SqlTestTaskDao implements TestTaskDao {
+public class JdbcTestTaskDao implements TestTaskDao {
 
   private static class Queries {
 
@@ -37,9 +37,9 @@ public class SqlTestTaskDao implements TestTaskDao {
     final String[] getIdAndVersionFromTaskByTypeAndSubTypeAndStatus;
     final String[] getTasksByTypeAndStatusAndSubType;
 
-    Queries(DbConvention dbConvention) {
-      String tasksTable = dbConvention.getTaskTableIdentifier();
-      String keysTable = dbConvention.getUniqueTaskKeyTableIdentifier();
+    Queries(TwTaskTables tables) {
+      String tasksTable = tables.getTaskTableIdentifier();
+      String keysTable = tables.getUniqueTaskKeyTableIdentifier();
       deleteFromTaskTable = "delete from " + tasksTable;
       deleteFromUniqueKeyTable = "delete from " + keysTable;
       deleteTaskByIdAndVersion = "delete from " + tasksTable + " where id=? and version=?";
@@ -59,14 +59,14 @@ public class SqlTestTaskDao implements TestTaskDao {
 
   private final JdbcTemplate jdbcTemplate;
   private final Queries queries;
-  private final DbConvention dbConvention;
+  private final TaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> sqlCache;
 
-  public SqlTestTaskDao(DataSource dataSource, DbConvention dbConvention) {
-    this.dbConvention = dbConvention;
+  public JdbcTestTaskDao(DataSource dataSource, TwTaskTables tables, TaskSqlMapper sqlMapper) {
     this.sqlCache = new ConcurrentHashMap<>();
     jdbcTemplate = new JdbcTemplate(dataSource);
-    queries = new Queries(dbConvention);
+    queries = new Queries(tables);
+    this.sqlMapper = sqlMapper;
   }
 
   @Override
@@ -101,7 +101,7 @@ public class SqlTestTaskDao implements TestTaskDao {
     );
     List<Pair<Object, Long>> taskVersionIds = jdbcTemplate.query(
         query,
-        new ArgumentPreparedStatementSetter(dbConvention, args),
+        args(args.toArray()),
         (rs, rowNum) -> ImmutablePair.of(rs.getObject(1), rs.getLong(2))
     );
 
@@ -168,10 +168,10 @@ public class SqlTestTaskDao implements TestTaskDao {
     );
     return jdbcTemplate.query(
         sql,
-        new ArgumentPreparedStatementSetter(dbConvention, args),
+        args(args.toArray()),
         (rs, rowNum) ->
             new Task()
-                .setId(toUuid(rs.getObject(1)))
+                .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
                 .setType(rs.getString(2))
                 .setSubType(rs.getString(3))
                 .setData(rs.getString(4))
@@ -187,5 +187,9 @@ public class SqlTestTaskDao implements TestTaskDao {
   public void deleteAllTasks() {
     jdbcTemplate.update(queries.deleteFromTaskTable);
     jdbcTemplate.update(queries.deleteFromUniqueKeyTable);
+  }
+
+  private PreparedStatementSetter args(Object... args) {
+    return new ArgumentPreparedStatementSetter(sqlMapper::uuidToSqlTaskId, args);
   }
 }

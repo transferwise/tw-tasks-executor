@@ -1,4 +1,4 @@
-package com.transferwise.tasks.dao;
+package com.transferwise.tasks.helpers.sql;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.sql.PreparedStatement;
@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.time.temporal.TemporalAccessor;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Function;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.SqlParameterValue;
 import org.springframework.jdbc.core.SqlTypeValue;
@@ -15,17 +16,12 @@ import org.springframework.jdbc.core.StatementCreatorUtils;
 
 public class ArgumentPreparedStatementSetter implements PreparedStatementSetter {
 
-  private final DbConvention dbConvention;
+  private final Function<UUID, Object> uuidMapper;
   private final Object[] args;
 
-  public ArgumentPreparedStatementSetter(DbConvention dbConvention, List<Object> args) {
-    this.dbConvention = dbConvention;
-    this.args = args.toArray();
-  }
-
   @SuppressFBWarnings("EI_EXPOSE_REP2")
-  public ArgumentPreparedStatementSetter(DbConvention dbConvention, Object[] args) {
-    this.dbConvention = dbConvention;
+  public ArgumentPreparedStatementSetter(Function<UUID, Object> uuidMapper, Object[] args) {
+    this.uuidMapper = uuidMapper;
     this.args = args;
   }
 
@@ -56,7 +52,7 @@ public class ArgumentPreparedStatementSetter implements PreparedStatementSetter 
       StatementCreatorUtils.setParameterValue(ps, parameterPosition, paramValue, paramValue.getValue());
     } else {
       if (argValue instanceof UUID) {
-        argValue = dbConvention.uuidAsPsArgument((UUID) argValue);
+        argValue = uuidMapper.apply((UUID) argValue);
       } else if (argValue instanceof Instant) {
         argValue = Timestamp.from((Instant) argValue);
       } else if (argValue instanceof TemporalAccessor) {

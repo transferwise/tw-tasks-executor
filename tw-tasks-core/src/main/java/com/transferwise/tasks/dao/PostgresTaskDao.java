@@ -1,5 +1,6 @@
 package com.transferwise.tasks.dao;
 
+import com.transferwise.tasks.TasksProperties;
 import java.sql.SQLWarning;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
@@ -7,7 +8,12 @@ import javax.sql.DataSource;
 public class PostgresTaskDao extends MySqlTaskDao {
 
   public PostgresTaskDao(DataSource dataSource) {
-    super(dataSource);
+    super(dataSource, new PostgresTaskSqlMapper());
+  }
+
+  @Override
+  protected TwTaskTables twTaskTables(TasksProperties tasksProperties) {
+    return new PostgresTaskTables(tasksProperties);
   }
 
   @PostConstruct
@@ -15,8 +21,9 @@ public class PostgresTaskDao extends MySqlTaskDao {
   public void init() {
     super.init();
 
-    String taskTable = dbConvention.getTaskTableIdentifier();
-    String uniqueTaskKeyTable = dbConvention.getUniqueTaskKeyTableIdentifier();
+    TwTaskTables tables = twTaskTables(tasksProperties);
+    String taskTable = tables.getTaskTableIdentifier();
+    String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();
 
     insertTaskSql = "insert into " + taskTable + "(id,type,sub_type,status,data,next_event_time"
         + ",state_time,time_created,time_updated,processing_tries_count,version,priority) values"

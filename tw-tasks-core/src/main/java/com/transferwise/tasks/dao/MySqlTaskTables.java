@@ -1,16 +1,14 @@
 package com.transferwise.tasks.dao;
 
-import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.TasksProperties;
-import java.util.UUID;
 import org.apache.commons.lang3.StringUtils;
 
-public class MySqlDbConvention implements DbConvention {
+public class MySqlTaskTables implements TwTaskTables {
 
   private final String taskTableIdentifier;
   private final String uniqueTaskKeyTableIdentifier;
 
-  public MySqlDbConvention(TasksProperties tasksProperties) {
+  public MySqlTaskTables(TasksProperties tasksProperties) {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       taskTableIdentifier = "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getTaskTableName() + "`";
       uniqueTaskKeyTableIdentifier = "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getUniqueTaskKeyTableName() + "`";
@@ -28,10 +26,5 @@ public class MySqlDbConvention implements DbConvention {
   @Override
   public String getUniqueTaskKeyTableIdentifier() {
     return uniqueTaskKeyTableIdentifier;
-  }
-
-  @Override
-  public Object uuidAsPsArgument(UUID uuid) {
-    return UuidUtils.toBytes(uuid);
   }
 }

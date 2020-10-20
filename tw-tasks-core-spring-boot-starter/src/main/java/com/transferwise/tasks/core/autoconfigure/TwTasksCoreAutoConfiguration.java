@@ -13,9 +13,7 @@ import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
-import com.transferwise.tasks.dao.MySqlDbConvention;
 import com.transferwise.tasks.dao.MySqlTaskDao;
-import com.transferwise.tasks.dao.PostgresSqlDbConvention;
 import com.transferwise.tasks.dao.PostgresTaskDao;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
@@ -100,18 +98,6 @@ public class TwTasksCoreAutoConfiguration {
       }
     }
     return new TwTasksDataSourceProvider(dataSource);
-  }
-
-  @Bean
-  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
-  public PostgresSqlDbConvention postgresDbConvention(TasksProperties tasksProperties) {
-    return new PostgresSqlDbConvention(tasksProperties);
-  }
-
-  @Bean
-  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public MySqlDbConvention mysqlDbConvention(TasksProperties tasksProperties) {
-    return new MySqlDbConvention(tasksProperties);
   }
 
   @Bean
