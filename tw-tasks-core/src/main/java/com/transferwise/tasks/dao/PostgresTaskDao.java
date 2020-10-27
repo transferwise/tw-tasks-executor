@@ -12,7 +12,7 @@ public class PostgresTaskDao extends MySqlTaskDao {
   }
 
   @Override
-  protected TwTaskTables twTaskTables(TasksProperties tasksProperties) {
+  protected ITwTaskTables twTaskTables(TasksProperties tasksProperties) {
     return new PostgresTaskTables(tasksProperties);
   }
 
@@ -21,7 +21,7 @@ public class PostgresTaskDao extends MySqlTaskDao {
   public void init() {
     super.init();
 
-    TwTaskTables tables = twTaskTables(tasksProperties);
+    ITwTaskTables tables = twTaskTables(tasksProperties);
     String taskTable = tables.getTaskTableIdentifier();
     String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();
 

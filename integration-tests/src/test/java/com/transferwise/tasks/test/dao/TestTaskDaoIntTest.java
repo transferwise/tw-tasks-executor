@@ -27,7 +27,7 @@ abstract class TestTaskDaoIntTest extends BaseIntTest {
   protected TasksProperties tasksProperties;
 
   @Autowired
-  protected TestTaskDao testTaskDao;
+  protected ITestTaskDao testTaskDao;
 
   @Autowired
   protected ITaskDao taskDao;

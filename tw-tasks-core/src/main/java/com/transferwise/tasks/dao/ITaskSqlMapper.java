@@ -2,7 +2,7 @@ package com.transferwise.tasks.dao;
 
 import java.util.UUID;
 
-public interface TaskSqlMapper {
+public interface ITaskSqlMapper {
 
   UUID sqlTaskIdToUuid(Object object);
 

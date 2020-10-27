@@ -3,7 +3,7 @@ package com.transferwise.tasks.dao;
 import com.transferwise.tasks.TasksProperties;
 import org.apache.commons.lang3.StringUtils;
 
-public class PostgresTaskTables implements TwTaskTables {
+public class PostgresTaskTables implements ITwTaskTables {
 
   private final String taskTableIdentifier;
   private final String uniqueTaskKeyIdentifier;

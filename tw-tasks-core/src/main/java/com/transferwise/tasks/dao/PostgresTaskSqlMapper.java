@@ -2,7 +2,7 @@ package com.transferwise.tasks.dao;
 
 import java.util.UUID;
 
-public class PostgresTaskSqlMapper implements TaskSqlMapper {
+public class PostgresTaskSqlMapper implements ITaskSqlMapper {
 
   @Override
   public UUID sqlTaskIdToUuid(Object object) {

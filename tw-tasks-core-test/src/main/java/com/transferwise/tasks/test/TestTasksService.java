@@ -7,7 +7,7 @@ import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.stucktasks.ITasksResumer;
-import com.transferwise.tasks.test.dao.TestTaskDao;
+import com.transferwise.tasks.test.dao.ITestTaskDao;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
   private final List<AddTaskRequest> interceptedNewTasks = new ArrayList<>();
 
   @Autowired
-  private TestTaskDao testTaskDao;
+  private ITestTaskDao testTaskDao;
 
   @Autowired
   private IBucketsManager bucketsManager;

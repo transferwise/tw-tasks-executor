@@ -8,10 +8,10 @@ import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.helpers.IMeterHelper;
-import com.transferwise.tasks.management.dao.ManagementTaskDao;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask1;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask2;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask3;
+import com.transferwise.tasks.management.dao.IManagementTaskDao;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.utils.LogUtils;
 import java.time.Duration;
@@ -34,7 +34,7 @@ public class TasksManagementService implements ITasksManagementService {
   private ITaskDao taskDao;
 
   @Autowired
-  private ManagementTaskDao managementTaskDao;
+  private IManagementTaskDao managementTaskDao;
 
   @Autowired
   private TasksProperties tasksProperties;

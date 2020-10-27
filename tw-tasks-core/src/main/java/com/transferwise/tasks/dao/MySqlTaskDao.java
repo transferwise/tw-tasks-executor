@@ -65,13 +65,13 @@ public class MySqlTaskDao implements ITaskDao {
   private final ConcurrentHashMap<CacheKey, String> sqlCache = new ConcurrentHashMap<>();
 
   private final JdbcTemplate jdbcTemplate;
-  private final TaskSqlMapper sqlMapper;
+  private final ITaskSqlMapper sqlMapper;
 
   public MySqlTaskDao(DataSource dataSource) {
     this(dataSource, new MySqlTaskTypesMapper());
   }
 
-  public MySqlTaskDao(DataSource dataSource, TaskSqlMapper sqlMapper) {
+  public MySqlTaskDao(DataSource dataSource, ITaskSqlMapper sqlMapper) {
     jdbcTemplate = new JdbcTemplate(dataSource);
     this.sqlMapper = sqlMapper;
   }
@@ -110,13 +110,13 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected final TaskStatus[] stuckStatuses = new TaskStatus[]{TaskStatus.NEW, TaskStatus.SUBMITTED, TaskStatus.WAITING, TaskStatus.PROCESSING};
 
-  protected TwTaskTables twTaskTables(TasksProperties tasksProperties) {
+  protected ITwTaskTables twTaskTables(TasksProperties tasksProperties) {
     return new MySqlTaskTables(tasksProperties);
   }
 
   @PostConstruct
   public void init() {
-    TwTaskTables tables = twTaskTables(tasksProperties);
+    ITwTaskTables tables = twTaskTables(tasksProperties);
     String taskTable = tables.getTaskTableIdentifier();
     String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();
 

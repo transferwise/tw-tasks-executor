@@ -3,7 +3,7 @@ package com.transferwise.tasks.dao;
 import com.transferwise.tasks.TasksProperties;
 import org.apache.commons.lang3.StringUtils;
 
-public class MySqlTaskTables implements TwTaskTables {
+public class MySqlTaskTables implements ITwTaskTables {
 
   private final String taskTableIdentifier;
   private final String uniqueTaskKeyTableIdentifier;

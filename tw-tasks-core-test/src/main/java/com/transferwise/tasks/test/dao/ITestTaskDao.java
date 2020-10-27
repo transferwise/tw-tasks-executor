@@ -4,7 +4,7 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import java.util.List;
 
-public interface TestTaskDao {
+public interface ITestTaskDao {
 
   void deleteTasks(String type, String subType, TaskStatus... statuses);
 

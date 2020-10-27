@@ -21,10 +21,10 @@ import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.management.dao.ManagementTaskDao;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask1;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask2;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask3;
+import com.transferwise.tasks.management.dao.IManagementTaskDao;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -41,7 +41,7 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
   protected TasksProperties tasksProperties;
 
   @Autowired
-  protected ManagementTaskDao managementTaskDao;
+  protected IManagementTaskDao managementTaskDao;
 
   @Autowired
   protected ITaskDao taskDao;

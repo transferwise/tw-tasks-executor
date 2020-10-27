@@ -1,7 +1,7 @@
 package com.transferwise.tasks.test.dao;
 
-import com.transferwise.tasks.dao.TaskSqlMapper;
-import com.transferwise.tasks.dao.TwTaskTables;
+import com.transferwise.tasks.dao.ITaskSqlMapper;
+import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.annotation.Transactional;
 
-public class JdbcTestTaskDao implements TestTaskDao {
+public class JdbcTestTaskDao implements ITestTaskDao {
 
   private static class Queries {
 
@@ -37,7 +37,7 @@ public class JdbcTestTaskDao implements TestTaskDao {
     final String[] getIdAndVersionFromTaskByTypeAndSubTypeAndStatus;
     final String[] getTasksByTypeAndStatusAndSubType;
 
-    Queries(TwTaskTables tables) {
+    Queries(ITwTaskTables tables) {
       String tasksTable = tables.getTaskTableIdentifier();
       String keysTable = tables.getUniqueTaskKeyTableIdentifier();
       deleteFromTaskTable = "delete from " + tasksTable;
@@ -59,10 +59,10 @@ public class JdbcTestTaskDao implements TestTaskDao {
 
   private final JdbcTemplate jdbcTemplate;
   private final Queries queries;
-  private final TaskSqlMapper sqlMapper;
+  private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> sqlCache;
 
-  public JdbcTestTaskDao(DataSource dataSource, TwTaskTables tables, TaskSqlMapper sqlMapper) {
+  public JdbcTestTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper) {
     this.sqlCache = new ConcurrentHashMap<>();
     jdbcTemplate = new JdbcTemplate(dataSource);
     queries = new Queries(tables);

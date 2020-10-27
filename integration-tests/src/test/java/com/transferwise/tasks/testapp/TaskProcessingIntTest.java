@@ -16,8 +16,8 @@ import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
-import com.transferwise.tasks.management.dao.ManagementTaskDao;
-import com.transferwise.tasks.management.dao.ManagementTaskDao.DaoTask1;
+import com.transferwise.tasks.management.dao.IManagementTaskDao;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
@@ -44,7 +44,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
   @Autowired
   protected ITaskDao taskDao;
   @Autowired
-  protected ManagementTaskDao managementTaskDao;
+  protected IManagementTaskDao managementTaskDao;
   @Autowired
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
 

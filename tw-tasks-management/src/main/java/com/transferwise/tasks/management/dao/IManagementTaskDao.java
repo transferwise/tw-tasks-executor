@@ -8,7 +8,7 @@ import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
-public interface ManagementTaskDao {
+public interface IManagementTaskDao {
 
   @Data
   @Accessors(chain = true)

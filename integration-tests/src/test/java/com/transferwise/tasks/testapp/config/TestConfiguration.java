@@ -14,9 +14,9 @@ import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
+import com.transferwise.tasks.test.dao.ITestTaskDao;
 import com.transferwise.tasks.test.dao.MySqlTestTaskDao;
 import com.transferwise.tasks.test.dao.PostgresTestTaskDao;
-import com.transferwise.tasks.test.dao.TestTaskDao;
 import com.transferwise.tasks.utils.LogUtils;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
@@ -67,13 +67,13 @@ public class TestConfiguration {
 
   @Bean
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
-  public TestTaskDao postgresTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
+  public ITestTaskDao postgresTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
     return new PostgresTestTaskDao(dataSource, tasksProperties);
   }
 
   @Bean
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public TestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
+  public ITestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
     return new MySqlTestTaskDao(dataSource, tasksProperties);
   }
 

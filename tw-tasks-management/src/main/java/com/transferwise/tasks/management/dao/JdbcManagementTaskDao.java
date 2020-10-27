@@ -1,8 +1,8 @@
 package com.transferwise.tasks.management.dao;
 
 import com.transferwise.common.context.TwContextClockHolder;
-import com.transferwise.tasks.dao.TaskSqlMapper;
-import com.transferwise.tasks.dao.TwTaskTables;
+import com.transferwise.tasks.dao.ITaskSqlMapper;
+import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.annotation.Transactional;
 
-public class JdbcManagementTaskDao implements ManagementTaskDao {
+public class JdbcManagementTaskDao implements IManagementTaskDao {
 
   private static class Queries {
 
@@ -35,7 +35,7 @@ public class JdbcManagementTaskDao implements ManagementTaskDao {
     final String getTasksInStatus;
     final String getTasks;
 
-    Queries(TwTaskTables tables) {
+    Queries(ITwTaskTables tables) {
       scheduleTaskForImmediateExecution = "update " + tables.getTaskTableIdentifier() + " set status=?"
           + ",next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
       getTasksInErrorStatus = "select id,version,state_time,type,sub_type from " + tables.getTaskTableIdentifier()
@@ -65,10 +65,10 @@ public class JdbcManagementTaskDao implements ManagementTaskDao {
 
   private final JdbcTemplate jdbcTemplate;
   private final Queries queries;
-  private final TaskSqlMapper sqlMapper;
+  private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> queriesCache;
 
-  public JdbcManagementTaskDao(DataSource dataSource, TwTaskTables tables, TaskSqlMapper sqlMapper) {
+  public JdbcManagementTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper) {
     this.jdbcTemplate = new JdbcTemplate(dataSource);
     this.queries = new Queries(tables);
     this.sqlMapper = sqlMapper;
