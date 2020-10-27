@@ -56,7 +56,6 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
     tasksProperties.setParanoidTasksCleaning(false);
   }
 
-  //TODO: Flaky test. WAITING task can be picked up and moved to ERROR, before we assert.
   @Test
   void schedulingTaskForImmediateExecutionPutsTheTaskInWaitingState() {
     UUID taskId = randomSubmittedTask().save().getTaskId();
