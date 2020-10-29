@@ -1,6 +1,7 @@
 package com.transferwise.tasks.testapp.config;
 
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
@@ -13,18 +14,22 @@ import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
+import com.transferwise.tasks.test.dao.ITestTaskDao;
+import com.transferwise.tasks.test.dao.MySqlTestTaskDao;
+import com.transferwise.tasks.test.dao.PostgresTestTaskDao;
 import com.transferwise.tasks.utils.LogUtils;
-
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import javax.annotation.PostConstruct;
+import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -58,6 +63,18 @@ public class TestConfiguration {
 
     adminClient.createTopics(newTopics);
     adminClient.close();
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
+  public ITestTaskDao postgresTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
+    return new PostgresTestTaskDao(dataSource, tasksProperties);
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
+  public ITestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
+    return new MySqlTestTaskDao(dataSource, tasksProperties);
   }
 
   @Bean

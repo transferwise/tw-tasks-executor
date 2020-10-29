@@ -8,6 +8,10 @@ import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.management.dao.IManagementTaskDao;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.utils.LogUtils;
 import java.time.Duration;
@@ -28,6 +32,9 @@ public class TasksManagementService implements ITasksManagementService {
 
   @Autowired
   private ITaskDao taskDao;
+
+  @Autowired
+  private IManagementTaskDao managementTaskDao;
 
   @Autowired
   private TasksProperties tasksProperties;
@@ -76,7 +83,7 @@ public class TasksManagementService implements ITasksManagementService {
               .setMessage("Task with given id not not found.").setSuccess(false));
           log.warn("Task " + LogUtils.asParameter(taskVersionId) + " was tried to immediately resumed, but it does not exist.");
         } else {
-          boolean succeeded = taskDao.scheduleTaskForImmediateExecution(taskVersionId.getId(), taskVersionId.getVersion());
+          boolean succeeded = managementTaskDao.scheduleTaskForImmediateExecution(taskVersionId.getId(), taskVersionId.getVersion());
           log.info("Marking task " + LogUtils.asParameter(taskVersionId) + " in status '" + task
               .getStatus() + "' to be immediately resumed " + (succeeded ? " succeeded" : "failed") + ".");
           if (succeeded) {
@@ -103,7 +110,7 @@ public class TasksManagementService implements ITasksManagementService {
       return response;
     }
 
-    List<ITaskDao.DaoTask1> tasksInError = taskDao.getTasksInErrorStatus(request.getMaxCount());
+    List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
     List<TaskVersionId> taskVersionIdsToResume = tasksInError.stream()
         .filter(t -> t.getType().equals(request.getTaskType()))
         .map(t -> new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
@@ -115,7 +122,7 @@ public class TasksManagementService implements ITasksManagementService {
   @Override
   @Trace
   public GetTasksInErrorResponse getTasksInError(GetTasksInErrorRequest request) {
-    List<ITaskDao.DaoTask1> tasks = taskDao.getTasksInErrorStatus(request.getMaxCount());
+    List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
 
     return new GetTasksInErrorResponse().setTasksInError(
         tasks.stream().map(t -> new GetTasksInErrorResponse.TaskInError()
@@ -129,7 +136,7 @@ public class TasksManagementService implements ITasksManagementService {
   @Override
   @Trace
   public GetTasksStuckResponse getTasksStuck(GetTasksStuckRequest request) {
-    List<ITaskDao.DaoTask2> tasks = taskDao.getStuckTasks(request.getMaxCount(), request.getDelta() == null
+    List<DaoTask2> tasks = managementTaskDao.getStuckTasks(request.getMaxCount(), request.getDelta() == null
         ? Duration.ofSeconds(10) : request.getDelta());
 
     return new GetTasksStuckResponse().setTasksStuck(
@@ -141,7 +148,7 @@ public class TasksManagementService implements ITasksManagementService {
 
   @Override
   public GetTasksInProcessingOrWaitingResponse getTasksInProcessingOrWaiting(GetTasksInProcessingOrWaitingRequest request) {
-    List<ITaskDao.DaoTask3> tasks = taskDao.getTasksInProcessingOrWaitingStatus(request.getMaxCount());
+    List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(request.getMaxCount());
     return new GetTasksInProcessingOrWaitingResponse().setTasksInProcessingOrWaiting(
         tasks.stream().map(t -> new GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting()
             .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
@@ -154,7 +161,7 @@ public class TasksManagementService implements ITasksManagementService {
 
   @Override
   public GetTasksByIdResponse getTasksById(GetTasksByIdRequest request) {
-    List<FullTaskRecord> tasks = taskDao.getTasks(request.getTaskIds());
+    List<FullTaskRecord> tasks = managementTaskDao.getTasks(request.getTaskIds());
     return new GetTasksByIdResponse().setTasks(
         tasks.stream().map(t -> new GetTasksByIdResponse.Task()
             .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))

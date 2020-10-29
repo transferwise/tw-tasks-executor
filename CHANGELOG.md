@@ -2,6 +2,29 @@
 
 Describes notable changes.
 
+#### 1.16.0 - 2020/10/28
+Use separate DAOs for Core/Test/Management.
+- ITaskDao - data access operations used by the core and extensions.
+- IManagementTaskDao - data access operations used by the management extension.
+- ITestTaskDao - data access operations used for testing purposes
+
+Users of `tw-tasks-core-test` need to configure `ITestTaskDao` in the test configuration
+as from this version it is required by `TestTasksService`.
+
+```
+// either
+@Bean
+public ITestTaskDao postgresTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
+  return new PostgresTestTaskDao(dataSource, tasksProperties);
+}
+
+// or
+@Bean
+public ITestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
+  return new MySqlTestTaskDao(dataSource, tasksProperties);
+}
+```
+
 #### 1.15.1 - 2020/20/16
 - Partitions manager will log a warn only when a topic is missing or configured number of partitions is different from existing ones.
 

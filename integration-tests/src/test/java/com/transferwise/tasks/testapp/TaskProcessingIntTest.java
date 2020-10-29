@@ -8,7 +8,6 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.dao.ITaskDao;
-import com.transferwise.tasks.dao.ITaskDao.DaoTask1;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
@@ -17,6 +16,8 @@ import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import com.transferwise.tasks.management.dao.IManagementTaskDao;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
@@ -42,6 +43,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
   protected ITasksService tasksService;
   @Autowired
   protected ITaskDao taskDao;
+  @Autowired
+  protected IManagementTaskDao managementTaskDao;
   @Autowired
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
 
@@ -159,7 +162,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
 
       List<DaoTask1> error = transactionsHelper.withTransaction().asNew().call(() ->
-          taskDao.getTasksInErrorStatus(10)
+          managementTaskDao.getTasksInErrorStatus(10)
       );
       boolean taskWasMarkedAsError = error.size() != 0 && error.get(0).getId().equals(taskRef.get().getTaskId());
       if (taskWasMarkedAsError) {

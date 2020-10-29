@@ -1,15 +1,19 @@
 package com.transferwise.tasks.dao;
 
+import com.transferwise.tasks.TasksProperties;
 import java.sql.SQLWarning;
-import java.util.UUID;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
-import org.apache.commons.lang3.StringUtils;
 
 public class PostgresTaskDao extends MySqlTaskDao {
 
   public PostgresTaskDao(DataSource dataSource) {
-    super(dataSource);
+    super(dataSource, new PostgresTaskSqlMapper());
+  }
+
+  @Override
+  protected ITwTaskTables twTaskTables(TasksProperties tasksProperties) {
+    return new PostgresTaskTables(tasksProperties);
   }
 
   @PostConstruct
@@ -17,8 +21,9 @@ public class PostgresTaskDao extends MySqlTaskDao {
   public void init() {
     super.init();
 
-    String taskTable = getTaskTableIdentifier();
-    String uniqueTaskKeyTable = getUniqieTaskKeyIdentifier();
+    ITwTaskTables tables = twTaskTables(tasksProperties);
+    String taskTable = tables.getTaskTableIdentifier();
+    String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();
 
     insertTaskSql = "insert into " + taskTable + "(id,type,sub_type,status,data,next_event_time"
         + ",state_time,time_created,time_updated,processing_tries_count,version,priority) values"
@@ -38,27 +43,6 @@ public class PostgresTaskDao extends MySqlTaskDao {
         + " pg_class.relnamespace=pg_namespace.oid and nspname='" + tasksProperties.getTaskTablesSchemaName() + "' and relname = '" + tasksProperties
         .getUniqueTaskKeyTableName() + "'";
 
-  }
-
-  @Override
-  protected Object asUuidArg(UUID uuid) {
-    return uuid;
-  }
-
-  @Override
-  protected String getTaskTableIdentifier() {
-    if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
-      return tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getTaskTableName();
-    }
-    return tasksProperties.getTaskTableName();
-  }
-
-  @Override
-  protected String getUniqieTaskKeyIdentifier() {
-    if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
-      return tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getUniqueTaskKeyTableName();
-    }
-    return tasksProperties.getUniqueTaskKeyTableName();
   }
 
   @Override

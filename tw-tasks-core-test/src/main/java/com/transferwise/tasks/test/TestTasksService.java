@@ -4,10 +4,10 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.TasksService;
 import com.transferwise.tasks.buckets.IBucketsManager;
-import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.stucktasks.ITasksResumer;
+import com.transferwise.tasks.test.dao.ITestTaskDao;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -28,7 +28,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
   private final List<AddTaskRequest> interceptedNewTasks = new ArrayList<>();
 
   @Autowired
-  private ITaskDao taskDao;
+  private ITestTaskDao testTaskDao;
 
   @Autowired
   private IBucketsManager bucketsManager;
@@ -38,12 +38,12 @@ public class TestTasksService extends TasksService implements ITestTasksService 
 
   @Override
   public List<Task> getFinishedTasks(String type, String subType) {
-    return taskDao.findTasksByTypeSubTypeAndStatus(type, subType, TaskStatus.DONE);
+    return testTaskDao.findTasksByTypeSubTypeAndStatus(type, subType, TaskStatus.DONE);
   }
 
   @Override
   public void reset() {
-    taskDao.deleteAllTasks();
+    testTaskDao.deleteAllTasks();
     newTaskInterceptPredicate = null;
     interceptedNewTasks.clear();
     taskAdditionTrackers.clear();
@@ -51,19 +51,19 @@ public class TestTasksService extends TasksService implements ITestTasksService 
 
   @Override
   public void resetAndDeleteTasksWithTypes(String... types) {
-    Arrays.stream(types).forEach(type -> taskDao.deleteTasks(type, null));
+    Arrays.stream(types).forEach(type -> testTaskDao.deleteTasks(type, null));
     newTaskInterceptPredicate = null;
     interceptedNewTasks.clear();
   }
 
   @Override
   public List<Task> getWaitingTasks(String type, String subType) {
-    return taskDao.findTasksByTypeSubTypeAndStatus(type, subType, TaskStatus.WAITING);
+    return testTaskDao.findTasksByTypeSubTypeAndStatus(type, subType, TaskStatus.WAITING);
   }
 
   @Override
   public List<Task> getTasks(String type, String subType, TaskStatus... statuses) {
-    return taskDao.findTasksByTypeSubTypeAndStatus(type, subType, statuses);
+    return testTaskDao.findTasksByTypeSubTypeAndStatus(type, subType, statuses);
   }
 
   @Override
@@ -93,7 +93,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
 
   @Override
   public void cleanFinishedTasks(String type, String subType) {
-    taskDao.deleteTasks(type, subType, TaskStatus.DONE);
+    testTaskDao.deleteTasks(type, subType, TaskStatus.DONE);
   }
 
   @Override
