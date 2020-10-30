@@ -44,15 +44,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 
 abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
-
-  @Autowired
-  private JdbcTemplate jdbcTemplate;
 
   @Autowired
   private TasksProperties tasksProperties;
@@ -474,13 +470,15 @@ abstract class TaskDaoIntTest extends BaseIntTest {
         clock.tick(Duration.ofMillis(2));
       }
 
-      List<String> result = jdbcTemplate.queryForList("select data from tw_task where type=? order by id", String.class, taskType);
+      List<String> result = findDataByType(taskType);
       List<Integer> resultInts = result.stream().map(Integer::parseInt).collect(Collectors.toList());
       assertThat(resultInts).isSorted();
     } finally {
       TestClock.reset();
     }
   }
+
+  abstract List<String> findDataByType(String taskType);
 
   @Test
   void approximateTaskCountCanBeRetrieved() {
@@ -492,9 +490,5 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertThat(taskDao.getApproximateUniqueKeysCount()).isGreaterThan(-1);
   }
 
-  private int getUniqueTaskKeysCount() {
-    Integer cnt = jdbcTemplate.queryForObject("select count(*) from unique_tw_task_key", Integer.class);
-    // Just keep the spotbugs happy.
-    return cnt == null ? 0 : cnt;
-  }
+  abstract int getUniqueTaskKeysCount();
 }

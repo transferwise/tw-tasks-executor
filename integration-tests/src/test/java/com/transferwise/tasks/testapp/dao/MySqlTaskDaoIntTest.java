@@ -1,5 +1,5 @@
 package com.transferwise.tasks.testapp.dao;
 
-class MySqlTaskDaoIntTest extends TaskDaoIntTest {
+class MySqlTaskDaoIntTest extends JdbcDaoIntTest {
 
 }

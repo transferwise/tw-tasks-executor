@@ -43,6 +43,7 @@ ext {
             springBootStarterWeb        : 'org.springframework.boot:spring-boot-starter-web',
             springSecurityConfig        : 'org.springframework.security:spring-security-config',
             springSecurityTest          : 'org.springframework.security:spring-security-test',
+            springDataMongo             : 'org.springframework.data:spring-data-mongodb',
             apacheCommonsLang           : "org.apache.commons:commons-lang3",
             micrometerCore              : "io.micrometer:micrometer-core",
             micrometerRegistryPrometheus: "io.micrometer:micrometer-registry-prometheus",
@@ -63,5 +64,6 @@ ext {
             janino                      : 'org.codehaus.janino:janino',
             postgresql                  : 'org.postgresql:postgresql',
             mysqlConnectorJava          : 'mysql:mysql-connector-java',
+            mongoClient                 : 'org.mongodb:mongodb-driver-sync:4.0.5'
     ]
 }

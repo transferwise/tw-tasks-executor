@@ -108,8 +108,6 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
 
-  protected final TaskStatus[] stuckStatuses = new TaskStatus[]{TaskStatus.NEW, TaskStatus.SUBMITTED, TaskStatus.WAITING, TaskStatus.PROCESSING};
-
   protected ITwTaskTables twTaskTables(TasksProperties tasksProperties) {
     return new MySqlTaskTables(tasksProperties);
   }
@@ -329,7 +327,7 @@ public class MySqlTaskDao implements ITaskDao {
   public int getStuckTasksCount(ZonedDateTime age, int maxCount) {
     int cnt = 0;
 
-    for (TaskStatus taskStatus : stuckStatuses) {
+    for (TaskStatus taskStatus : STUCK_STATUSES) {
       List<Integer> results = jdbcTemplate.query(getStuckTasksCountSql, args(taskStatus, age, maxCount), (rs, rowNum) -> rs.getInt(1));
 
       cnt += DataAccessUtils.intResult(results);

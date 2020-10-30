@@ -15,6 +15,7 @@ import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
 import com.transferwise.tasks.test.dao.ITestTaskDao;
+import com.transferwise.tasks.test.dao.MongoTestTaskDao;
 import com.transferwise.tasks.test.dao.MySqlTestTaskDao;
 import com.transferwise.tasks.test.dao.PostgresTestTaskDao;
 import com.transferwise.tasks.utils.LogUtils;
@@ -33,6 +34,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 @Configuration
 @Slf4j
@@ -75,6 +77,12 @@ public class TestConfiguration {
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
   public ITestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
     return new MySqlTestTaskDao(dataSource, tasksProperties);
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MONGO")
+  public ITestTaskDao mongoTestTaskDao(MongoTemplate mongoTemplate, TasksProperties tasksProperties) {
+    return new MongoTestTaskDao(mongoTemplate, tasksProperties);
   }
 
   @Bean

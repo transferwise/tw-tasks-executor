@@ -35,6 +35,8 @@ dependencies {
     testImplementation libraries.mariadbJavaClient
     testImplementation libraries.springKafka
     testImplementation libraries.awaitility
+    testImplementation libraries.springDataMongo
+    testImplementation libraries.mongoClient
 }
 
 test {

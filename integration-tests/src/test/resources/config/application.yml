@@ -100,3 +100,25 @@ tw-tasks.core:
 
 spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-postgres.xml
 
+---
+
+spring:
+  profiles: mongo
+  kafka:
+    client-id: test-mongo
+    consumer:
+      groupId: 'test'
+  data:
+    mongodb:
+      database: twtask
+      host: localhost
+      username: twuser
+      password: example-password-change-me
+      replica-set-name: twtask-mongo-replicaset
+      port: 27017
+      authentication-database: admin
+
+tw-tasks.core:
+  db-type: mongo
+  group-id: test-mongo
+  client-id: test-mongo

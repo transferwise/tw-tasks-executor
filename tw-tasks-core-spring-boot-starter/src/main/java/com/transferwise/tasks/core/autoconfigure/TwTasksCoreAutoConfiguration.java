@@ -2,7 +2,8 @@ package com.transferwise.tasks.core.autoconfigure;
 
 import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
-import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
+import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
+import com.transferwise.common.baseutils.transactionsmanagement.TransactionsHelper;
 import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.PriorityManager;
@@ -11,6 +12,8 @@ import com.transferwise.tasks.TasksService;
 import com.transferwise.tasks.TwTasks;
 import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.cleaning.TasksCleaner;
+import com.transferwise.tasks.config.JdbcEnvironmentCondition;
+import com.transferwise.tasks.config.MongoConfiguration;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
@@ -44,6 +47,7 @@ import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
@@ -53,7 +57,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 
 @Configuration
 @Slf4j
-@Import(TransactionsConfiguration.class)
+@Import(MongoConfiguration.class)
 @EnableConfigurationProperties
 public class TwTasksCoreAutoConfiguration {
 
@@ -74,6 +78,7 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(TwTasksDataSourceProvider.class)
+  @Conditional(JdbcEnvironmentCondition.class)
   public TwTasksDataSourceProvider twTasksDataSourceProvider(
       @Autowired(required = false) @TwTasks DataSource dataSource, ConfigurableListableBeanFactory beanFactory) {
     if (dataSource == null) {
@@ -112,6 +117,13 @@ public class TwTasksCoreAutoConfiguration {
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
   public ITaskDao twTasksMysqlTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider) {
     return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource());
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ITransactionsHelper.class)
+  @Conditional(JdbcEnvironmentCondition.class)
+  public ITransactionsHelper twTransactionsHelper() {
+    return new TransactionsHelper();
   }
 
   @Bean
