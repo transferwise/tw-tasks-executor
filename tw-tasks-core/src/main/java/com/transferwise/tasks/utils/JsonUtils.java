@@ -2,10 +2,8 @@ package com.transferwise.tasks.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import lombok.experimental.UtilityClass;
 
-@UtilityClass
-public class JsonUtils {
+public abstract class JsonUtils {
 
   public static String toJson(ObjectMapper objectMapper, Object obj) {
     return ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsString(obj));

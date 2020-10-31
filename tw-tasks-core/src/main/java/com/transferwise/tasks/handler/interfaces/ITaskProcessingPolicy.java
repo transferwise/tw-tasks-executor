@@ -4,6 +4,7 @@ import com.transferwise.tasks.domain.IBaseTask;
 import java.time.Duration;
 import java.time.Instant;
 
+@SuppressWarnings({"SameReturnValue", "unused"})
 public interface ITaskProcessingPolicy {
 
   /**

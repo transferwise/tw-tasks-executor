@@ -6,7 +6,7 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import java.time.Duration;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
@@ -32,8 +32,9 @@ public class AdminClientTopicPartitionsManager implements ITopicPartitionsManage
   public void setPartitionsCount(String topic, int partitionsCount) {
     ExceptionUtils.doUnchecked(() -> {
       AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
+      //noinspection TryFinallyCanBeTryWithResources
       try {
-        DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Arrays.asList(topic));
+        DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singletonList(topic));
         TopicDescription topicDescription = null;
         try {
           topicDescription = describeTopicsResult.all().get(COMMANDS_TIMEOUT_S, TimeUnit.SECONDS).get(topic);
@@ -47,7 +48,7 @@ public class AdminClientTopicPartitionsManager implements ITopicPartitionsManage
           log.info(
               "Asking Kafka to create topic '" + topic + "', with " + partitionsCount + " partitions and replication of " + topicReplicationFactor
                   + ".");
-          adminClient.createTopics(Arrays.asList(new NewTopic(topic, partitionsCount, topicReplicationFactor)));
+          adminClient.createTopics(Collections.singletonList(new NewTopic(topic, partitionsCount, topicReplicationFactor)));
         } else {
           int currentPartitionsCount = topicDescription.partitions().size();
           if (currentPartitionsCount < partitionsCount) {

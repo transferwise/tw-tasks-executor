@@ -21,9 +21,9 @@ public class KafkaMessageToTaskConverter<T> implements IKafkaMessageHandler<Stri
   protected ObjectMapper objectMapper;
 
   private List<Topic> topics;
-  private Class<T> dataObjClass;
-  private TriConsumer<T, ConsumerRecord<String, String>, ITasksService.AddTaskRequest> consumer;
-  private Predicate<String> handlesPredicate = checkedTopic -> {
+  private final Class<T> dataObjClass;
+  private final TriConsumer<T, ConsumerRecord<String, String>, ITasksService.AddTaskRequest> consumer;
+  private final Predicate<String> handlesPredicate = checkedTopic -> {
     for (Topic topic : topics) {
       if (checkedTopic.endsWith(topic.getAddress())) {
         return true;

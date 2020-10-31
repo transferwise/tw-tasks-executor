@@ -131,7 +131,7 @@ class JobsIntTest extends BaseIntTest {
   @Slf4j
   static class JobB implements IJob {
 
-    private String script = "RFFFRFFFRR";
+    private final String script = "RFFFRFFFRR";
     private int executionsCount;
     private char retryCode;
 
@@ -142,16 +142,13 @@ class JobsIntTest extends BaseIntTest {
 
     @Override
     public ITaskRetryPolicy getFailureRetryPolicy() {
-      return new ITaskRetryPolicy() {
-        @Override
-        public ZonedDateTime getRetryTime(ITask task, Throwable t) {
-          if (script.charAt(executionsCount) != 'F') {
-            throw new RuntimeException("Massive fail! Failure retry policy should not have been used.");
-          }
-          retryCode = 'F';
-          log.info("Next runtime will be after 1s");
-          return ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1);
+      return (task, t) -> {
+        if (script.charAt(executionsCount) != 'F') {
+          throw new RuntimeException("Massive fail! Failure retry policy should not have been used.");
         }
+        retryCode = 'F';
+        log.info("Next runtime will be after 1s");
+        return ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1);
       };
     }
 

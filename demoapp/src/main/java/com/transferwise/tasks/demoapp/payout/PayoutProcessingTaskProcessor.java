@@ -25,11 +25,13 @@ public class PayoutProcessingTaskProcessor implements ISyncTaskProcessor {
     ExceptionUtils.doUnchecked(() -> {
       PayoutInstruction poi = objectMapper.readValue(task.getData(), PayoutInstruction.class);
 
+      /*
       if (poi.getType().equals("LHV")) {
-        //Thread.sleep(10000);
+        Thread.sleep(10000);
       } else {
-        //Thread.sleep(2000);
+        Thread.sleep(2000);
       }
+      */
 
       toKafkaSenderService.sendMessage(new IToKafkaSenderService.SendMessageRequest()
           .setTopic("payout.succeeded").setPayloadString(task.getData()));

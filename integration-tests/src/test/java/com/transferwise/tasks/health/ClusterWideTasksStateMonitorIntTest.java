@@ -7,12 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -21,6 +23,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,9 +33,22 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
   @Autowired
   private MeterRegistry meterRegistry;
-
   @Autowired
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor;
+  @Autowired
+  private TasksProperties tasksProperties;
+
+  private Duration originalStartDelay;
+
+  @BeforeEach
+  void setup() {
+    originalStartDelay = tasksProperties.getClusterWideTasksStateMonitor().getStartDelay();
+  }
+
+  @AfterEach
+  void cleanup() {
+    tasksProperties.getClusterWideTasksStateMonitor().setStartDelay(originalStartDelay);
+  }
 
   @Test
   void metricsAreCorrectlyRegistered() {
@@ -66,6 +83,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     assertThat(meterRegistry.find("twTasks.state.approximateUniqueKeys").gauges().size()).isEqualTo(0);
 
     // everything works when the node gets leader back
+    tasksProperties.getClusterWideTasksStateMonitor().setStartDelay(Duration.ZERO);
     clusterWideTasksStateMonitor.leaderSelector.start();
 
     await().until(() -> meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 1);
@@ -85,7 +103,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     clusterWideTasksStateMonitor.check();
 
-    assertEquals(1, meterRegistry.find("twTasks.health.tasksInErrorCount").gauge().value());
+    assertEquals(1, meterRegistry.get("twTasks.health.tasksInErrorCount").gauge().value());
 
     // resetting the task
     transactionsHelper.withTransaction().asNew().call(() -> {
@@ -95,7 +113,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     clusterWideTasksStateMonitor.check();
 
-    assertEquals(0, meterRegistry.find("twTasks.health.tasksInErrorCount").gauge().value());
+    assertEquals(0, meterRegistry.get("twTasks.health.tasksInErrorCount").gauge().value());
     assertTrue(
         meterRegistry.getMeters()
             .stream()
@@ -127,18 +145,12 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     for (int i = 0; i < N; i++) {
       if (i % 4 == 0) {
-        executor.submit(() -> {
-          wrapper.accept(() -> {
-            clusterWideTasksStateMonitor.resetState(true);
-            clusterWideTasksStateMonitor.resetState(false);
-          });
-        });
+        executor.submit(() -> wrapper.accept(() -> {
+          clusterWideTasksStateMonitor.resetState(true);
+          clusterWideTasksStateMonitor.resetState(false);
+        }));
       } else {
-        executor.submit(() -> {
-          wrapper.accept(() -> {
-            clusterWideTasksStateMonitor.check();
-          });
-        });
+        executor.submit(() -> wrapper.accept(() -> clusterWideTasksStateMonitor.check()));
       }
     }
 

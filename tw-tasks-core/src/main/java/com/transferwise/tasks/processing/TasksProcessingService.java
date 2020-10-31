@@ -83,7 +83,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   @Autowired
   private ITransactionsHelper transactionsHelper;
   @Autowired(required = false)
-  private List<ITaskProcessingInterceptor> taskProcessingInterceptors = new ArrayList<>();
+  private final List<ITaskProcessingInterceptor> taskProcessingInterceptors = new ArrayList<>();
   @Autowired
   private IMeterHelper meterHelper;
   @Autowired
@@ -112,7 +112,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     tasksProcessingExecutor = executorsHelper.newCachedExecutor("tasksProcessing");
     tasksGrabbingExecutor = executorsHelper.newCachedExecutor("tasksGrabbing");
 
-    meterHelper.registerGauge(METRIC_PREFIX + "processing.ongoingTasksGrabbingsCount", () -> ongoingTasksGrabbingsCount.get());
+    meterHelper.registerGauge(METRIC_PREFIX + "processing.ongoingTasksGrabbingsCount", ongoingTasksGrabbingsCount::get);
   }
 
   @Override
@@ -214,7 +214,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
           if (taskProcessed) {
             taskTriggeringProcessingListener.accept(taskTriggering);
             prioritySlot.getOrderedTypeTasks().remove(typeTasks);
-            typeTasks.poll();
+            typeTasks.removeLast();
             log.debug("Removed task '{}' triggering from processingState.", task.getVersionId());
             prioritySlot.getOrderedTypeTasks().add(typeTasks);
             bucket.increaseVersion();
@@ -241,11 +241,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       GlobalProcessingState.TypeTasks typeTasks = prioritySlot.getTypeTasks().get(taskType);
       if (typeTasks == null) {
         prioritySlot.getTypeTasks().put(taskType, typeTasks = new GlobalProcessingState.TypeTasks().setType(taskType));
-        
+
         GlobalProcessingState.TypeTasks finalTypeTasks = typeTasks;
         Map<String, String> tags = ImmutableMap.of("bucketId", bucket.getBucketId(), "type", taskType);
         meterHelper.registerGauge(METRIC_PREFIX + "processing.typeTriggersCount", tags, () -> finalTypeTasks.getSize().get());
-        
+
         prioritySlot.getOrderedTypeTasks().add(typeTasks);
       }
       boolean emptyQueue = typeTasks.peek() == null;

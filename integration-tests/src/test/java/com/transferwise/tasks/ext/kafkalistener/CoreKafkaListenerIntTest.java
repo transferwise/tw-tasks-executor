@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.BaseIntTest;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -42,9 +43,7 @@ public class CoreKafkaListenerIntTest extends BaseIntTest {
   void testSendingMessagesToMultipleShards() {
     List<String> receivedValues = new ArrayList<>();
 
-    ITestMessagesListener listener = message -> {
-      receivedValues.add(message.value());
-    };
+    ITestMessagesListener listener = message -> receivedValues.add(message.value());
     testMessagesListeners.addListener(listener);
 
     sendDirectMessage(TOPIC_A, "MessageA");
@@ -75,11 +74,9 @@ public class CoreKafkaListenerIntTest extends BaseIntTest {
       if (record.topic().equals(TOPIC_A)) {
         if (shard0Count.get() == 0) {
           log.info("Blocking shard 0 processing.");
-          ExceptionUtils.doUnchecked(() -> {
-            if (!shard0Blocker.await(10, TimeUnit.SECONDS)) {
-              return;
-            }
-          });
+          if (!ExceptionUtils.doUnchecked(() -> shard0Blocker.await(10, TimeUnit.SECONDS))) {
+            return;
+          }
           log.info("Resuming shard 1 processing.");
         }
         shard0Count.incrementAndGet();
@@ -96,7 +93,7 @@ public class CoreKafkaListenerIntTest extends BaseIntTest {
         sendDirectMessage(TOPIC_B, "MessageB");
       }
 
-      Awaitility.await().until(() -> shard1Count.get() == 1000);
+      Awaitility.await().atMost(Duration.ofSeconds(20)).until(() -> shard1Count.get() == 1000);
 
       shard0Blocker.countDown();
 

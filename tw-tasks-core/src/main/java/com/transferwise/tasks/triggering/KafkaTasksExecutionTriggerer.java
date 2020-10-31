@@ -120,7 +120,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       releaseCompletedOffset(consumerBucket, topicPartition, offset);
     });
 
-    meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.pollingBucketsCount", () -> pollingBucketsCount.get());
+    meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.pollingBucketsCount", pollingBucketsCount::get);
   }
 
   @Override

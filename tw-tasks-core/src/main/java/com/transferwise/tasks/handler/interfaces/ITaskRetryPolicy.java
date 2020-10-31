@@ -4,6 +4,7 @@ import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.ITask;
 import java.time.ZonedDateTime;
 
+@SuppressWarnings("unused")
 public interface ITaskRetryPolicy {
 
   ZonedDateTime getRetryTime(ITask task, Throwable t);

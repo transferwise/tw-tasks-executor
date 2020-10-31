@@ -63,8 +63,8 @@ dependencies {
 
 configurations {
     all {
-        exclude group: 'junit', module: 'junit'
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+        exclude(group: 'junit', module: 'junit')
+        exclude(group: 'org.junit.vintage', module: 'junit-vintage-engine')
     }
 }
 
@@ -100,6 +100,11 @@ test {
         exceptionFormat = TestExceptionFormat.FULL
     }
 
+    // When you want to rerun tests without any changes made
+    // outputs.upToDateWhen { false }
+
+    jvmArgs("-XX:TieredStopAtLevel=1", "-server", "-noverify", "-Djava.security.egd=file:/dev/./urandom", "-XX:+ExplicitGCInvokesConcurrent",
+            "-Xmx768m", "-XX:+HeapDumpOnOutOfMemoryError")
     useJUnitPlatform()
 }
 

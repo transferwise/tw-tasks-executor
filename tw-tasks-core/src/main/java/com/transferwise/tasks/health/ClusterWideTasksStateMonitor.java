@@ -81,8 +81,9 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       control.workAsyncUntilShouldStop(
           () -> {
             resetState(true);
-            taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(this::check, Duration.ofSeconds(0),
-                Duration.ofSeconds(30)));
+            taskHandleHolder.setValue(scheduledTaskExecutor
+                .scheduleAtFixedInterval(this::check, tasksProperties.getClusterWideTasksStateMonitor().getStartDelay(),
+                    tasksProperties.getClusterWideTasksStateMonitor().getInterval()));
             log.info("Started to monitor tasks state for '" + tasksProperties.getGroupId() + "'.");
           },
           () -> {
@@ -112,7 +113,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       /*
         The main idea between unregistering the metrics, is to not left 0 or old values lying around in Grafana but make this metric disappear from
          current node.
-        This will make the picture much more clear and accurate. 
+        This will make the picture much more clear and accurate.
        */
       if (registeredMetricHandles != null) {
         for (Object metricHandle : registeredMetricHandles) {
@@ -147,8 +148,10 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       checkErroneousTasks();
       checkStuckTasks();
       measureTasksHistoryLength();
-      checkApproximateTasksCount();
-      checkApproximateUniqueKeysCount();
+      if (tasksProperties.getClusterWideTasksStateMonitor().isTasksCountingEnabled()) {
+        checkApproximateTasksCount();
+        checkApproximateUniqueKeysCount();
+      }
     } finally {
       stateLock.unlock();
     }
