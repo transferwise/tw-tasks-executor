@@ -110,6 +110,22 @@ services:
 # -c 'checkpoint_completion_target=0.9' 
 # -c 'default_statistics_target=100'
 
+  mongodb:
+    image: mongo:4.2.8
+    hostname: mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: twuser
+      MONGO_INITDB_ROOT_PASSWORD: example-password-change-me
+      MONGO_INITDB_DATABASE: twtask
+      MONGO_REPLICA_SET_NAME: twtask-mongo-replicaset
+    healthcheck:
+      test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u twuser -p example-password-change-me --quiet) -eq 1
+      interval: 10s
+      start_period: 30s
+    ports:
+      - "27017:27017"
+    command: [ "--replSet", "twtask-mongo-replicaset", "--bind_ip_all" ]
+
 networks:
   default:
     driver: bridge

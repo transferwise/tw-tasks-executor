@@ -1,13 +1,13 @@
 package com.transferwise.tasks.testapp.dao;
 
 import com.transferwise.tasks.domain.MongoTask;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.test.context.ActiveProfiles;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @ActiveProfiles("mongo")
 class MongoTaskDaoIntTest extends TaskDaoIntTest {

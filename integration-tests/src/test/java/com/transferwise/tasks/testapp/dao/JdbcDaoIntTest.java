@@ -1,8 +1,8 @@
 package com.transferwise.tasks.testapp.dao;
 
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import java.util.List;
 
 public abstract class JdbcDaoIntTest extends TaskDaoIntTest {
 

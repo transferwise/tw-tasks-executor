@@ -8,6 +8,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -31,6 +32,7 @@ public class MongoTestTaskDao implements ITestTaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public void deleteTasks(String type, String subType, TaskStatus... statuses) {
     Query query = buildQueryWithTypeSubTypeAndStatuses(type, subType, statuses);
     mongoTemplate.remove(query, tasksProperties.getTaskTableName());
@@ -58,6 +60,7 @@ public class MongoTestTaskDao implements ITestTaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public void deleteAllTasks() {
     mongoTemplate.remove(new Query(), tasksProperties.getTaskTableName());
   }

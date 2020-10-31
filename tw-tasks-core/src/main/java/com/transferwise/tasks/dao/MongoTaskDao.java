@@ -77,12 +77,15 @@ public class MongoTaskDao implements ITaskDao {
         .limit(1);
 
     query.fields().include(NEXT_EVENT_TIME);
-    Instant nextEventTime = mongoTemplate.findOne(query, Instant.class, twTaskCollectionName);
-    return nextEventTime != null ? nextEventTime.atZone(ZoneOffset.UTC) : null;
+    MongoTask task = mongoTemplate.findOne(query, MongoTask.class, twTaskCollectionName);
+    if (task != null && task.getNextEventTime() != null) {
+      return task.getNextEventTime().atZone(ZoneOffset.UTC);
+    }
+    return null;
   }
 
   @Override
-  @Transactional
+  @Transactional(rollbackFor = Exception.class)
   public List<StuckTask> prepareStuckOnProcessingTasksForResuming(String clientId, ZonedDateTime maxStuckTime) {
     Instant now = now();
     Instant nextEventTimeFrom = now().minus(tasksProperties.getStuckTaskAge().multipliedBy(2));
@@ -134,6 +137,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public InsertTaskResponse insertTask(InsertTaskRequest request) {
     Instant now = now();
     ZonedDateTime nextEventTime = request.getRunAfterTime() == null ? request.getMaxStuckTime() : request.getRunAfterTime();
@@ -153,11 +157,11 @@ public class MongoTaskDao implements ITaskDao {
     Query query = Query.query(findExistingTaskCriteria);
     long savedTaskCount = mongoTemplate.count(query, twTaskCollectionName);
     if (savedTaskCount > 0) {
-      log.debug("Task with id '{}' already exist", taskId);
+      log.debug("Task with id '{}' and key '{}' already exist", taskId, key);
       return new InsertTaskResponse().setInserted(false);
     }
 
-    MongoTask twTask = new MongoTask().setId(taskId)
+    MongoTask task = new MongoTask().setId(taskId)
         .setKey(key)
         .setKeyHash(keyHash)
         .setType(request.getType())
@@ -171,17 +175,8 @@ public class MongoTaskDao implements ITaskDao {
         .setProcessingTriesCount(0)
         .setVersion(0L)
         .setPriority(request.getPriority());
-    boolean inserted = false;
-    try {
-      mongoTemplate.insert(twTask, twTaskCollectionName);
-      inserted = true;
-    } catch (Throwable t) {
-      log.debug("Error occurred inserting task with id '{} and key '{}", taskId, key, t);
-    }
-
-    return new InsertTaskResponse()
-        .setTaskId(taskId)
-        .setInserted(inserted);
+    mongoTemplate.insert(task, twTaskCollectionName);
+    return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
   }
 
 
@@ -248,6 +243,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize) {
     Instant deletedBeforeTime = now().minus(age);
     Criteria criteria = Criteria.where(STATUS).is(taskStatus)
@@ -275,6 +271,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean deleteTask(UUID taskId, long version) {
     Query query = Query.query(Criteria.where(ID).is(taskId).and(VERSION).is(version));
     DeleteResult deleteResult = mongoTemplate.remove(query, twTaskCollectionName);
@@ -282,6 +279,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean clearPayloadAndMarkDone(UUID taskId, long version) {
     Instant now = now();
     Query query = Query.query(Criteria.where(ID).is(taskId).and(VERSION).is(version));
@@ -296,6 +294,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean setToBeRetried(UUID id, ZonedDateTime retryTime, long version, boolean resetTriesCount) {
     Instant now = now();
     Query query = Query.query(Criteria.where(ID).is(id).and(VERSION).is(version));
@@ -314,6 +313,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public Task grabForProcessing(BaseTask task, String clientId, Instant maxProcessingEndTime) {
     Instant now = now();
 
@@ -339,6 +339,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean setStatus(UUID taskId, TaskStatus status, long version) {
     Instant now = now();
     return updateStatus(taskId, version, status, now, now);
@@ -360,6 +361,7 @@ public class MongoTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime) {
     return updateStatus(taskId, version, TaskStatus.SUBMITTED, now(), maxStuckTime.toInstant());
   }

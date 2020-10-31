@@ -13,6 +13,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -91,6 +92,7 @@ public class MongoManagementTaskDao implements IManagementTaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class)
   public boolean scheduleTaskForImmediateExecution(UUID taskId, long version) {
     Instant now = Instant.now(TwContextClockHolder.getClock());
     Query updateQuery = Query.query(Criteria.where(ID).is(taskId).and(VERSION).is(version));

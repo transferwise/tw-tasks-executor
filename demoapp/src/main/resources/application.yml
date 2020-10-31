@@ -153,3 +153,22 @@ spring:
 tw-task:
   task-table-name: "demoapp_tw_task"
   unique-task-key-table-name: "demoapp_unique_tw_task_key"
+
+
+---
+
+spring:
+  profiles: mongo
+  data:
+    mongodb:
+      database: twtask
+      host: localhost
+      username: twuser
+      password: example-password-change-me
+      replica-set-name: twtask-mongo-replicaset
+      port: 27017
+      authentication-database: admin
+
+tw-tasks.core:
+  task-table-name: "demoapp_tw_task"
+  db-type: MONGO

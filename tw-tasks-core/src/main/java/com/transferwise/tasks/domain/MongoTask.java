@@ -13,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 @Data
 @TypeAlias("MongoTask")
 @CompoundIndex(name = "tw_task_idx1", def = "{'status': 1, 'next_event_time': 1}")
-@CompoundIndex(name = "tw_task_key_index", def = "{'key':1, 'keyHash':1}")
+@CompoundIndex(name = "tw_task_key_index", def = "{'key':1, 'keyHash':1}", unique = true)
 public class MongoTask {
   public static final String ID = "_id";
   public static final String VERSION = "version";

@@ -7,7 +7,6 @@ import com.transferwise.tasks.dao.MongoTaskDao;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.DependsOn;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -23,7 +22,6 @@ public class MongoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
-  @DependsOn("mongoTaskInitializer")
   public ITaskDao twTasksMongoTaskDao(MongoTemplate mongoTemplate, TasksProperties tasksProperties) {
     return new MongoTaskDao(mongoTemplate, tasksProperties);
   }
