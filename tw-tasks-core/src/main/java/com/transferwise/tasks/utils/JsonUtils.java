@@ -3,7 +3,11 @@ package com.transferwise.tasks.utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
 
-public abstract class JsonUtils {
+public final class JsonUtils {
+
+  private JsonUtils() {
+    throw new AssertionError();
+  }
 
   public static String toJson(ObjectMapper objectMapper, Object obj) {
     return ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsString(obj));

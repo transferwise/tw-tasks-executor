@@ -6,7 +6,11 @@ import com.transferwise.tasks.domain.BaseTask;
 /**
  * Only allows conversion from wider type to narrower type, as there should be no data loss.
  */
-public abstract class DomainUtils {
+public final class DomainUtils {
+
+  private DomainUtils() {
+    throw new AssertionError();
+  }
 
   @SuppressWarnings("unchecked")
   public static <T> T convert(ITaskDao.StuckTask task, Class<T> resultClass) {
