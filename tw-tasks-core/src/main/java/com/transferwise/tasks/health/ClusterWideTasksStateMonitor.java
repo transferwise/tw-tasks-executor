@@ -81,9 +81,10 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       control.workAsyncUntilShouldStop(
           () -> {
             resetState(true);
+            TasksProperties.ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = tasksProperties.getClusterWideTasksStateMonitor();
             taskHandleHolder.setValue(scheduledTaskExecutor
-                .scheduleAtFixedInterval(this::check, tasksProperties.getClusterWideTasksStateMonitor().getStartDelay(),
-                    tasksProperties.getClusterWideTasksStateMonitor().getInterval()));
+                .scheduleAtFixedInterval(this::check, clusterWideTasksStateMonitor.getStartDelay(),
+                    clusterWideTasksStateMonitor.getInterval()));
             log.info("Started to monitor tasks state for '" + tasksProperties.getGroupId() + "'.");
           },
           () -> {

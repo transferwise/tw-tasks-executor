@@ -297,7 +297,7 @@ public class TasksProperties {
   }
 
   /**
-   * Specifies how often the cluster-wide monitoring runs.
+   * Cluster-wide monitoring config.
    */
   @Data
   public static class ClusterWideTasksStateMonitor {
