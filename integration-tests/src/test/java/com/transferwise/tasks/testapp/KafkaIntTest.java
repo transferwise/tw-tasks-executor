@@ -8,7 +8,6 @@ import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHel
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
-import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService;
 import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService.SendMessagesRequest;
 import java.time.Duration;
@@ -32,8 +31,8 @@ class KafkaIntTest extends BaseIntTest {
   private IToKafkaSenderService toKafkaSenderService;
   @Autowired
   private ITransactionsHelper transactionsHelper;
-  @Autowired
-  private ITopicPartitionsManager topicPartitionsManager;
+
+  private final Duration delayTimeout = Duration.ofMillis(5);
 
   @Test
   void sendingAMessageToKafkaWorks() {
@@ -58,7 +57,7 @@ class KafkaIntTest extends BaseIntTest {
     long start = System.currentTimeMillis();
     new ConsistentKafkaConsumer<String>()
         .setTopics(Collections.singletonList(topic))
-        .setDelayTimeout(Duration.ofSeconds(1))
+        .setDelayTimeout(delayTimeout)
         .setShouldPollPredicate(() -> true)
         .setShouldFinishPredicate(() ->
             messagesReceivedCount.get() == 1 || System.currentTimeMillis() - start > 30000
@@ -101,7 +100,7 @@ class KafkaIntTest extends BaseIntTest {
     long start = System.currentTimeMillis();
     new ConsistentKafkaConsumer<String>()
         .setTopics(Collections.singletonList(topic))
-        .setDelayTimeout(Duration.ofSeconds(1))
+        .setDelayTimeout(delayTimeout)
         .setShouldPollPredicate(() -> true)
         .setShouldFinishPredicate(
             () -> messagesMap.values().stream().noneMatch(v -> v.get() != 1) || System.currentTimeMillis() - start > 30000
@@ -124,7 +123,7 @@ class KafkaIntTest extends BaseIntTest {
 
   /**
    * Works well with `org.apache.kafka.clients.producer.RoundRobinPartitioner`.
-   * 
+   *
    * <p>Can be flaky with `org.apache.kafka.clients.producer.internals.DefaultPartitioner`.
    */
   @ParameterizedTest(name = "sending batch messages to Kafka works with 5 partitions, iteration {0}")
@@ -156,7 +155,7 @@ class KafkaIntTest extends BaseIntTest {
     long start = System.currentTimeMillis();
     new ConsistentKafkaConsumer<String>()
         .setTopics(Collections.singletonList(topic))
-        .setDelayTimeout(Duration.ofSeconds(1))
+        .setDelayTimeout(delayTimeout)
         .setShouldPollPredicate(() -> true)
         .setShouldFinishPredicate(
             () -> messagesMap.values().stream().noneMatch(v -> v.get() != 1) || System.currentTimeMillis() - start > 30000
@@ -206,7 +205,7 @@ class KafkaIntTest extends BaseIntTest {
     long start = System.currentTimeMillis();
     new ConsistentKafkaConsumer<String>()
         .setTopics(Collections.singletonList(topic))
-        .setDelayTimeout(Duration.ofSeconds(1))
+        .setDelayTimeout(delayTimeout)
         .setShouldPollPredicate(() -> true)
         .setShouldFinishPredicate(
             () -> messagesMap.values().stream().noneMatch(v -> v.get() != 1) || System.currentTimeMillis() - start > 30000

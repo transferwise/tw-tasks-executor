@@ -98,11 +98,11 @@ public class TestConfiguration {
   }
 
   @Bean
-  IKafkaMessageHandler newHandlerForTopicA() {
-    return new IKafkaMessageHandler() {
+  IKafkaMessageHandler<String> newHandlerForTopicA() {
+    return new IKafkaMessageHandler<String>() {
       @Override
       public List<Topic> getTopics() {
-        return Collections.singletonList(new IKafkaMessageHandler.Topic().setAddress(KAFKA_TEST_TOPIC_A));
+        return Collections.singletonList(new Topic().setAddress(KAFKA_TEST_TOPIC_A));
       }
 
       @Override
@@ -111,7 +111,7 @@ public class TestConfiguration {
       }
 
       @Override
-      public void handle(ConsumerRecord record) {
+      public void handle(ConsumerRecord<String, String> record) {
       }
     };
   }

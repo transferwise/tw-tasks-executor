@@ -47,7 +47,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   private boolean shuttingDown;
   private volatile Map<Integer, List<MyTopic>> topicsShards;
   private List<String> kafkaDataCenterPrefixes;
-  private AtomicInteger inProgressPollers = new AtomicInteger();
+  private final AtomicInteger inProgressPollers = new AtomicInteger();
 
   /**
    * Remember to set correct number of partitions for all topics here: @ https://octopus.tw.ee/kafka/topic/change . We could do it automatically, but
@@ -143,34 +143,32 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
       return;
     }
     executorService = new ThreadNamingExecutorServiceWrapper("core-kafka-listener", executorServicesProvider.getGlobalExecutorService());
-    getTopicsShards().forEach((shard, topics) -> {
-      executorService.submit(() -> {
-        if (tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()) {
-          for (MyTopic topic : topics) {
-            if (!topic.isConfigured() && topic.getPartitionsCount() != null) {
-              topicPartitionsManager.setPartitionsCount(getNamespacedTopic(topic.getAddress()), topic.getPartitionsCount());
-              topic.setConfigured(true);
-            }
-          }
-        }
-
-        List<String> addresses = new ArrayList<>();
+    getTopicsShards().forEach((shard, topics) -> executorService.submit(() -> {
+      if (tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()) {
         for (MyTopic topic : topics) {
-          addAddresses(addresses, topic.getAddress());
-        }
-
-        addresses.forEach(a -> log.info("Listening topic '" + a + "' in shard " + shard + "."));
-
-        while (!shuttingDown) {
-          try {
-            poll(shard, addresses);
-          } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+          if (!topic.isConfigured() && topic.getPartitionsCount() != null) {
+            topicPartitionsManager.setPartitionsCount(getNamespacedTopic(topic.getAddress()), topic.getPartitionsCount());
+            topic.setConfigured(true);
           }
         }
-      });
-    });
+      }
+
+      List<String> addresses = new ArrayList<>();
+      for (MyTopic topic : topics) {
+        addAddresses(addresses, topic.getAddress());
+      }
+
+      addresses.forEach(a -> log.info("Listening topic '" + a + "' in shard " + shard + "."));
+
+      while (!shuttingDown) {
+        try {
+          poll(shard, addresses);
+        } catch (Throwable t) {
+          log.error(t.getMessage(), t);
+          WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+        }
+      }
+    }));
   }
 
   @Override

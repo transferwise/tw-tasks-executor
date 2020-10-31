@@ -23,9 +23,7 @@ public class GlobalProcessingState {
   private Map<String, Bucket> buckets = new ConcurrentHashMap<>();
 
   public void increaseBucketsVersion() {
-    buckets.forEach((k, v) -> {
-      v.increaseVersion();
-    });
+    buckets.forEach((k, v) -> v.increaseVersion());
   }
 
   @Data
@@ -113,12 +111,11 @@ public class GlobalProcessingState {
       return tasks.peek();
     }
 
-    public TaskTriggering poll() {
+    public void removeLast() {
       TaskTriggering taskTriggering = tasks.poll();
       if (taskTriggering != null) {
         size.decrementAndGet();
       }
-      return taskTriggering;
     }
 
     public void add(TaskTriggering taskTriggering) {

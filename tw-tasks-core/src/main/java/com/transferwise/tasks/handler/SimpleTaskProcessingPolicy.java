@@ -23,6 +23,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
    * <p>When using a value other than {@link com.transferwise.tasks.buckets.IBucketsManager#DEFAULT_ID}, ensure that it is also supplied to
    * {@link com.transferwise.tasks.TasksProperties#additionalProcessingBuckets}, otherwise tasks using this policy will fail to be processed.
    */
+  @SuppressWarnings("JavadocReference")
   @Getter
   @Setter
   @Accessors(chain = true)

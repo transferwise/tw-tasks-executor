@@ -13,6 +13,7 @@ import lombok.experimental.Accessors;
 /**
  * Beans implementing this interface will be picked up by the engine and executed accordingly, as quite normal tw-tasks.
  */
+@SuppressWarnings("SameReturnValue")
 public interface IJob {
 
   ZonedDateTime getNextRunTime();

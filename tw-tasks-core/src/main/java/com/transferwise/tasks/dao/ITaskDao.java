@@ -87,6 +87,7 @@ public interface ITaskDao {
 
   DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize);
 
+  @SuppressWarnings("UnusedReturnValue")
   boolean deleteTask(UUID taskId, long version);
 
   boolean clearPayloadAndMarkDone(UUID taskId, long version);
