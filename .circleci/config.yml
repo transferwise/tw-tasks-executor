@@ -46,12 +46,15 @@ references:
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
       - image: mongo:4.2.8
-        hostname: mongodb
+        name: mongo1
+        hostname: mongo1
         environment:
           MONGO_INITDB_ROOT_USERNAME: twuser
           MONGO_INITDB_ROOT_PASSWORD: example-password-change-me
           MONGO_INITDB_DATABASE: twtask
           MONGO_REPLICA_SET_NAME: twtask-mongo-replicaset
+        ports:
+          - "27017:27017"
         healthcheck:
           test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u twuser -p example-password-change-me --quiet) -eq 1
           interval: 10s
@@ -80,6 +83,12 @@ jobs:
       - checkout
       - restore_cache:
           key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+      - run:
+          name: Wait for MongoDB then add the mongo instance itself into the replicaset
+          command: |
+            sudo apt-get install -y mongodb
+            dockerize -wait tcp://mongo1:27017 -timeout 1m
+            mongo --host mongo1:27017 -u twuser -p example-password-change-me --authenticationDatabase admin --eval 'rs.initiate({_id:"twtask-mongo-replicaset", members: [{"_id":1, "host":"mongo1:27017"}]})'
       - run:
           name: Run tests
           command: ./gradlew --refresh-dependencies clean check -Dspring.profiles.include=circle --console=plain --no-daemon --stacktrace
