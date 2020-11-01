@@ -7,7 +7,7 @@ import lombok.experimental.Accessors;
 
 @Data
 @Accessors(chain = true)
-public class FullTaskRecord {
+public class FullTaskRecord implements ITask {
 
   private UUID id;
   private String type;
@@ -20,4 +20,9 @@ public class FullTaskRecord {
   private ZonedDateTime stateTime;
   private ZonedDateTime nextEventTime;
   private String processingClientId;
+
+  @Override
+  public ITaskVersionId getVersionId() {
+    return new TaskVersionId(id, version);
+  }
 }

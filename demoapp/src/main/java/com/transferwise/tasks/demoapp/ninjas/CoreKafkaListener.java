@@ -2,6 +2,7 @@ package com.transferwise.tasks.demoapp.ninjas;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.demoapp.payout.PayoutInstruction;
@@ -36,6 +37,8 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
   private IMeterHelper meterHelper;
   @Autowired
   private IErrorLoggingThrottler errorLoggingThrottler;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   private ExecutorService executorService;
 
@@ -75,6 +78,7 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
         })
         .setMeterHelper(meterHelper)
         .setErrorLoggingThrottler(errorLoggingThrottler)
+        .setUnitOfWorkManager(unitOfWorkManager)
         .consume();
   }
 

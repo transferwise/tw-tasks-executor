@@ -1,6 +1,9 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutDataResponse;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -14,6 +17,11 @@ import lombok.experimental.Accessors;
 public interface ITasksManagementService {
 
   MarkTasksAsFailedResponse markTasksAsFailed(MarkTasksAsFailedRequest request);
+
+  @EntryPoint(usesExisting = true)
+  GetTaskWithoutDataResponse getTaskWithoutData(UUID taskId);
+
+  GetTaskDataResponse getTaskData(UUID taskId);
 
   @Data
   @Accessors(chain = true)

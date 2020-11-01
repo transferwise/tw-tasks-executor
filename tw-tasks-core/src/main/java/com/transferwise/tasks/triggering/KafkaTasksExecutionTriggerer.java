@@ -16,13 +16,13 @@ import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
-import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.utils.JsonUtils;
@@ -90,6 +90,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
   private IMeterHelper meterHelper;
+  @Autowired
+  private IMdcService mdcService;
 
   private ExecutorService executorService;
   private volatile boolean shuttingDown;
@@ -167,16 +169,16 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     kafkaConfiguration.getKafkaTemplate().send(getTopic(processingBucketId), UuidUtils.generatePrefixCombUuid().toString(), taskSt).addCallback(
         result -> {
           if (log.isDebugEnabled()) {
-            MdcContext.with(() -> {
-              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
+            mdcService.with(() -> {
+              mdcService.put(task);
               log.debug("Task '{}' triggering acknowledged by Kafka.", task.getVersionId());
             });
           }
         },
         exception -> {
           if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {
-            MdcContext.with(() -> {
-              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
+            mdcService.with(() -> {
+              mdcService.put(task);
               log.error("Task {} triggering failed through Kafka.", LogUtils.asParameter(task.getVersionId()), exception);
             });
           }
@@ -242,8 +244,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           log.debug("Received Kafka message from topic '{}' partition {} offset {}.", consumerRecord.topic(), consumerRecord.partition(), offset);
 
           BaseTask task = JsonUtils.fromJson(objectMapper, consumerRecord.value(), BaseTask.class);
-          MdcContext.with(() -> {
-            MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
+          mdcService.with(() -> {
+            mdcService.put(task);
 
             TaskTriggering taskTriggering = new TaskTriggering().setTask(task).setBucketId(bucketId).setOffset(offset)
                 .setTopicPartition(topicPartition);

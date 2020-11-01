@@ -15,6 +15,10 @@ import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
+import com.transferwise.tasks.entrypoints.EntryPointsService;
+import com.transferwise.tasks.entrypoints.IEntryPointsService;
+import com.transferwise.tasks.entrypoints.IMdcService;
+import com.transferwise.tasks.entrypoints.MdcService;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
 import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
@@ -68,7 +72,7 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)
-  public TasksProperties tasksProperties() {
+  public TasksProperties twTasksProperties() {
     return new TasksProperties();
   }
 
@@ -212,6 +216,16 @@ public class TwTasksCoreAutoConfiguration {
   @ConditionalOnMissingBean
   public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
     return new TwTasksKafkaConfiguration(kafkaProperties, kafkaTemplate);
+  }
+
+  @Bean
+  public IMdcService twTasksMdcService() {
+    return new MdcService();
+  }
+
+  @Bean
+  public IEntryPointsService twTasksEntryPointsService() {
+    return new EntryPointsService();
   }
 
   public static class TwTasksDataSourceProvider {

@@ -1,5 +1,6 @@
 package com.transferwise.tasks.handler;
 
+import com.transferwise.common.context.Criticality;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.IBaseTask;
@@ -7,6 +8,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
@@ -35,11 +37,6 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   private StuckTaskResolutionStrategy stuckTaskResolutionStrategy = StuckTaskResolutionStrategy.MARK_AS_ERROR;
 
   @Override
-  public Instant getProcessingDeadline(IBaseTask task) {
-    return TwContextClockHolder.getClock().instant().plus(maxProcessingDuration);
-  }
-
-  @Override
   public String getProcessingBucket(IBaseTask task) {
     return processingBucket;
   }
@@ -47,5 +44,30 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   @Override
   public StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task) {
     return stuckTaskResolutionStrategy;
+  }
+
+  @Override
+  public @NonNull Instant getProcessingDeadline(IBaseTask task) {
+    return TwContextClockHolder.getClock().instant().plus(maxProcessingDuration);
+  }
+
+  @Getter
+  @Setter
+  @Accessors(chain = true)
+  private Criticality criticality;
+
+  @Override
+  public Criticality getProcessingCriticality(IBaseTask task) {
+    return criticality;
+  }
+
+  @Getter
+  @Setter
+  @Accessors(chain = true)
+  private String owner;
+
+  @Override
+  public String getOwner(IBaseTask task) {
+    return owner;
   }
 }

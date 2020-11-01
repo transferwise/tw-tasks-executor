@@ -1,11 +1,8 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.dao.ITaskDao;
-import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
-import java.sql.Date;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -34,9 +31,6 @@ public class TasksManagementPortController implements ITasksManagementPort {
 
   @Autowired
   private ITasksManagementService tasksManagementService;
-
-  @Autowired
-  private ITaskDao taskDao;
 
   @Autowired
   private TasksProperties tasksProperties;
@@ -100,37 +94,21 @@ public class TasksManagementPortController implements ITasksManagementPort {
   }
 
   @Override
-  public ResponseEntity<TaskWithoutData> getTask(@PathVariable final String taskId) {
-    return callWithAuthentication(() -> {
-      FullTaskRecord task = taskDao.getTask(UUID.fromString(taskId), FullTaskRecord.class);
-      return ResponseEntity.ok(new TaskWithoutData()
-          .setId(taskId)
-          .setVersion(task.getVersion())
-          .setStatus(task.getStatus())
-          .setType(task.getType())
-          .setSubType(task.getSubType())
-          .setNextEventTime(Date.from(task.getNextEventTime().toInstant()))
-          .setStateTime(Date.from(task.getStateTime().toInstant()))
-          .setPriority(task.getPriority())
-          .setProcessingTriesCount(task.getProcessingTriesCount())
-          .setProcessingClientId(task.getProcessingClientId()));
-    });
+  public ResponseEntity<GetTaskWithoutDataResponse> getTaskWithoutData(@PathVariable final UUID taskId) {
+    return callWithAuthentication(() -> ResponseEntity.ok(tasksManagementService.getTaskWithoutData(taskId)));
   }
 
   @Override
   public ResponseEntity<GetTaskDataResponse> getTaskData(UUID taskId) {
     return callWithAuthentication(tasksProperties.getTasksManagement().getViewTaskDataRoles(),
         (auth) -> {
-          GetTaskDataResponse response = new GetTaskDataResponse();
+          GetTaskDataResponse response = tasksManagementService.getTaskData(taskId);
 
-          final FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
-          if (task == null) {
-            response.setResultCode(ResultCode.NOT_FOUND);
+          if (response.getResultCode() == ResultCode.NOT_FOUND) {
             log.info("User '{}' tried to fetch payload for task '{}', but it was not found.", auth.getName(), taskId);
           } else {
-            response.setResultCode(ResultCode.SUCCESS).setData(task.getData());
-            log.info("User '{}' fetched payload for task '{}' of type '{}'.", auth.getName(), new TaskVersionId(task.getId(), task.getVersion()),
-                task.getType());
+            log.info("User '{}' fetched payload for task '{}' of type '{}'.", auth.getName(), new TaskVersionId(taskId, response.getVersion()),
+                response.getType());
           }
           return ResponseEntity.ok(response);
         });

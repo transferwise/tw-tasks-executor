@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
@@ -16,6 +14,9 @@ import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutDataResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse;
@@ -29,9 +30,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 public class TasksManagementPortIntTest extends BaseIntTest {
 
@@ -57,7 +58,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .getTaskId()
     );
 
-    ResponseEntity<GetTasksInErrorResponse> response = testRestTemplate.postForEntity(
+    ResponseEntity<GetTasksInErrorResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/getTasksInError",
         new ITasksManagementPort.GetTasksInErrorRequest().setMaxCount(1),
         GetTasksInErrorResponse.class
@@ -71,6 +72,15 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     assertEquals(task1Id, tasksInError.get(0).getTaskVersionId().getId());
     assertEquals("T1", tasksInError.get(0).getType());
     assertEquals("S1", tasksInError.get(0).getSubType());
+  }
+
+  @Test
+  void crackerCantGetErronouseTasks() {
+    ResponseEntity<GetTasksInErrorResponse> response = badEngineerTemplate().postForEntity("/v1/twTasks/getTasksInError",
+        new ITasksManagementPort.GetTasksInErrorRequest().setMaxCount(1), GetTasksInErrorResponse.class
+    );
+
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
@@ -92,7 +102,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .getTaskId()
     );
 
-    ResponseEntity<ITasksManagementPort.GetTasksStuckResponse> response = testRestTemplate.postForEntity(
+    ResponseEntity<ITasksManagementPort.GetTasksStuckResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/getTasksStuck",
         new ITasksManagementPort.GetTasksStuckRequest().setMaxCount(1),
         ITasksManagementPort.GetTasksStuckResponse.class
@@ -105,7 +115,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     assertEquals(tasksStuck.size(), 1);
     assertEquals(tasksStuck.get(0).getTaskVersionId().getId(), task1Id);
 
-    response = testRestTemplate.postForEntity(
+    response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/getTasksStuck",
         new ITasksManagementPort.GetTasksStuckRequest().setMaxCount(10),
         ITasksManagementPort.GetTasksStuckResponse.class
@@ -117,7 +127,6 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   }
 
   @SneakyThrows
-  @WithMockUser(value = "a good user", authorities = {"RANDOM1", "NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY", "RANDOM2"})
   @ParameterizedTest(name = "find a task in {0} state")
   @EnumSource(value = TaskStatus.class, names = "UNKNOWN", mode = Mode.EXCLUDE)
   void findATaskInAGivenStatus(TaskStatus status) {
@@ -132,31 +141,35 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .getTaskId()
     );
 
-    ResponseEntity<ITasksManagementPort.TaskWithoutData> response = testRestTemplate.getForEntity(
+    ResponseEntity<GetTaskWithoutDataResponse> response = goodEngineerTemplate().getForEntity(
         "/v1/twTasks/task/" + taskId + "/noData",
-        ITasksManagementPort.TaskWithoutData.class
+        GetTaskWithoutDataResponse.class
     );
 
     assertEquals(200, response.getStatusCodeValue());
     assertNotNull(response.getBody());
-    assertEquals(taskId.toString(), response.getBody().getId());
+    assertEquals(taskId, response.getBody().getId());
     assertEquals("test", response.getBody().getType());
     assertEquals(status.name(), response.getBody().getStatus());
 
-    // test the endpoint with payload data
-    mockMvc.perform(MockMvcRequestBuilders.get("/v1/twTasks/task/" + taskId + "/data"))
-        .andExpect(status().isOk())
-        .andExpect(content().string("{\"data\":\"the payload\",\"resultCode\":\"SUCCESS\"}"))
-        .andExpect(content().contentType("application/json"));
+    ResponseEntity<GetTaskDataResponse> dataResponse = piiOfficerTemplate()
+        .getForEntity("/v1/twTasks/task/" + taskId + "/data", GetTaskDataResponse.class);
+    assertThat(dataResponse.getBody().getData()).isEqualTo("the payload");
+    assertThat(dataResponse.getBody().getResultCode()).isEqualTo(ResultCode.SUCCESS);
   }
 
   @SneakyThrows
   @Test
-  @WithMockUser(value = "a funky user", authorities = "READ_MINDS")
   void wrongRoleCannotViewTaskData() {
-    mockMvc.perform(MockMvcRequestBuilders.get("/v1/twTasks/task/99e30d10-a085-4708-9591-d5159ff1056c/data"))
-        .andExpect(status().isForbidden())
-        .andExpect(content().string(""));
+    ResponseEntity<GetTaskDataResponse> dataResponse = goodEngineerTemplate()
+        .getForEntity("/v1/twTasks/task/99e30d10-a085-4708-9591-d5159ff1056c/data", GetTaskDataResponse.class);
+
+    assertThat(dataResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+    dataResponse = badEngineerTemplate()
+        .getForEntity("/v1/twTasks/task/99e30d10-a085-4708-9591-d5159ff1056c/data", GetTaskDataResponse.class);
+
+    assertThat(dataResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
   }
 
   @Test
@@ -169,7 +182,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
             .getTaskId()
     );
 
-    ResponseEntity<ITasksManagementPort.MarkTasksAsFailedResponse> response = testRestTemplate.postForEntity(
+    ResponseEntity<ITasksManagementPort.MarkTasksAsFailedResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/markTasksAsFailed",
         new ITasksManagementPort.MarkTasksAsFailedRequest()
             .addTaskVersionId(new TaskVersionId().setId(task0Id).setVersion(0)),
@@ -195,7 +208,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
     testTasksService.stopProcessing();
 
-    ResponseEntity<ITasksManagementPort.ResumeTasksImmediatelyResponse> response = testRestTemplate.postForEntity(
+    ResponseEntity<ITasksManagementPort.ResumeTasksImmediatelyResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/resumeTasksImmediately",
         new ITasksManagementPort.ResumeTasksImmediatelyRequest()
             .addTaskVersionId(new TaskVersionId().setId(task0Id).setVersion(0)),
@@ -223,7 +236,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
     testTasksService.stopProcessing();
 
-    ResponseEntity<ITasksManagementPort.ResumeTasksImmediatelyResponse> response = testRestTemplate.postForEntity(
+    ResponseEntity<ITasksManagementPort.ResumeTasksImmediatelyResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/resumeAllTasksImmediately",
         new ITasksManagementPort.ResumeAllTasksImmediatelyRequest().setTaskType("test"),
         ITasksManagementPort.ResumeTasksImmediatelyResponse.class
@@ -237,4 +250,15 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1)));
   }
 
+  private TestRestTemplate goodEngineerTemplate() {
+    return testRestTemplate.withBasicAuth("goodEngineer", "q1w2e3r4");
+  }
+
+  private TestRestTemplate badEngineerTemplate() {
+    return testRestTemplate.withBasicAuth("badEngineer", "q1w2e3r4");
+  }
+
+  private TestRestTemplate piiOfficerTemplate() {
+    return testRestTemplate.withBasicAuth("piiOfficer", "q1w2e3r4");
+  }
 }

@@ -1,12 +1,11 @@
 package com.transferwise.tasks.stucktasks;
 
-import com.newrelic.api.agent.NewRelic;
-import com.newrelic.api.agent.Trace;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.common.leaderselector.ILock;
 import com.transferwise.common.leaderselector.Leader;
@@ -17,11 +16,14 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
+import com.transferwise.tasks.entrypoints.EntryPointsNames;
+import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.helpers.IMeterHelper;
-import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.DomainUtils;
 import com.transferwise.tasks.utils.LogUtils;
@@ -59,6 +61,10 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   private IExecutorServicesProvider executorServicesProvider;
   @Autowired
   private IMeterHelper meterHelper;
+  @Autowired
+  private IMdcService mdcService;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   private LeaderSelectorV2 leaderSelector;
 
@@ -139,79 +145,80 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     });
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   @SuppressWarnings("checkstyle:MultipleStringLiterals")
   protected void resumeStuckTasks(Leader.Control control) {
-    NewRelic.setTransactionName("TwTasksEngine", "ResumeStuckTasks");
     try {
-      List<TaskStatus> statusesToCheck = new ArrayList<>();
-      statusesToCheck.add(TaskStatus.NEW);
-      statusesToCheck.add(TaskStatus.SUBMITTED);
-      statusesToCheck.add(TaskStatus.PROCESSING);
+      unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_STUCK_TASKS).toContext()
+          .execute(() -> {
+            List<TaskStatus> statusesToCheck = new ArrayList<>();
+            statusesToCheck.add(TaskStatus.NEW);
+            statusesToCheck.add(TaskStatus.SUBMITTED);
+            statusesToCheck.add(TaskStatus.PROCESSING);
 
-      while (statusesToCheck.size() > 0) {
-        for (int i = statusesToCheck.size() - 1; i >= 0; i--) {
-          ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, statusesToCheck.get(i));
-          AtomicInteger resumedCount = new AtomicInteger();
-          AtomicInteger errorCount = new AtomicInteger();
-          AtomicInteger failedCount = new AtomicInteger();
+            while (statusesToCheck.size() > 0) {
+              for (int i = statusesToCheck.size() - 1; i >= 0; i--) {
+                ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, statusesToCheck.get(i));
+                AtomicInteger resumedCount = new AtomicInteger();
+                AtomicInteger errorCount = new AtomicInteger();
+                AtomicInteger failedCount = new AtomicInteger();
 
-          for (ITaskDao.StuckTask task : result.getStuckTasks()) {
-            if (control.shouldStop() || paused) {
-              return;
+                for (ITaskDao.StuckTask task : result.getStuckTasks()) {
+                  if (control.shouldStop() || paused) {
+                    return;
+                  }
+
+                  mdcService.put(task);
+                  handleStuckTask(task, resumedCount, errorCount, failedCount);
+                }
+                log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
+
+                if (!result.isHasMore()) {
+                  statusesToCheck.remove(i);
+                }
+              }
             }
-
-            MdcContext.with(() -> {
-              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-              handleStuckTask(task, resumedCount, errorCount, failedCount);
-            });
-          }
-          log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
-
-          if (!result.isHasMore()) {
-            statusesToCheck.remove(i);
-          }
-        }
-      }
+          });
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
     }
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   @SuppressWarnings("checkstyle:MultipleStringLiterals")
   protected void resumeWaitingTasks(Leader.Control control) {
-    NewRelic.setTransactionName("TwTasksEngine", "WaitingTasksResumer");
     try {
-      while (true) {
-        ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, TaskStatus.WAITING);
-        for (ITaskDao.StuckTask task : result.getStuckTasks()) {
-          if (control.shouldStop() || paused) {
-            return;
-          }
-          MdcContext.with(() -> {
-            MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-            ZonedDateTime nextEventTime = taskHandlerRegistry.getExpectedProcessingMoment(task);
-            if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), nextEventTime)) {
-              log.debug("Were not able to mark task '" + task.getVersionId() + "' as submitted.");
-              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
-            } else {
-              BaseTask baseTask = DomainUtils.convert(task, BaseTask.class);
-              baseTask.setVersion(baseTask.getVersion() + 1);
+      unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_WAITING_TASKS)
+          .toContext()
+          .execute(() -> {
+            while (true) {
+              ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, TaskStatus.WAITING);
+              for (ITaskDao.StuckTask task : result.getStuckTasks()) {
+                if (control.shouldStop() || paused) {
+                  return;
+                }
+                mdcService.put(task);
+                ZonedDateTime nextEventTime = taskHandlerRegistry.getExpectedProcessingMoment(task);
+                if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), nextEventTime)) {
+                  log.debug("Were not able to mark task '" + task.getVersionId() + "' as submitted.");
+                  meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+                } else {
+                  BaseTask baseTask = DomainUtils.convert(task, BaseTask.class);
+                  baseTask.setVersion(baseTask.getVersion() + 1);
 
-              tasksExecutionTriggerer.trigger(baseTask);
-              meterHelper.registerScheduledTaskResuming(baseTask.getType());
+                  tasksExecutionTriggerer.trigger(baseTask);
+                  meterHelper.registerScheduledTaskResuming(baseTask.getType());
+                }
+              }
+              if (log.isDebugEnabled() && result.getStuckTasks().size() > 0) {
+                log.debug("Resumed " + result.getStuckTasks().size() + " waiting tasks.");
+              }
+
+              if (!result.isHasMore()) {
+                break;
+              }
             }
           });
-        }
-        if (log.isDebugEnabled() && result.getStuckTasks().size() > 0) {
-          log.debug("Resumed " + result.getStuckTasks().size() + " waiting tasks.");
-        }
-
-        if (!result.isHasMore()) {
-          break;
-        }
-      }
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
     }
@@ -317,29 +324,29 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     leaderSelector.start();
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   @SuppressWarnings("checkstyle:MultipleStringLiterals")
   protected void resumeTasksForClient() {
-    NewRelic.setTransactionName("TwTasksEngine", "TasksForClientResuming");
     try {
-      log.info("Checking if we can immediately resume this client's stuck tasks.");
-      List<ITaskDao.StuckTask> clientTasks = taskDao
-          .prepareStuckOnProcessingTasksForResuming(tasksProperties.getClientId(), getMaxStuckTime(null, null));
-      for (ITaskDao.StuckTask task : clientTasks) {
-        if (shuttingDown) {
-          break;
-        }
-        MdcContext.with(() -> {
-          MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-          log.info("Resuming client '" + tasksProperties.getClientId() + "' task " + LogUtils.asParameter(task.getVersionId())
-              + " of type '" + task.getType() + "' in status '" + task.getStatus() + "'.");
+      unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_TASKS_FOR_CLIENT).toContext()
+          .execute(() -> {
+            log.info("Checking if we can immediately resume this client's stuck tasks.");
+            List<ITaskDao.StuckTask> clientTasks = taskDao
+                .prepareStuckOnProcessingTasksForResuming(tasksProperties.getClientId(), getMaxStuckTime(null, null));
+            for (ITaskDao.StuckTask task : clientTasks) {
+              if (shuttingDown) {
+                break;
+              }
+              mdcService.put(task);
+              log.info("Resuming client '" + tasksProperties.getClientId() + "' task " + LogUtils.asParameter(task.getVersionId())
+                  + " of type '" + task.getType() + "' in status '" + task.getStatus() + "'.");
 
-          tasksExecutionTriggerer.trigger(DomainUtils.convert(task, BaseTask.class));
+              tasksExecutionTriggerer.trigger(DomainUtils.convert(task, BaseTask.class));
 
-          meterHelper.registerStuckClientTaskResuming(task.getType());
-          meterHelper.registerTaskResuming(null, task.getType());
-        });
-      }
+              meterHelper.registerStuckClientTaskResuming(task.getType());
+              meterHelper.registerTaskResuming(null, task.getType());
+            }
+          });
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
     }

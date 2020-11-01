@@ -24,6 +24,16 @@ public interface ITaskDao {
     private int priority;
     private String type;
     private String status;
+
+    @Override
+    public UUID getId() {
+      return versionId.getId();
+    }
+
+    @Override
+    public long getVersion() {
+      return versionId.getVersion();
+    }
   }
 
   @Data

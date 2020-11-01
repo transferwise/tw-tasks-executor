@@ -3,6 +3,7 @@ package com.transferwise.tasks.testapp;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
@@ -23,6 +24,8 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
   private IToKafkaTestHelper toKafkaTestHelper;
   @Autowired
   private TwTasksKafkaConfiguration kafkaConfiguration;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   @Test
   void allMessagesWillBeReceivedOnceOnRebalancing() throws Exception {
@@ -43,6 +46,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
         .setTopics(Collections.singletonList(testTopic))
         .setShouldFinishPredicate(shouldFinish::get)
         .setShouldPollPredicate(() -> !shouldFinish.get())
+        .setUnitOfWorkManager(unitOfWorkManager)
         .setRecordConsumer(consumerRecord -> log
             .info("Received message '{}': {}.", consumerRecord.value(), messagesReceivedCounts.get(consumerRecord.value()).incrementAndGet()));
 

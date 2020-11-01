@@ -5,10 +5,14 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.context.Criticality;
+import com.transferwise.common.context.TwContext;
+import com.transferwise.common.context.UnitOfWork;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.ITask;
+import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
@@ -22,17 +26,21 @@ import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.slf4j.MDC;
 import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -258,7 +266,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
     // As task finding loop and a thread filling tasks memory table are running in parallel, it is likely, that
     // first task is not "1". Rest however should be processed in expected order.
-    assertThat(processedPriorities.subList(1,4)).isSorted();
+    assertThat(processedPriorities.subList(1, 4)).isSorted();
   }
 
   @Test
@@ -280,6 +288,55 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
       return false;
     });
+  }
+
+  @Test
+  void taskProcessorHasCorrectContextSet() {
+    final MutableObject<String> entryPointNameRef = new MutableObject<>();
+    final MutableObject<String> entryPointGroupRef = new MutableObject<>();
+    final MutableObject<Map<String, String>> mdcMapRef = new MutableObject<>();
+    final MutableObject<Criticality> criticalityRef = new MutableObject<>();
+    final MutableObject<Instant> deadlineRef = new MutableObject<>();
+    final MutableObject<String> ownerRef = new MutableObject<>();
+
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      mdcMapRef.setValue(MDC.getCopyOfContextMap());
+      TwContext twContext = TwContext.current();
+      entryPointNameRef.setValue(twContext.getName());
+      entryPointGroupRef.setValue(twContext.getGroup());
+      ownerRef.setValue(twContext.getOwner());
+      UnitOfWork unitOfWork = twContext.get(UnitOfWork.TW_CONTEXT_KEY);
+      criticalityRef.setValue(unitOfWork.getCriticality());
+      deadlineRef.setValue(unitOfWork.getDeadline());
+      log.info("Test task for 'taskProcessorHasCorrectContextSet' finished.");
+      return null;
+    });
+    testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setCriticality(Criticality.CRITICAL_PLUS)
+        .setOwner("TransferWise"));
+
+    transactionsHelper.withTransaction().asNew().call(() ->
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setSubType("mdc").setDataString("Hello World!"))
+    );
+
+    Task task = await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
+      try {
+        return testTasksService.getFinishedTasks("test", null);
+      } catch (Throwable t) {
+        log.error(t.getMessage(), t);
+      }
+      return null;
+    }), res -> res != null && res.size() == 1).get(0);
+
+    Map<String, String> mdcMap = mdcMapRef.getValue();
+    assertThat(mdcMap.get("twTaskId")).isEqualTo(task.getId().toString());
+    assertThat(mdcMap.get("twTaskVersion")).isEqualTo("1");
+    assertThat(mdcMap.get("twTaskType")).isEqualTo("test");
+    assertThat(mdcMap.get("twTaskSubType")).isEqualTo("mdc");
+    assertThat(entryPointNameRef.getValue()).isEqualTo("Processing_test");
+    assertThat(entryPointGroupRef.getValue()).isEqualTo("TwTasks");
+    assertThat(ownerRef.getValue()).isEqualTo("TransferWise");
+    assertThat(criticalityRef.getValue()).isEqualTo(Criticality.CRITICAL_PLUS);
+    assertThat(deadlineRef.getValue()).isAfter(Instant.now());
   }
 
   private int counterSum(String name) {

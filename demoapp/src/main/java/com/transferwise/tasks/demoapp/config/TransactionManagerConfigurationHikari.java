@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import org.springframework.jdbc.datasource.IsolationLevelDataSourceAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.jta.JtaTransactionManager;
 
@@ -38,6 +39,7 @@ public class TransactionManagerConfigurationHikari {
   public JtaTransactionManager transactionManager() {
     ServiceRegistry serviceRegistry = ServiceRegistryHolder.getServiceRegistry();
     JtaTransactionManager jtaTransactionManager = new JtaTransactionManager(gafferUserTransaction(), gafferTransactionManager());
+    jtaTransactionManager.setAllowCustomIsolationLevels(true);
     jtaTransactionManager.setTransactionSynchronizationRegistry(serviceRegistry.getTransactionSynchronizationRegistry());
     return jtaTransactionManager;
   }
@@ -51,7 +53,9 @@ public class TransactionManagerConfigurationHikari {
     dataSourceImpl.setValidationTimeoutSeconds(10);
     dataSourceImpl.setRegisterAsMBean(false);
 
-    return dataSourceImpl;
+    IsolationLevelDataSourceAdapter da = new IsolationLevelDataSourceAdapter();
+    da.setTargetDataSource(dataSourceImpl);
+    return da;
   }
 
   private DataSource dataSource() {

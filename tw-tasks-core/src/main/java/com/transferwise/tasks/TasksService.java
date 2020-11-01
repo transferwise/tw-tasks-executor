@@ -3,19 +3,21 @@ package com.transferwise.tasks;
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.newrelic.api.agent.NewRelic;
-import com.newrelic.api.agent.Trace;
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
+import com.transferwise.tasks.entrypoints.EntryPointsNames;
+import com.transferwise.tasks.entrypoints.IEntryPointsService;
+import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
-import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
@@ -52,6 +54,12 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private IMeterHelper meterHelper;
   @Autowired
   private ITaskHandlerRegistry taskHandlerRegistry;
+  @Autowired
+  private IMdcService mdcService;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private IEntryPointsService entryPointsHelper;
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -65,7 +73,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
       afterCommitExecutorService = executorsHelper.newScheduledExecutorService("tsac", tasksProperties.getAsyncTaskTriggeringsConcurrency());
       txSyncAdapterFactory = AsynchronouslyTriggerTaskTxSyncAdapter::new;
     } else {
-      txSyncAdapterFactory = SynchronouslyTriggerTaskTxSyncAdapter::new;
+      txSyncAdapterFactory = (mdcService, unitOfWorkManager, task) -> new SynchronouslyTriggerTaskTxSyncAdapter(task);
     }
 
     log.info("Tasks service initialized for client '" + tasksProperties.getClientId() + "'.");
@@ -75,111 +83,118 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   }
 
   @Override
-  @Trace
+  @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
   public AddTaskResponse addTask(AddTaskRequest request) {
-    return MdcContext.with(() -> {
-      MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), new TaskVersionId(request.getTaskId(), 0));
-      ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
-      TaskStatus status = request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.ADD_TASK,
+        () -> {
+          mdcService.put(request.getTaskId(), 0L);
+          mdcService.putType(request.getType());
+          mdcService.putSubType(request.getSubType());
+          ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
+          TaskStatus status =
+              request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
 
-      int priority = priorityManager.normalize(request.getPriority());
+          int priority = priorityManager.normalize(request.getPriority());
 
-      String data;
-      if (request.getDataString() == null) {
-        Object dataObj = request.getData();
-        data = JsonUtils.toJson(objectMapper, dataObj);
-      } else {
-        data = request.getDataString();
-      }
+          String data;
+          if (request.getDataString() == null) {
+            Object dataObj = request.getData();
+            data = JsonUtils.toJson(objectMapper, dataObj);
+          } else {
+            data = request.getDataString();
+          }
 
-      if (StringUtils.isEmpty(StringUtils.trim(request.getType()))) {
-        throw new IllegalStateException("Task type is mandatory, but '" + request.getType() + "' was provided.");
-      }
+          if (StringUtils.isEmpty(StringUtils.trim(request.getType()))) {
+            throw new IllegalStateException("Task type is mandatory, but '" + request.getType() + "' was provided.");
+          }
 
-      ZonedDateTime maxStuckTime =
-          request.getExpectedQueueTime() == null ? now.plus(tasksProperties.getTaskStuckTimeout()) : now.plus(request.getExpectedQueueTime());
-      ITaskDao.InsertTaskResponse insertTaskResponse = taskDao.insertTask(
-          new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getKey())
-              .setRunAfterTime(request.getRunAfterTime())
-              .setSubType(request.getSubType())
-              .setType(request.getType()).setTaskId(request.getTaskId())
-              .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority));
+          ZonedDateTime maxStuckTime =
+              request.getExpectedQueueTime() == null ? now.plus(tasksProperties.getTaskStuckTimeout()) : now.plus(request.getExpectedQueueTime());
+          ITaskDao.InsertTaskResponse insertTaskResponse = taskDao.insertTask(
+              new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getKey())
+                  .setRunAfterTime(request.getRunAfterTime())
+                  .setSubType(request.getSubType())
+                  .setType(request.getType()).setTaskId(request.getTaskId())
+                  .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority));
 
-      meterHelper.registerTaskAdding(request.getType(), request.getKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
+          meterHelper.registerTaskAdding(request.getType(), request.getKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
 
-      if (!insertTaskResponse.isInserted()) {
-        meterHelper.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
-        if (request.isWarnWhenTaskExists()) {
-          log.warn("Task with uuid '" + request.getTaskId() + "'"
-              + (request.getKey() == null ? "" : " and key '" + request.getKey() + "'")
-              + " already exists (type " + request.getType() + ", subType " + request.getSubType() + ").");
-        }
-        return new AddTaskResponse().setResult(AddTaskResponse.Result.ALREADY_EXISTS);
-      }
+          if (!insertTaskResponse.isInserted()) {
+            meterHelper.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
+            if (request.isWarnWhenTaskExists()) {
+              log.warn("Task with uuid '" + request.getTaskId() + "'"
+                  + (request.getKey() == null ? "" : " and key '" + request.getKey() + "'")
+                  + " already exists (type " + request.getType() + ", subType " + request.getSubType() + ").");
+            }
+            return new AddTaskResponse().setResult(AddTaskResponse.Result.ALREADY_EXISTS);
+          }
 
-      final UUID taskId = insertTaskResponse.getTaskId();
-      MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), new TaskVersionId(taskId, 0));
-      log.debug("Task '{}' created with status {}.", taskId, status);
-      if (status == TaskStatus.SUBMITTED) {
-        triggerTask(new BaseTask().setId(taskId).setType(request.getType()).setPriority(priority));
-      }
+          final UUID taskId = insertTaskResponse.getTaskId();
+          mdcService.put(taskId, 0L);
+          log.debug("Task '{}' created with status {}.", taskId, status);
+          if (status == TaskStatus.SUBMITTED) {
+            triggerTask(new BaseTask().setId(taskId).setType(request.getType()).setPriority(priority));
+          }
 
-      return new AddTaskResponse().setResult(AddTaskResponse.Result.OK).setTaskId(taskId);
-    });
+          return new AddTaskResponse().setResult(AddTaskResponse.Result.OK).setTaskId(taskId);
+        });
   }
 
   @Override
   @SuppressWarnings("checkstyle:MultipleStringLiterals")
-  @Trace
+  @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
   public boolean resumeTask(ResumeTaskRequest request) {
-    return MdcContext.with(() -> {
-      UUID taskId = request.getTaskId();
-      MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), new TaskVersionId(taskId, request.getVersion()));
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_TASK,
+        () -> {
+          UUID taskId = request.getTaskId();
+          mdcService.put(request.getTaskId(), request.getVersion());
 
-      BaseTask1 task = taskDao.getTask(taskId, BaseTask1.class);
+          BaseTask1 task = taskDao.getTask(taskId, BaseTask1.class);
 
-      if (task == null) {
-        log.debug("Cannot resume task '" + taskId + "' as it was not found.");
-        return false;
-      }
-
-      long version = task.getVersion();
-
-      if (version != request.getVersion()) {
-        meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
-        log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
-        return false;
-      }
-
-      if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
-        if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
-          meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
-          if (log.isDebugEnabled()) {
-            log.debug("Can not resume task '" + taskId + "', expected version " + request.getVersion()
-                + " does not match " + task.getVersion() + ".");
+          if (task == null) {
+            log.debug("Cannot resume task '" + taskId + "' as it was not found.");
+            return false;
           }
-          return false;
-        }
-      } else if (!task.getStatus().equals(TaskStatus.SUBMITTED.name())) {
-        if (!request.isForce()) {
-          if (log.isDebugEnabled()) {
-            log.debug("Can not resume task {}, it has wrong state '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
+
+          mdcService.put(task);
+
+          long version = task.getVersion();
+
+          if (version != request.getVersion()) {
+            meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+            log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
+            return false;
           }
-          return false;
-        } else {
-          log.warn("Task '" + taskId + "' will be force resumed. Status will change from '" + task.getStatus() + "' to 'SUBMITTED'.");
-        }
-        if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
-          meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
-          log.debug("Can not resume task {}, it has wrong version '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
-          return false;
-        }
-      }
-      triggerTask(task.toBaseTask().setVersion(version));
-      return true;
-    });
+
+          if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
+            if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
+              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+              if (log.isDebugEnabled()) {
+                log.debug("Can not resume task '" + taskId + "', expected version " + request.getVersion()
+                    + " does not match " + task.getVersion() + ".");
+              }
+              return false;
+            }
+          } else if (!task.getStatus().equals(TaskStatus.SUBMITTED.name())) {
+            if (!request.isForce()) {
+              if (log.isDebugEnabled()) {
+                log.debug("Can not resume task {}, it has wrong state '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
+              }
+              return false;
+            } else {
+              log.warn("Task '" + taskId + "' will be force resumed. Status will change from '" + task.getStatus() + "' to 'SUBMITTED'.");
+            }
+            if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
+              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+              log.debug("Can not resume task {}, it has wrong version '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
+              return false;
+            }
+          }
+          triggerTask(task.toBaseTask().setVersion(version));
+          return true;
+        });
   }
 
   @Override
@@ -213,7 +228,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
    * this deadlock problem does not exist and we may trigger in the same thread.
    */
   protected void triggerTask(BaseTask task) {
-    TransactionSynchronizationManager.registerSynchronization(txSyncAdapterFactory.create(task));
+    TransactionSynchronizationManager.registerSynchronization(txSyncAdapterFactory.create(mdcService, unitOfWorkManager, task));
   }
 
   @Override
@@ -241,7 +256,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   @FunctionalInterface
   private interface TxSyncAdapterFactory {
 
-    TransactionSynchronizationAdapter create(BaseTask task);
+    TransactionSynchronizationAdapter create(IMdcService mdcService, UnitOfWorkManager unitOfWorkManager, BaseTask task);
   }
 
   @RequiredArgsConstructor
@@ -263,6 +278,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   @RequiredArgsConstructor
   private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
 
+    private final IMdcService mdcService;
+    private final UnitOfWorkManager unitOfWorkManager;
     private final BaseTask task;
 
     @Override
@@ -274,21 +291,27 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
         return;
       }
 
-      afterCommitExecutorService.submit(new Runnable() {
-        @Override
-        @Trace(dispatcher = true)
-        public void run() {
-          NewRelic.setTransactionName("TwTasksEngine", "Triggering");
-          try {
-            MdcContext.with(() -> {
-              MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-              doTriggerTask(task);
-            });
-          } finally {
-            inProgressAfterCommitTasks.decrementAndGet();
-          }
+      afterCommitExecutorService.submit(() -> {
+        try {
+          afterCommit0();
+        } catch (Throwable t) {
+          log.error("Triggering task '{}' failed.", task.getVersionId(), t);
         }
       });
+    }
+
+    @EntryPoint
+    private void afterCommit0() {
+      unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.TRIGGER_TASK).toContext().execute(
+          () -> {
+            try {
+              mdcService.put(task);
+              doTriggerTask(task);
+            } finally {
+              inProgressAfterCommitTasks.decrementAndGet();
+            }
+          });
+
     }
   }
 
