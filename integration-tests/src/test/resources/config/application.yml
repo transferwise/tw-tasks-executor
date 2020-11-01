@@ -23,8 +23,9 @@ tw-tasks:
     additional-processing-buckets: manualStart
     stuck-tasks-polling-interval: PT1S
     configure-kafka-topics: true
-    generic-medium-delay: 500ms
+    generic-medium-delay: 100ms
     taskTablesSchemaName: "tw-tasks-test"
+    assertionsEnabled: true
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN

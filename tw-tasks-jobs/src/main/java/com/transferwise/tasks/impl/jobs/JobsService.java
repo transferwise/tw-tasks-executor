@@ -39,7 +39,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
 
   private List<JobContainer> jobContainers;
   private Map<String, JobContainer> cronTasksMap = new HashMap<>();
-  private List<IJob> nonBeanJobs = new ArrayList<>();
+  private final List<IJob> nonBeanJobs = new ArrayList<>();
 
   public void register(IJob job) {
     nonBeanJobs.add(job);

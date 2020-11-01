@@ -2,6 +2,13 @@
 
 Describes notable changes.
 
+#### 1.17.0 - 2020/10/31
+- Optimization and configuration for fetching approximate tasks and unique keys count by cluster wide tasks state monitor.
+Consult with `com.transferwise.tasks.TasksProperties.ClusterWideTasksStateMonitor` for added configuration options.
+
+- Minor external libraries upgrades.
+- Minor testsuite optimizations.
+
 #### 1.16.0 - 2020/10/28
 Use separate DAOs for Core/Test/Management.
 - ITaskDao - data access operations used by the core and extensions.

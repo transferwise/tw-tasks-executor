@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testapp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -9,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
-import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TaskTestBuilder;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -20,7 +20,6 @@ import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorRes
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse.TaskStuck;
-import com.transferwise.tasks.stucktasks.TasksResumer;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -38,10 +37,6 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
-  @Autowired
-  private TasksResumer tasksResumer;
-  @Autowired
-  private ITasksService tasksService;
 
   @Test
   void erroneousTasksWillBeCorrectlyFound() {
@@ -182,6 +177,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     );
 
     assertEquals(200, response.getStatusCodeValue());
+    assertThat(response.getBody()).isNotNull();
     assertTrue(response.getBody().getResults().get(task0Id).isSuccess());
     FullTaskRecord task = taskDao.getTask(task0Id, FullTaskRecord.class);
     assertEquals(TaskStatus.FAILED.name(), task.getStatus());
@@ -207,6 +203,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     );
 
     assertEquals(200, response.getStatusCodeValue());
+    assertThat(response.getBody()).isNotNull();
     assertTrue(response.getBody().getResults().get(task0Id).isSuccess());
     FullTaskRecord task = taskDao.getTask(task0Id, FullTaskRecord.class);
     assertEquals(TaskStatus.WAITING.name(), task.getStatus());
@@ -233,6 +230,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     );
 
     assertEquals(200, response.getStatusCodeValue());
+    assertThat(response.getBody()).isNotNull();
     assertTrue(response.getBody().getResults().get(task0Id).isSuccess());
     FullTaskRecord task = taskDao.getTask(task0Id, FullTaskRecord.class);
     // decrementing 1 because of database rounding error

@@ -2,6 +2,7 @@ package com.transferwise.tasks.test;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
+import com.transferwise.common.baseutils.function.RunnableWithException;
 import com.transferwise.tasks.TasksService;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.Task;
@@ -75,9 +76,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
     }
 
     for (Future<Void> future : futures) {
-      ExceptionUtils.doUnchecked(() -> {
-        future.get();
-      });
+      ExceptionUtils.doUnchecked((RunnableWithException) future::get);
     }
   }
 

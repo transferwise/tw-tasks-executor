@@ -230,9 +230,33 @@ public class TasksProperties {
    */
   private Duration interruptTasksAfterShutdownTime = null;
 
+  /**
+   * Adds more counters showing more details for the processing engine.
+   *
+   * <p>Adds a considerable overhead and interpreting results needs deep understanding of tw-tasks code.
+   *
+   * <p>Meant to be used only by tw-tasks contributors when helping to solve some very specific incident.
+   */
   private boolean debugMetricsEnabled = false;
 
+  /**
+   * Code is running some assertions.
+   *
+   * <p>Only meant to be true in tw-tasks own test-suite.
+   */
+  private boolean assertionsEnabled = false;
+
+  /**
+   * If true, the task cleaning will also handle those cases consistently where just-to-be deleted tasks may change.
+   *
+   * <p>It makes the cleaning process a bit less efficient and it is almost never needed.
+   */
   private boolean paranoidTasksCleaning = false;
+
+  /**
+   * Cluster wide tasks state monitoring options.
+   */
+  private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
 
   public enum DbType {
     MYSQL, POSTGRES, MONGO
@@ -270,5 +294,27 @@ public class TasksProperties {
      * with next PR. Needs to fix many tests.
      */
     private Set<String> roles;
+  }
+
+  /**
+   * Cluster-wide monitoring config.
+   */
+  @Data
+  public static class ClusterWideTasksStateMonitor {
+
+    /**
+     * How often does the monitor approximately run.
+     *
+     * <p>Monitor can actually run slower or faster, when leadership is switching rapidly.
+     */
+    private Duration interval = Duration.ofSeconds(30);
+    /**
+     * The time between monitor acquires leadership and first check is done.
+     */
+    private Duration startDelay = Duration.ofSeconds(5);
+    /**
+     * If enabled, we will gather approximate tasks and unique keys counts from database information schema tables.
+     */
+    private boolean tasksCountingEnabled = true;
   }
 }

@@ -3,6 +3,7 @@ package com.transferwise.tasks.impl.tokafka.test;
 import java.util.List;
 import org.apache.kafka.clients.producer.ProducerRecord;
 
+@SuppressWarnings("unused")
 public interface IToKafkaTestHelper {
 
   <T> List<T> getSentKafkaMessages(String topic, Class<T> clazz);

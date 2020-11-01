@@ -7,14 +7,14 @@ buildscript {
     }
 
     dependencies {
-        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.13.0"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.13.4"
     }
 }
 
 plugins {
-    id "com.github.spotbugs" version "3.0.0" apply false
+    id "com.github.spotbugs" version "4.5.1" apply false
     id "idea"
-    id 'org.springframework.boot' version '2.2.4.RELEASE' apply false
+    id 'org.springframework.boot' version '2.3.4.RELEASE' apply false
 }
 
 idea.project {

@@ -6,6 +6,7 @@ import com.transferwise.tasks.domain.TaskStatus;
 import java.util.List;
 import java.util.function.Predicate;
 
+@SuppressWarnings("unused")
 public interface ITestTasksService extends ITasksService {
 
   List<Task> getFinishedTasks(String type, String subType);
@@ -29,15 +30,15 @@ public interface ITestTasksService extends ITasksService {
   List<Task> getTasks(String type, String subType, TaskStatus... statuses);
 
   /**
-   * Stops tasks processing buckets. 
-   * 
+   * Stops tasks processing buckets.
+   *
    * <p>Also stops the automatic stuck and scheduled tasks handling.
    */
   void stopProcessing();
 
   /**
    * Resumes tasks processing and stuck and scheduled tasks handling.
-   * 
+   *
    * <p>Does not resume buckets configured with {@code autoStartProcessing=false}.
    */
   void resumeProcessing();

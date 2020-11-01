@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +18,9 @@ import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
 import org.apache.kafka.common.TopicPartition;
 
 /**
- * For any partition that doesn't have offset committed for a given consumer
- * - seeks to the earliest offset that is greater than {@code now() + autoResetOffsetToDuration}.
- * Seeks to the beginning in case the timestamp of the very first record in partition
- * has value greater than {@code now() + autoResetOffsetToDuration}.
+ * For any partition that doesn't have offset committed for a given consumer - seeks to the earliest offset that is greater than {@code now() +
+ * autoResetOffsetToDuration}. Seeks to the beginning in case the timestamp of the very first record in partition has value greater than {@code now()
+ * + autoResetOffsetToDuration}.
  *
  * <p>Note that {@code autoResetOffsetToDuration} is normally a negative duration.
  */
@@ -42,7 +42,8 @@ public class SeekToDurationOnRebalance implements ConsumerRebalanceListener {
 
     for (TopicPartition partition : partitions) {
       try {
-        if (consumer.committed(partition) == null) {
+        // Default kafka API timeout is 60s. Should be fine.
+        if (consumer.committed(Collections.singleton(partition)).get(partition) == null) {
           timestampsToSearch.put(partition, timestampToSearchMs);
         }
       } catch (Throwable t) {

@@ -1,10 +1,12 @@
 package com.transferwise.tasks.utils;
 
 import java.time.Duration;
-import lombok.experimental.UtilityClass;
 
-@UtilityClass
-public class WaitUtils {
+public final class WaitUtils {
+
+  private WaitUtils() {
+    throw new AssertionError();
+  }
 
   public static void sleepQuietly(Duration timeout) {
     try {

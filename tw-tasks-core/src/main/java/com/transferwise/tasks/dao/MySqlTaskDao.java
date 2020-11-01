@@ -2,6 +2,7 @@ package com.transferwise.tasks.dao;
 
 import static com.transferwise.tasks.utils.TimeUtils.toZonedDateTime;
 
+import com.google.common.base.Preconditions;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
@@ -42,6 +43,7 @@ import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.datasource.DataSourceUtils;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 //TODO: We should delete state_time all together. time_updated should be enough.
@@ -66,12 +68,14 @@ public class MySqlTaskDao implements ITaskDao {
 
   private final JdbcTemplate jdbcTemplate;
   private final ITaskSqlMapper sqlMapper;
+  private final DataSource dataSource;
 
   public MySqlTaskDao(DataSource dataSource) {
     this(dataSource, new MySqlTaskTypesMapper());
   }
 
   public MySqlTaskDao(DataSource dataSource, ITaskSqlMapper sqlMapper) {
+    this.dataSource = dataSource;
     jdbcTemplate = new JdbcTemplate(dataSource);
     this.sqlMapper = sqlMapper;
   }
@@ -158,7 +162,8 @@ public class MySqlTaskDao implements ITaskDao {
     getApproximateTasksCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
         + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getTaskTableName() + "'";
     getApproximateUniqueKeysCountSql =
-        "select table_rows from information_schema.tables where table_name = '" + tasksProperties.getUniqueTaskKeyTableName() + "'";
+        "select table_rows from information_schema.tables where table_schema=DATABASE() and table_name = '" + tasksProperties
+            .getUniqueTaskKeyTableName() + "'";
     getApproximateUniqueKeysCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
         + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getUniqueTaskKeyTableName() + "'";
   }
@@ -185,7 +190,7 @@ public class MySqlTaskDao implements ITaskDao {
         }
       }
 
-      Connection con = DataSourceUtils.getConnection(jdbcTemplate.getDataSource());
+      Connection con = DataSourceUtils.getConnection(dataSource);
       try {
         try (PreparedStatement ps = con.prepareStatement(insertTaskSql)) {
           args(taskId, request.getType(), request.getSubType(),
@@ -208,7 +213,7 @@ public class MySqlTaskDao implements ITaskDao {
           }
         }
       } finally {
-        DataSourceUtils.releaseConnection(con, jdbcTemplate.getDataSource());
+        DataSourceUtils.releaseConnection(con, dataSource);
       }
 
       return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
@@ -269,6 +274,8 @@ public class MySqlTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
   public ZonedDateTime getEarliestTaskNextEventTime(TaskStatus status) {
     return getFirst(jdbcTemplate.query(getEarliesTaskNextEventTimeSql, args(status), (rs, idx) ->
         TimeUtils.toZonedDateTime(rs.getTimestamp(1))));
@@ -310,6 +317,8 @@ public class MySqlTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
   public int getTasksCountInStatus(int maxCount, TaskStatus status) {
     List<Integer> results = jdbcTemplate.query(getTasksCountInStatusSql, args(status, maxCount),
         (rs, rowNum) -> rs.getInt(1));
@@ -318,12 +327,16 @@ public class MySqlTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
   public List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount) {
     return jdbcTemplate.query(getTasksCountInErrorGroupedSql, args(maxCount), (rs, rowNum) ->
         new ImmutablePair<>(rs.getString(1), rs.getInt(2)));
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
   public int getStuckTasksCount(ZonedDateTime age, int maxCount) {
     int cnt = 0;
 
@@ -538,14 +551,22 @@ public class MySqlTaskDao implements ITaskDao {
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
   public long getApproximateTasksCount() {
+    assertIsolationLevel(Isolation.READ_UNCOMMITTED);
+
     String sql = StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName()) ? getApproximateTasksCountSql1 : getApproximateTasksCountSql;
     List<Long> rows = jdbcTemplate.queryForList(sql, Long.class);
     return rows.isEmpty() ? -1 : rows.get(0);
   }
 
   @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
   public long getApproximateUniqueKeysCount() {
+    assertIsolationLevel(Isolation.READ_UNCOMMITTED);
+
     String sql =
         StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName()) ? getApproximateUniqueKeysCountSql1 : getApproximateUniqueKeysCountSql;
     List<Long> rows = jdbcTemplate.queryForList(sql, Long.class);
@@ -571,5 +592,24 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected PreparedStatementSetter args(Object... args) {
     return new ArgumentPreparedStatementSetter(sqlMapper::uuidToSqlTaskId, args);
+  }
+
+  /**
+   * Asserts isolation level.
+   *
+   * <p>{@link org.springframework.transaction.support.AbstractPlatformTransactionManager#validateExistingTransaction} is not usually enabled.
+   * So we do our own validation, at least when running tests.
+   */
+  @SuppressWarnings({"SameParameterValue", "JavadocReference"})
+  protected void assertIsolationLevel(Isolation isolation) {
+    if (tasksProperties.isAssertionsEnabled()) {
+      Connection con = DataSourceUtils.getConnection(dataSource);
+      try {
+        int conIsolation = ExceptionUtils.doUnchecked(con::getTransactionIsolation);
+        Preconditions.checkState(isolation.value() == conIsolation, "Connection isolation does not match. %s != %s", isolation, conIsolation);
+      } finally {
+        DataSourceUtils.releaseConnection(con, dataSource);
+      }
+    }
   }
 }

@@ -7,7 +7,15 @@ references:
         user: circleci
       - image: circleci/mariadb:10.3
         name: mysql1
-        command: mysqld --max_allowed_packet=32m --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+        command: "mysqld --ssl=0
+            --character-set-server=utf8mb4
+            --innodb_flush_log_at_trx_commit=0
+            --innodb_flush_method=O_DIRECT_NO_FSYNC
+            --innodb_flush_neighbors=0
+            --character-set-server=utf8mb4
+            --collation-server=utf8mb4_unicode_ci
+            --transaction-isolation=READ-COMMITTED
+            --innodb_autoinc_lock_mode=2"
         environment:
           MYSQL_ROOT_PASSWORD: example-password-change-me
           MYSQL_DATABASE: tw-tasks-test
@@ -49,10 +57,11 @@ references:
           interval: 10s
           start_period: 30s
         command: [ "--replSet", "twtask-mongo-replicaset", "--bind_ip_all" ]
-    resource_class: medium
+    resource_class: medium+
     environment:
       TERM: vt100
-      GRADLE_OPTS: '-Dorg.gradle.console=plain'
+      GRADLE_OPTS: "-Dorg.gradle.console=plain -XX:TieredStopAtLevel=1 -server -Djava.security.egd=file:/dev/./urandom -Xmx768m
+       -XX:+HeapDumpOnOutOfMemoryError"
       IN_CIRCLE: true
       MARIADB_TCP_3306: 3306
       MARIADB_TCP_HOST: mysql1
@@ -77,6 +86,7 @@ jobs:
       - save_cache:
           paths:
             - ~/.gradle/
+            - ~/.m2/
           key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
       - store_test_results:
           path: ./integration-tests/build/test-results/
@@ -119,11 +129,6 @@ jobs:
           path: ~/reports.tar.gz
           target: reports
           when: always
-      - save_cache:
-          # here we save the .gradle folder, so we can reuse it in the later steps and also later builds.
-          key: gradle-cache-{{ checksum "build.gradle" }}
-          paths:
-            - "~/.gradle"
 
 workflows:
   version: 2

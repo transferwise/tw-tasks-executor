@@ -122,7 +122,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
   void taskRunningForTooLongWillBeHandled() throws Exception {
     final long initialMarkedAsErrors = getCountOfMarkedAsErrorTasks();
 
-    ResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor = new ResultRegisteringSyncTaskProcessor() {
+    IResultRegisteringSyncTaskProcessor resultRegisteringSyncTaskProcessor = new ResultRegisteringSyncTaskProcessor() {
       @Override
       public ISyncTaskProcessor.ProcessResult process(ITask task) {
         log.info("Starting a long running task {}", task.getVersionId());
@@ -289,6 +289,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
         .sum();
   }
 
+  @SuppressWarnings("SameParameterValue")
   private long timerSum(String name) {
     return meterRegistry.find(name)
         .timers()

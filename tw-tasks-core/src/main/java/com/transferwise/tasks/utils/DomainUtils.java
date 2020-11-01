@@ -2,13 +2,15 @@ package com.transferwise.tasks.utils;
 
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
-import lombok.experimental.UtilityClass;
 
 /**
  * Only allows conversion from wider type to narrower type, as there should be no data loss.
  */
-@UtilityClass
-public class DomainUtils {
+public final class DomainUtils {
+
+  private DomainUtils() {
+    throw new AssertionError();
+  }
 
   @SuppressWarnings("unchecked")
   public static <T> T convert(ITaskDao.StuckTask task, Class<T> resultClass) {

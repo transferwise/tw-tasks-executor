@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 import com.transferwise.common.incidents.Incident;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.health.ITasksStateMonitor;
-
 import com.transferwise.tasks.health.TasksIncidentGenerator;
 import java.util.Arrays;
 import java.util.List;

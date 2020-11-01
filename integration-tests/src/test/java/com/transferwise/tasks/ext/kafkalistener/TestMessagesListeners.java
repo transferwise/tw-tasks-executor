@@ -6,7 +6,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 public class TestMessagesListeners implements ITestMessagesListener {
 
-  private List<ITestMessagesListener> listeners = new ArrayList<>();
+  private final List<ITestMessagesListener> listeners = new ArrayList<>();
 
   public void messageReceived(ConsumerRecord<String, String> record) {
     for (ITestMessagesListener listener : listeners) {

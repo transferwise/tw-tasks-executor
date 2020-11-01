@@ -11,7 +11,7 @@ public interface IExecutorsHelper {
   ScheduledExecutorService newScheduledExecutorService(String groupName, int poolSize);
 
   /**
-   * Rejectes when maxQueueSize would be exceeded.
+   * Rejects when maxQueueSize would be exceeded.
    */
   ExecutorService newBoundedThreadPoolExecutor(String groupName, int maxThreads, int maxQueueSize, Duration maxWait);
 }

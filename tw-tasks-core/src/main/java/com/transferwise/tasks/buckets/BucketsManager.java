@@ -62,6 +62,7 @@ public class BucketsManager implements IBucketsManager {
     }
   }
 
+  @SuppressWarnings("SameParameterValue")
   protected void add(String bucketId, BucketProperties properties) {
     ExceptionUtils.doUnchecked(() -> {
       bucketsProperties.put(bucketId, properties);

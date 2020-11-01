@@ -2,11 +2,13 @@ package com.transferwise.tasks.utils;
 
 import java.math.BigInteger;
 import java.util.UUID;
-import lombok.experimental.UtilityClass;
 import org.apache.commons.lang3.StringUtils;
 
-@UtilityClass
-public class TwTasksUuidUtils {
+public final class TwTasksUuidUtils {
+
+  private TwTasksUuidUtils() {
+    throw new AssertionError();
+  }
 
   public static UUID toUuid(String st) {
     String hyphenlessUuid = StringUtils.remove(st, '-');

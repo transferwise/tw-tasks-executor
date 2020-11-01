@@ -5,7 +5,6 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
-import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

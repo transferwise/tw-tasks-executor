@@ -139,7 +139,8 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
     );
 
     // task is correctly populated
-    FullTaskRecord task1 = tasks.stream().filter(t -> t.getId().equals(taskId1)).findAny().get();
+    FullTaskRecord task1 = tasks.stream().filter(t -> t.getId().equals(taskId1)).findAny()
+        .orElseThrow(() -> new NullPointerException("No task found."));
     assertEquals("DONE", task1.getStatus());
     assertEquals(DEFAULT_TYPE, task1.getType());
     assertEquals(5, task1.getPriority());

@@ -70,8 +70,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
     log.info("Tasks service initialized for client '" + tasksProperties.getClientId() + "'.");
 
-    meterHelper.registerGauge(METRIC_PREFIX + "tasksService.inProgressTriggeringsCount", () -> inProgressAfterCommitTasks.get());
-    meterHelper.registerGauge(METRIC_PREFIX + "tasksService.activeTriggeringsCount", () -> activeAfterCommitTasks.get());
+    meterHelper.registerGauge(METRIC_PREFIX + "tasksService.inProgressTriggeringsCount", inProgressAfterCommitTasks::get);
+    meterHelper.registerGauge(METRIC_PREFIX + "tasksService.activeTriggeringsCount", activeAfterCommitTasks::get);
   }
 
   @Override
