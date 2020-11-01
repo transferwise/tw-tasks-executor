@@ -53,6 +53,8 @@ references:
           MONGO_INITDB_ROOT_PASSWORD: example-password-change-me
           MONGO_INITDB_DATABASE: twtask
           MONGO_REPLICA_SET_NAME: twtask-mongo-replicaset
+        ports:
+          - "27017:27017"
         healthcheck:
           test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u twuser -p example-password-change-me --quiet) -eq 1
           interval: 10s
