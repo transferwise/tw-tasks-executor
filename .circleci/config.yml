@@ -46,7 +46,7 @@ references:
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
       - image: mongo:4.2.8
-        hostname: mongodb
+        name: mongo1
         environment:
           MONGO_INITDB_ROOT_USERNAME: twuser
           MONGO_INITDB_ROOT_PASSWORD: example-password-change-me
