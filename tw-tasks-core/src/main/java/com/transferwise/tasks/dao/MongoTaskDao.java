@@ -11,7 +11,6 @@ import static com.transferwise.tasks.domain.MongoTask.STATE_TIME;
 import static com.transferwise.tasks.domain.MongoTask.STATUS;
 import static com.transferwise.tasks.domain.MongoTask.SUB_TYPE;
 import static com.transferwise.tasks.domain.MongoTask.TASK_KEY;
-import static com.transferwise.tasks.domain.MongoTask.TASK_KEY_HASH;
 import static com.transferwise.tasks.domain.MongoTask.TIME_UPDATED;
 import static com.transferwise.tasks.domain.MongoTask.TYPE;
 import static com.transferwise.tasks.domain.MongoTask.VERSION;
@@ -22,12 +21,13 @@ import com.mongodb.client.result.UpdateResult;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.domain.MongoTask;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
+import com.transferwise.tasks.domain.MongoTask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.utils.MongoTaskUtils;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -35,10 +35,10 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import com.transferwise.tasks.utils.MongoTaskUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -149,8 +149,10 @@ public class MongoTaskDao implements ITaskDao {
     UUID taskId = uuidProvided ? request.getTaskId() : UuidUtils.generatePrefixCombUuid();
 
     Criteria findExistingTaskCriteria = Criteria.where(ID).is(taskId);
+    MongoTask.TaskKey taskKey = null;
     if (keyProvided) {
-      Criteria taskKeyQuery = Criteria.where(TASK_KEY).is(key).and(TASK_KEY_HASH).is(keyHash);
+      taskKey = new MongoTask.TaskKey(key, keyHash);
+      Criteria taskKeyQuery = Criteria.where(TASK_KEY).is(taskKey);
       findExistingTaskCriteria = uuidProvided ? findExistingTaskCriteria.andOperator(taskKeyQuery) : taskKeyQuery;
     }
 
@@ -162,8 +164,7 @@ public class MongoTaskDao implements ITaskDao {
     }
 
     MongoTask task = new MongoTask().setId(taskId)
-        .setKey(key)
-        .setKeyHash(keyHash)
+        .setTaskKey(taskKey)
         .setType(request.getType())
         .setSubType(request.getSubType())
         .setStatus(request.getStatus())
@@ -193,6 +194,7 @@ public class MongoTaskDao implements ITaskDao {
         Aggregation.match(Criteria.where(STATUS).is(TaskStatus.ERROR)),
         Aggregation.sort(Sort.by(NEXT_EVENT_TIME)),
         Aggregation.limit(maxCount),
+        Aggregation.project(TYPE),
         Aggregation.group(TYPE).count().as(typeCount)
     );
 
@@ -251,16 +253,17 @@ public class MongoTaskDao implements ITaskDao {
     Query query = Query.query(criteria)
         .with(Sort.by(NEXT_EVENT_TIME))
         .limit(batchSize);
-    selectOnlyFields(query, ID, NEXT_EVENT_TIME);
+    selectOnlyFields(query, ID, NEXT_EVENT_TIME, TASK_KEY);
 
     List<MongoTask> deletedTasks = mongoTemplate.findAllAndRemove(query, MongoTask.class, twTaskCollectionName);
 
     DeleteFinishedOldTasksResult result = new DeleteFinishedOldTasksResult();
     result.setDeletedTasksCount(deletedTasks.size());
-    result.setDeletedUniqueKeysCount(deletedTasks.size());
     result.setFoundTasksCount(deletedTasks.size());
     result.setDeletedBeforeTime(deletedBeforeTime.atZone(ZoneOffset.UTC));
 
+    long deletedUniqueKeysCount = deletedTasks.stream().filter(t -> Objects.nonNull(t.getTaskKey())).count();
+    result.setDeletedUniqueKeysCount((int) deletedUniqueKeysCount);
     if (!deletedTasks.isEmpty()) {
       MongoTask firstDeletedTask = deletedTasks.get(0);
       result.setFirstDeletedTaskId(firstDeletedTask.getId());
@@ -381,7 +384,8 @@ public class MongoTaskDao implements ITaskDao {
 
   @Override
   public long getApproximateUniqueKeysCount() {
-    return getApproximateTasksCount();
+    Query query = Query.query(Criteria.where(TASK_KEY).ne(null));
+    return mongoTemplate.count(query, twTaskCollectionName);
   }
 
   private Instant now() {

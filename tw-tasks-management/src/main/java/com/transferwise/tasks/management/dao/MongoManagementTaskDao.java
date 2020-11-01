@@ -1,29 +1,5 @@
 package com.transferwise.tasks.management.dao;
 
-import com.mongodb.client.result.UpdateResult;
-import com.transferwise.common.context.TwContextClockHolder;
-import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.dao.ITaskDao;
-import com.transferwise.tasks.domain.FullTaskRecord;
-import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.utils.ListUtils;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.domain.Sort.Direction;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.data.mongodb.core.query.Update;
-import org.springframework.transaction.annotation.Transactional;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import static com.transferwise.tasks.dao.ITaskDao.STUCK_STATUSES;
 import static com.transferwise.tasks.domain.MongoTask.DATA;
 import static com.transferwise.tasks.domain.MongoTask.ID;
@@ -38,6 +14,30 @@ import static com.transferwise.tasks.domain.MongoTask.TIME_UPDATED;
 import static com.transferwise.tasks.domain.MongoTask.TYPE;
 import static com.transferwise.tasks.domain.MongoTask.VERSION;
 import static com.transferwise.tasks.utils.MongoTaskUtils.selectOnlyFields;
+
+import com.mongodb.client.result.UpdateResult;
+import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.domain.FullTaskRecord;
+import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.utils.ListUtils;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Sort.Direction;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.transaction.annotation.Transactional;
 
 public class MongoManagementTaskDao implements IManagementTaskDao {
   private final MongoTemplate mongoTemplate;

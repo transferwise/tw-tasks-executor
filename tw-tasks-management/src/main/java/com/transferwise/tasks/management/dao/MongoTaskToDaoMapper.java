@@ -1,14 +1,14 @@
 package com.transferwise.tasks.management.dao;
 
+import static com.transferwise.tasks.utils.MongoTaskUtils.getId;
+import static com.transferwise.tasks.utils.MongoTaskUtils.getNumberValue;
+import static com.transferwise.tasks.utils.MongoTaskUtils.getZonedDateForField;
+
 import com.transferwise.tasks.domain.MongoTask;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import org.bson.Document;
-
-import static com.transferwise.tasks.utils.MongoTaskUtils.getId;
-import static com.transferwise.tasks.utils.MongoTaskUtils.getNumberValue;
-import static com.transferwise.tasks.utils.MongoTaskUtils.getZonedDateForField;
 
 public class MongoTaskToDaoMapper {
 

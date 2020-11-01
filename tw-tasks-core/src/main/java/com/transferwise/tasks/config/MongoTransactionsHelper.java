@@ -2,12 +2,12 @@ package com.transferwise.tasks.config;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
+import java.util.concurrent.Callable;
 import org.springframework.data.mongodb.MongoTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
-import java.util.concurrent.Callable;
 
 public class MongoTransactionsHelper implements ITransactionsHelper {
 

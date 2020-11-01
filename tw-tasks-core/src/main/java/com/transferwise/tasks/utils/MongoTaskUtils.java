@@ -1,20 +1,20 @@
 package com.transferwise.tasks.utils;
 
 import com.transferwise.tasks.dao.ITaskDao.StuckTask;
-import com.transferwise.tasks.domain.MongoTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
+import com.transferwise.tasks.domain.MongoTask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskVersionId;
-import lombok.experimental.UtilityClass;
-import org.bson.Document;
-import org.springframework.data.mongodb.core.query.Field;
-import org.springframework.data.mongodb.core.query.Query;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.UUID;
+import lombok.experimental.UtilityClass;
+import org.bson.Document;
+import org.springframework.data.mongodb.core.query.Field;
+import org.springframework.data.mongodb.core.query.Query;
 
 @UtilityClass
 public class MongoTaskUtils {

@@ -1,18 +1,5 @@
 package com.transferwise.tasks.test.dao;
 
-import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.domain.Task;
-import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.utils.MongoTaskUtils;
-import org.apache.commons.lang3.ArrayUtils;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.transaction.annotation.Transactional;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
 import static com.transferwise.tasks.domain.MongoTask.DATA;
 import static com.transferwise.tasks.domain.MongoTask.ID;
 import static com.transferwise.tasks.domain.MongoTask.PRIORITY;
@@ -21,6 +8,19 @@ import static com.transferwise.tasks.domain.MongoTask.STATUS;
 import static com.transferwise.tasks.domain.MongoTask.SUB_TYPE;
 import static com.transferwise.tasks.domain.MongoTask.TYPE;
 import static com.transferwise.tasks.domain.MongoTask.VERSION;
+
+import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.domain.Task;
+import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.utils.MongoTaskUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.transaction.annotation.Transactional;
 
 public class MongoTestTaskDao implements ITestTaskDao {
   private final MongoTemplate mongoTemplate;

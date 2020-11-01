@@ -2,7 +2,9 @@ package com.transferwise.tasks.domain;
 
 import java.time.Instant;
 import java.util.UUID;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import org.springframework.data.annotation.TypeAlias;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
@@ -13,14 +15,12 @@ import org.springframework.data.mongodb.core.mapping.MongoId;
 @Data
 @TypeAlias("MongoTask")
 @CompoundIndex(name = "tw_task_idx1", def = "{'status': 1, 'next_event_time': 1}")
-@CompoundIndex(name = "tw_task_key_index", def = "{'key':1, 'keyHash':1}", unique = true)
 public class MongoTask {
   public static final String ID = "_id";
   public static final String VERSION = "version";
   public static final String TYPE = "type";
   public static final String PRIORITY = "priority";
-  public static final String TASK_KEY = "key";
-  public static final String TASK_KEY_HASH = "keyHash";
+  public static final String TASK_KEY = "taskKey";
   public static final String STATUS = "status";
   public static final String NEXT_EVENT_TIME = "nextEventTime";
   public static final String PROCESSING_CLIENT_ID = "processingClientId";
@@ -33,8 +33,6 @@ public class MongoTask {
 
   @MongoId
   private UUID id;
-  private String key;
-  private Integer keyHash;
   private String type;
   private String subType;
   private TaskStatus status;
@@ -47,7 +45,17 @@ public class MongoTask {
   private Integer processingTriesCount;
   private Instant timeCreated;
   private Instant timeUpdated;
+  @Indexed(unique = true)
+  private TaskKey taskKey;
   @Indexed
   private Long version;
   private Integer priority = 5;
+
+  @Data
+  @AllArgsConstructor
+  @NoArgsConstructor
+  public static class TaskKey {
+    private String key;
+    private Integer keyHash;
+  }
 }

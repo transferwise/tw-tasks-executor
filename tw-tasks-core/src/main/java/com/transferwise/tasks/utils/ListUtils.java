@@ -1,10 +1,10 @@
 package com.transferwise.tasks.utils;
 
-import lombok.experimental.UtilityClass;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
+import lombok.experimental.UtilityClass;
 
 @UtilityClass
 public class ListUtils {
