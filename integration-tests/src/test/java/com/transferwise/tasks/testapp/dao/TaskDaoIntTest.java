@@ -48,7 +48,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
-  private ITaskDao taskDao;
+  ITaskDao taskDao;
 
   @Autowired
   private TasksProperties tasksProperties;

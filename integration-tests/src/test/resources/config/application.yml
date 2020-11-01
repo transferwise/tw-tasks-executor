@@ -58,6 +58,9 @@ testenv:
   zookeeper:
     host: zk-service1
     port: 2181
+  mongo:
+    host: mongo1
+    port: 27017
 
 ---
 
@@ -111,11 +114,11 @@ spring:
   data:
     mongodb:
       database: twtask
-      host: localhost
+      host: ${MONGO_TCP_HOST:localhost}
       username: twuser
       password: example-password-change-me
       replica-set-name: twtask-mongo-replicaset
-      port: 27017
+      port: ${MONGO_TCP_27017:27017}
       authentication-database: admin
 
 tw-tasks.core:

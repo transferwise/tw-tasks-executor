@@ -37,6 +37,18 @@ references:
           KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 20000
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+      - image: mongo:4.2.8
+        hostname: mongodb
+        environment:
+          MONGO_INITDB_ROOT_USERNAME: twuser
+          MONGO_INITDB_ROOT_PASSWORD: example-password-change-me
+          MONGO_INITDB_DATABASE: twtask
+          MONGO_REPLICA_SET_NAME: twtask-mongo-replicaset
+        healthcheck:
+          test: test $$(echo "rs.initiate().ok || rs.status().ok" | mongo -u twuser -p example-password-change-me --quiet) -eq 1
+          interval: 10s
+          start_period: 30s
+        command: [ "--replSet", "twtask-mongo-replicaset", "--bind_ip_all" ]
     resource_class: medium
     environment:
       TERM: vt100
@@ -50,6 +62,8 @@ references:
       ZOOKEEPER_TCP_HOST: zk-service1
       POSTGRES_TCP_HOST: postgres1
       POSTGRES_TCP_5432: 5432
+      MONGO_TCP_HOST: mongo1
+      MONGO_TCP_27017: 27017
 jobs:
   test:
     <<: *container_config

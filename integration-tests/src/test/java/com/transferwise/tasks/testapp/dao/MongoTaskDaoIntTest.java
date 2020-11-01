@@ -24,6 +24,6 @@ class MongoTaskDaoIntTest extends TaskDaoIntTest {
 
   @Override
   int getUniqueTaskKeysCount() {
-    return (int) mongoTemplate.count(new Query(), "tw_task");
+    return (int) taskDao.getApproximateUniqueKeysCount();
   }
 }
