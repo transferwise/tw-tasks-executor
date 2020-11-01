@@ -29,7 +29,6 @@ public class TwTasksApplicationListener implements ApplicationListener<Applicati
     } else if (event instanceof ApplicationEnvironmentPreparedEvent) {
       ApplicationEnvironmentPreparedEvent aepe = (ApplicationEnvironmentPreparedEvent) event;
 
-      //noinspection unchecked
       aepe.getEnvironment().getPropertySources().addFirst(new PropertySource<Object>("tw-tasks", new Object()) {
         private volatile String clientIdFromHostname;
 

@@ -63,7 +63,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Transactional(propagation = Propagation.NEVER, rollbackFor = Exception.class)
-@SuppressWarnings("checkstyle:MultipleStringLiterals")
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy {
 
   @Autowired

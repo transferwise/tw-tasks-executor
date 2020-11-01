@@ -2,12 +2,31 @@
 
 Describes notable changes.
 
+#### 1.18.0 - 2020/11/01
+- MDC corrections.
+Following MDC keys are now set for tasks under processing:
+* `twTaskId`
+* `twTaskVersion`
+* `twTaskType`
+* `twTaskSubType`
+
+`twTaskVersionId` is not set anymore.
+
+- Task can now define its TwContext criticality and owner.
+
+- Lots of corrections around entry points creation.
+
 #### 1.17.0 - 2020/10/31
 - Optimization and configuration for fetching approximate tasks and unique keys count by cluster wide tasks state monitor.
 Consult with `com.transferwise.tasks.TasksProperties.ClusterWideTasksStateMonitor` for added configuration options.
 
 - Minor external libraries upgrades.
 - Minor testsuite optimizations.
+
+Some transactions are now using isolation level READ_UNCOMMITTED. If you are using JTA transaction manager, you may have to do
+two things.
+1. Wrap your datasource into `org.springframework.jdbc.datasource.IsolationLevelDataSourceAdapter`
+2. Set `org.springframework.transaction.jta.JtaTransactionManager.setAllowCustomIsolationLevels` to true.
 
 #### 1.16.0 - 2020/10/28
 Use separate DAOs for Core/Test/Management.

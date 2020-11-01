@@ -17,7 +17,6 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import com.transferwise.tasks.utils.LogUtils;
-import java.sql.Date;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -216,8 +215,8 @@ public class TasksManagementService implements ITasksManagementService {
                   .setStatus(task.getStatus())
                   .setType(task.getType())
                   .setSubType(task.getSubType())
-                  .setNextEventTime(Date.from(task.getNextEventTime().toInstant()))
-                  .setStateTime(Date.from(task.getStateTime().toInstant()))
+                  .setNextEventTime(task.getNextEventTime().toInstant())
+                  .setStateTime(task.getStateTime().toInstant())
                   .setPriority(task.getPriority())
                   .setProcessingTriesCount(task.getProcessingTriesCount())
                   .setProcessingClientId(task.getProcessingClientId());

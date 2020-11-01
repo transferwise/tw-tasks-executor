@@ -38,6 +38,7 @@ class TasksIncidentGeneratorTest {
         new ImmutablePair<>("AAA", 2),
         new ImmutablePair<>("BBB", 1)
     ));
+    //noinspection unchecked,rawtypes
     when(entryPointsService.continueOrCreate(anyString(), anyString(), any(Supplier.class))).thenAnswer(
         invocation -> ((Supplier) invocation.getArgument(2)).get());
 

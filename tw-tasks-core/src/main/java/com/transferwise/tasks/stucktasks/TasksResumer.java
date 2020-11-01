@@ -132,7 +132,6 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
    * It's quite common for having zookeeper connection misconfigured and apps not do this check themselves, resulting in tasks resumer silently not
    * working at all.
    */
-  @SuppressWarnings("checkstyle:magicnumber")
   protected void verifyCorrectCuratorConfig() {
     if (!tasksProperties.isPreventStartWithoutZookeeper()) {
       return;
@@ -146,7 +145,6 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   }
 
   @EntryPoint
-  @SuppressWarnings("checkstyle:MultipleStringLiterals")
   protected void resumeStuckTasks(Leader.Control control) {
     try {
       unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_STUCK_TASKS).toContext()
@@ -185,7 +183,6 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   }
 
   @EntryPoint
-  @SuppressWarnings("checkstyle:MultipleStringLiterals")
   protected void resumeWaitingTasks(Leader.Control control) {
     try {
       unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_WAITING_TASKS)
@@ -325,7 +322,6 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   }
 
   @EntryPoint
-  @SuppressWarnings("checkstyle:MultipleStringLiterals")
   protected void resumeTasksForClient() {
     try {
       unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_TASKS_FOR_CLIENT).toContext()

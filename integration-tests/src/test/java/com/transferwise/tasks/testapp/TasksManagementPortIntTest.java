@@ -154,6 +154,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
     ResponseEntity<GetTaskDataResponse> dataResponse = piiOfficerTemplate()
         .getForEntity("/v1/twTasks/task/" + taskId + "/data", GetTaskDataResponse.class);
+    assertThat(dataResponse.getBody()).isNotNull();
     assertThat(dataResponse.getBody().getData()).isEqualTo("the payload");
     assertThat(dataResponse.getBody().getResultCode()).isEqualTo(ResultCode.SUCCESS);
   }

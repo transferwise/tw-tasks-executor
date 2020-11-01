@@ -14,7 +14,6 @@ public class KafkaMessageHandlerRegistry<T> implements IKafkaMessageHandlerRegis
   private List<IKafkaMessageHandler<T>> kafkaMessageHandlers;
 
   @PostConstruct
-  @SuppressWarnings("checkstyle:MultipleStringLiterals")
   public void init() {
     if (!isEmpty()) {
       for (IKafkaMessageHandler<T> kafkaMessageHandler : kafkaMessageHandlers) {

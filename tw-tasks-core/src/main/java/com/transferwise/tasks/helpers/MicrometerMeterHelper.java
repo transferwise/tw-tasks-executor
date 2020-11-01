@@ -20,7 +20,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.tuple.Triple;
 
-@SuppressWarnings("checkstyle:MultipleStringLiterals")
 @RequiredArgsConstructor
 @Slf4j
 public class MicrometerMeterHelper implements IMeterHelper {

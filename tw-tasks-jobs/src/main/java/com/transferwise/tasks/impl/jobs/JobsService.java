@@ -76,7 +76,6 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
     return true;
   }
 
-  @SuppressWarnings("checkstyle:MultipleStringLiterals")
   private void validateState() {
     jobContainers.forEach(c -> {
       if (c.getUniqueName() == null) {

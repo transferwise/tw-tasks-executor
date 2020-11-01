@@ -142,7 +142,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   }
 
   @Override
-  @SuppressWarnings("checkstyle:MultipleStringLiterals")
   @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
   public boolean resumeTask(ResumeTaskRequest request) {

@@ -16,6 +16,6 @@ public class EntryPointsService implements IEntryPointsService {
       return supplier.get();
     }
 
-    return unitOfWorkManager.createEntryPoint(group, name).toContext().execute(supplier::get);
+    return unitOfWorkManager.createEntryPoint(group, name).toContext().execute(supplier);
   }
 }

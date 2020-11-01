@@ -68,7 +68,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Transactional(propagation = Propagation.NEVER)
-@SuppressWarnings("checkstyle:MultipleStringLiterals")
 public class TasksProcessingService implements GracefulShutdownStrategy, ITasksProcessingService {
 
   @Autowired

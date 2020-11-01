@@ -1,10 +1,8 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.domain.TaskVersionId;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -166,12 +164,11 @@ public interface ITasksManagementPort {
     }
   }
 
+  // keep it without PII (task data)
   @Data
   @Accessors(chain = true)
-  @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
   class GetTaskWithoutDataResponse {
 
-    // keep it without PII (task data)
     private UUID id;
     private long version;
     private String type;
@@ -179,8 +176,8 @@ public interface ITasksManagementPort {
     private String status;
     private long processingTriesCount;
     private int priority;
-    private Date stateTime;
-    private Date nextEventTime;
+    private Instant stateTime;
+    private Instant nextEventTime;
     private String processingClientId;
   }
 
