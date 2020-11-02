@@ -8,6 +8,7 @@ import com.transferwise.tasks.domain.MongoTask;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
+import com.transferwise.tasks.utils.MongoTaskUtils;
 import org.bson.Document;
 
 public class MongoTaskToDaoMapper {
@@ -46,6 +47,6 @@ public class MongoTaskToDaoMapper {
       return (T) mapDocToDaoTask3(doc);
     }
 
-    throw new IllegalStateException("Unsupported class of '" + type.getCanonicalName() + "'.");
+    return MongoTaskUtils.mapDocToType(doc, type);
   }
 }
