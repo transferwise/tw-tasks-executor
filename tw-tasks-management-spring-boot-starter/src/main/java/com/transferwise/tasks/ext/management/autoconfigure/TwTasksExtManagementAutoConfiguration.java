@@ -5,12 +5,14 @@ import com.transferwise.tasks.core.autoconfigure.TwTasksCoreAutoConfiguration.Tw
 import com.transferwise.tasks.management.TasksManagementPortController;
 import com.transferwise.tasks.management.TasksManagementService;
 import com.transferwise.tasks.management.dao.IManagementTaskDao;
+import com.transferwise.tasks.management.dao.MongoManagementTaskDao;
 import com.transferwise.tasks.management.dao.MySqlManagementTaskDao;
 import com.transferwise.tasks.management.dao.PostgresManagementTaskDao;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 @Configuration
 public class TwTasksExtManagementAutoConfiguration {
@@ -25,6 +27,12 @@ public class TwTasksExtManagementAutoConfiguration {
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
   public IManagementTaskDao mysqlManagementTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, TasksProperties tasksProperties) {
     return new MySqlManagementTaskDao(twTasksDataSourceProvider.getDataSource(), tasksProperties);
+  }
+
+  @Bean
+  @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MONGO")
+  public IManagementTaskDao mongoManagementTaskDao(MongoTemplate mongoTemplate, TasksProperties tasksProperties) {
+    return new MongoManagementTaskDao(mongoTemplate, tasksProperties);
   }
 
   @Bean

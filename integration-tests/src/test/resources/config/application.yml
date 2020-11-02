@@ -59,6 +59,9 @@ testenv:
   zookeeper:
     host: zk-service1
     port: 2181
+  mongo:
+    host: mongo1
+    port: 27017
 
 ---
 
@@ -101,3 +104,25 @@ tw-tasks.core:
 
 spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-postgres.xml
 
+---
+
+spring:
+  profiles: mongo
+  kafka:
+    client-id: test-mongo
+    consumer:
+      groupId: 'test'
+  data:
+    mongodb:
+      database: twtask
+      host: ${MONGO_TCP_HOST:localhost}
+      username: twuser
+      password: example-password-change-me
+      replica-set-name: twtask-mongo-replicaset
+      port: ${MONGO_TCP_27017:27017}
+      authentication-database: admin
+
+tw-tasks.core:
+  db-type: mongo
+  group-id: test-mongo
+  client-id: test-mongo

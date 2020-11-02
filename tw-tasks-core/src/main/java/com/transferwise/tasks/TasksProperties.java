@@ -259,7 +259,7 @@ public class TasksProperties {
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
 
   public enum DbType {
-    MYSQL, POSTGRES
+    MYSQL, POSTGRES, MONGO
   }
 
   private TasksManagement tasksManagement = new TasksManagement();

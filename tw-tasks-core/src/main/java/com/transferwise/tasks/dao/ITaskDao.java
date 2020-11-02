@@ -15,6 +15,17 @@ import lombok.experimental.Accessors;
 import org.apache.commons.lang3.tuple.Pair;
 
 public interface ITaskDao {
+  TaskStatus[] STUCK_STATUSES = new TaskStatus[]{
+      TaskStatus.NEW,
+      TaskStatus.SUBMITTED,
+      TaskStatus.WAITING,
+      TaskStatus.PROCESSING
+  };
+
+  TaskStatus[] WAITING_AND_PROCESSING_STATUSES = new TaskStatus[]{
+      TaskStatus.WAITING,
+      TaskStatus.PROCESSING
+  };
 
   @Data
   @Accessors(chain = true)

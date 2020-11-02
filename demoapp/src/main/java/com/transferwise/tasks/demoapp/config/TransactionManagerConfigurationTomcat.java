@@ -3,6 +3,7 @@ package com.transferwise.tasks.demoapp.config;
 import com.transferwise.common.gaffer.ServiceRegistry;
 import com.transferwise.common.gaffer.ServiceRegistryHolder;
 import com.transferwise.common.gaffer.jdbc.DataSourceImpl;
+import com.transferwise.tasks.config.JdbcEnvironmentCondition;
 import javax.sql.DataSource;
 import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
@@ -12,6 +13,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.jdbc.DatabaseDriver;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.datasource.IsolationLevelDataSourceAdapter;
@@ -20,6 +22,7 @@ import org.springframework.transaction.jta.JtaTransactionManager;
 
 @Configuration
 @EnableTransactionManagement
+@Conditional(JdbcEnvironmentCondition.class)
 public class TransactionManagerConfigurationTomcat {
 
   @Bean
