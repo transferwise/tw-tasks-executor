@@ -2,7 +2,7 @@ package com.transferwise.tasks.core.autoconfigure;
 
 import javax.sql.DataSource;
 
-public class TwTasksDataSourceProvider implements ITwTasksDataSourceProvider{
+public class TwTasksDataSourceProvider implements ITwTasksDataSourceProvider {
 
   private final DataSource dataSource;
 

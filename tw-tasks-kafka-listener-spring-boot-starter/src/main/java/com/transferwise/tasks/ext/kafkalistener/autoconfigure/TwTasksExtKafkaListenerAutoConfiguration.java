@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Configuration;
 public class TwTasksExtKafkaListenerAutoConfiguration {
 
   @Bean
-  @ConditionalOnMissingBean(CoreKafkaListener.class)
+  @ConditionalOnMissingBean
   @SuppressWarnings("rawtypes")
   public CoreKafkaListener twTasksCoreKafkaListener() {
     return new CoreKafkaListener();
@@ -30,7 +30,7 @@ public class TwTasksExtKafkaListenerAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(KafkaMessageHandlerFactory.class)
+  @ConditionalOnMissingBean
   public KafkaMessageHandlerFactory kafkaMessageHandlerFactory(ITasksService tasksService, ObjectMapper objectMapper) {
     return new KafkaMessageHandlerFactory(tasksService, objectMapper);
   }
