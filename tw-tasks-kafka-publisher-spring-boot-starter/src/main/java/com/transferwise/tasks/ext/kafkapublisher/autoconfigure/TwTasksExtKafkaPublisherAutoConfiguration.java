@@ -2,9 +2,11 @@ package com.transferwise.tasks.ext.kafkapublisher.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService;
 import com.transferwise.tasks.impl.tokafka.ToKafkaProperties;
 import com.transferwise.tasks.impl.tokafka.ToKafkaSenderService;
 import com.transferwise.tasks.impl.tokafka.ToKafkaTaskHandlerConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -17,6 +19,7 @@ import org.springframework.context.annotation.Import;
 public class TwTasksExtKafkaPublisherAutoConfiguration {
 
   @Bean
+  @ConditionalOnMissingBean(IToKafkaSenderService.class)
   public ToKafkaSenderService twTasksToKafkaSenderService(
       ObjectMapper objectMapper, ITasksService taskService, ToKafkaProperties properties) {
     return new ToKafkaSenderService(objectMapper, taskService, properties.getBatchSizeMb());

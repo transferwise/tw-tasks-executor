@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.19.0 - 2020/11/01
+- Allowing most beans defined by auto configuration to be overridden.
+
 #### 1.18.0 - 2020/11/01
 - MDC corrections.
 Following MDC keys are now set for tasks under processing:

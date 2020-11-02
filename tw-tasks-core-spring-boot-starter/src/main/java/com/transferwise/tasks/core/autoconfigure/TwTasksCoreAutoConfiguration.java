@@ -4,12 +4,15 @@ import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProv
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
 import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
+import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.PriorityManager;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.TasksService;
 import com.transferwise.tasks.TwTasks;
 import com.transferwise.tasks.buckets.BucketsManager;
+import com.transferwise.tasks.buckets.IBucketsManager;
+import com.transferwise.tasks.cleaning.ITasksCleaner;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
@@ -20,12 +23,16 @@ import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.entrypoints.MdcService;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
+import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
+import com.transferwise.tasks.health.ITasksStateMonitor;
 import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
+import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.MicrometerMeterHelper;
 import com.transferwise.tasks.helpers.NoOpMeterHelper;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
+import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.AdminClientTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.NoOpTopicPartitionsManager;
@@ -50,9 +57,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.format.datetime.standard.DateTimeFormatterRegistrar;
-import org.springframework.format.support.DefaultFormattingConversionService;
-import org.springframework.format.support.FormattingConversionService;
 import org.springframework.kafka.core.KafkaTemplate;
 
 @Configuration
@@ -77,7 +81,7 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(TwTasksDataSourceProvider.class)
+  @ConditionalOnMissingBean(ITwTasksDataSourceProvider.class)
   public TwTasksDataSourceProvider twTasksDataSourceProvider(
       @Autowired(required = false) @TwTasks DataSource dataSource, ConfigurableListableBeanFactory beanFactory) {
     if (dataSource == null) {
@@ -143,16 +147,19 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(ITaskHandlerRegistry.class)
   public TaskHandlerRegistry twTasksTaskHandlerRegistry() {
     return new TaskHandlerRegistry();
   }
 
   @Bean
+  @ConditionalOnMissingBean(IExecutorsHelper.class)
   public ExecutorsHelper twTasksExecutorsHelper() {
     return new ExecutorsHelper();
   }
 
   @Bean
+  @ConditionalOnMissingBean(ITopicPartitionsManager.class)
   public ITopicPartitionsManager twTasksTopicPartitionsManager(TasksProperties tasksProperties) {
     if (tasksProperties.isConfigureKafkaTopics()) {
       return new AdminClientTopicPartitionsManager();
@@ -166,39 +173,37 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(IPriorityManager.class)
   public PriorityManager twTasksPriorityManager() {
     return new PriorityManager();
   }
 
   @Bean
+  @ConditionalOnMissingBean(IBucketsManager.class)
   public BucketsManager twTasksBucketsManager() {
     return new BucketsManager();
   }
 
   @Bean
-  public FormattingConversionService twTasksConversionService() {
-    DefaultFormattingConversionService conversionService = new DefaultFormattingConversionService();
-    new DateTimeFormatterRegistrar().registerFormatters(conversionService);
-    return conversionService;
-  }
-
-  @Bean
+  @ConditionalOnMissingBean(ITasksCleaner.class)
   public TasksCleaner twTasksCleaner() {
     return new TasksCleaner();
   }
 
   @Bean
   @ConditionalOnMissingBean(IExecutorServicesProvider.class)
-  public IExecutorServicesProvider twTasksExecutorServicesProvider() {
+  public DefaultExecutorServicesProvider twTasksExecutorServicesProvider() {
     return new DefaultExecutorServicesProvider();
   }
 
   @Bean
+  @ConditionalOnMissingBean(IErrorLoggingThrottler.class)
   public ErrorLoggingThrottler twTasksErrorLoggingThrottler() {
     return new ErrorLoggingThrottler();
   }
 
   @Bean
+  @ConditionalOnMissingBean(IMeterHelper.class)
   public IMeterHelper twTasksMeterHelper(@Autowired(required = false) MeterRegistry meterRegistry) {
     if (meterRegistry == null) {
       log.warn("Micrometer registry was not found. Falling back to NoOpMeterHelper.");
@@ -208,6 +213,7 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(ITasksStateMonitor.class)
   public ClusterWideTasksStateMonitor twTasksEngineMonitor() {
     return new ClusterWideTasksStateMonitor();
   }
@@ -219,25 +225,15 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
+  @ConditionalOnMissingBean(IMdcService.class)
   public IMdcService twTasksMdcService() {
     return new MdcService();
   }
 
   @Bean
+  @ConditionalOnMissingBean(IEntryPointsService.class)
   public IEntryPointsService twTasksEntryPointsService() {
     return new EntryPointsService();
   }
 
-  public static class TwTasksDataSourceProvider {
-
-    private final DataSource dataSource;
-
-    public TwTasksDataSourceProvider(DataSource dataSource) {
-      this.dataSource = dataSource;
-    }
-
-    public DataSource getDataSource() {
-      return dataSource;
-    }
-  }
 }
