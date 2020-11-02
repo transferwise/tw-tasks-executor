@@ -1,8 +1,10 @@
 package com.transferwise.tasks.handler.interfaces;
 
+import com.transferwise.common.context.Criticality;
 import com.transferwise.tasks.domain.IBaseTask;
 import java.time.Duration;
 import java.time.Instant;
+import lombok.NonNull;
 
 @SuppressWarnings({"SameReturnValue", "unused"})
 public interface ITaskProcessingPolicy {
@@ -23,7 +25,20 @@ public interface ITaskProcessingPolicy {
     return StuckTaskResolutionStrategy.MARK_AS_ERROR;
   }
 
+  @NonNull
   Instant getProcessingDeadline(IBaseTask task);
+
+  @NonNull
+  default Criticality getProcessingCriticality(IBaseTask task) {
+    return Criticality.SHEDDABLE_PLUS;
+  }
+
+  /**
+   * Usually a team name owning the task/code.
+   */
+  default String getOwner(IBaseTask task) {
+    return null;
+  }
 
   default Duration getExpectedQueueTime(IBaseTask task) {
     return null;

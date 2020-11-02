@@ -3,12 +3,12 @@ package com.transferwise.tasks.processing;
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 import com.google.common.collect.ImmutableMap;
-import com.newrelic.api.agent.NewRelic;
-import com.newrelic.api.agent.Trace;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.Criticality;
+import com.transferwise.common.context.TwContext;
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.common.context.UnitOfWork;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.IPriorityManager;
@@ -20,6 +20,11 @@ import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
+import com.transferwise.tasks.entrypoints.EntryPointsNames;
+import com.transferwise.tasks.entrypoints.IEntryPointsService;
+import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.IAsyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy;
@@ -30,7 +35,6 @@ import com.transferwise.tasks.handler.interfaces.ITaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
-import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse.Code;
 import com.transferwise.tasks.triggering.TaskTriggering;
 import com.transferwise.tasks.utils.LogUtils;
@@ -56,6 +60,7 @@ import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -63,7 +68,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Transactional(propagation = Propagation.NEVER)
-@SuppressWarnings("checkstyle:MultipleStringLiterals")
 public class TasksProcessingService implements GracefulShutdownStrategy, ITasksProcessingService {
 
   @Autowired
@@ -88,6 +92,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   private IMeterHelper meterHelper;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private IMdcService mdcService;
+  @Autowired
+  private IEntryPointsService entryPointsHelper;
 
   private final AtomicInteger runningTasksCount = new AtomicInteger();
 
@@ -157,24 +165,26 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   protected void processTasks(GlobalProcessingState.Bucket bucket) {
     String bucketId = bucket.getBucketId();
 
-    boolean taskProcessed = false;
+    MutableBoolean taskProcessed = new MutableBoolean();
 
     Map<String, Boolean> noRoomMap = new HashMap<>();
 
     for (Integer priority : bucket.getPriorities()) {
+      if (taskProcessed.isTrue()) {
+        break;
+      }
       if (tasksProperties.isDebugMetricsEnabled()) {
         meterHelper.debugPriorityQueueCheck(bucketId, priority);
       }
-      if (taskProcessed) {
-        break;
-      }
-
       GlobalProcessingState.PrioritySlot prioritySlot = bucket.getPrioritySlot(priority);
 
       transferFromIntermediateBuffer(bucket, prioritySlot);
 
       // TODO: Probably we can avoid the new ArrayList<> here.
       for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
+        if (taskProcessed.isTrue()) {
+          break;
+        }
         String type = typeTasks.getType();
 
         if (noRoomMap.containsKey(type)) {
@@ -193,8 +203,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
           break;
         }
         BaseTask task = taskTriggering.getTask();
-        MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), task.getVersionId());
-        try {
+        // Real entry point would add too much overhead.
+        mdcService.with(() -> {
+          mdcService.put(task);
           try {
             ProcessTaskResponse processTaskResponse = grabTaskForProcessing(bucketId, task);
 
@@ -204,26 +215,22 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
               noRoomMap.put(type, Boolean.TRUE);
             } else {
               // Start again, i.e. find a task with highest priority and lowest offset.
-              taskProcessed = true;
+              taskProcessed.setTrue();
             }
           } catch (Throwable t) {
             log.error("Scheduling of task '" + task.getVersionId() + "' failed.", t);
-            taskProcessed = true;
+            taskProcessed.setTrue();
           }
 
-          if (taskProcessed) {
+          if (taskProcessed.isTrue()) {
             taskTriggeringProcessingListener.accept(taskTriggering);
             prioritySlot.getOrderedTypeTasks().remove(typeTasks);
             typeTasks.removeLast();
             log.debug("Removed task '{}' triggering from processingState.", task.getVersionId());
             prioritySlot.getOrderedTypeTasks().add(typeTasks);
             bucket.increaseVersion();
-
-            break;
           }
-        } finally {
-          MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), null);
-        }
+        });
       }
     }
   }
@@ -317,7 +324,13 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         bucket.getTasksGrabbingLock().unlock();
       }
       ongoingTasksGrabbingsCount.incrementAndGet();
-      tasksGrabbingExecutor.submit(() -> grabTaskForProcessing0(bucket, task, concurrencyPolicy, taskHandler));
+      tasksGrabbingExecutor.submit(() -> {
+        try {
+          grabTaskForProcessing0(bucket, task, concurrencyPolicy, taskHandler);
+        } catch (Throwable t) {
+          log.error("Task grabbing failed for '{}'.", task.getVersionId(), t);
+        }
+      });
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
       concurrencyPolicy.freeSpaceForTask(task);
@@ -331,66 +344,63 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.OK).setCode(Code.HAPPY_FLOW);
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   protected void grabTaskForProcessing0(GlobalProcessingState.Bucket bucket, BaseTask task, ITaskConcurrencyPolicy concurrencyPolicy,
       ITaskHandler taskHandler) {
-    NewRelic.setTransactionName("TwTasksEngine", "TaskGrabbing");
-    try {
-      Instant maxProcessingEndTime = taskHandler.getProcessingPolicy(task).getProcessingDeadline(task);
+    unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.GRAB_TASK).toContext()
+        .execute(() -> {
+          try {
+            Instant maxProcessingEndTime = taskHandler.getProcessingPolicy(task).getProcessingDeadline(task);
 
-      boolean grabbed = false;
-      try {
-        boolean expectingVersionToBeTheSameInDb = true;
-        if (tasksProperties.isCheckVersionBeforeGrabbing()) {
-          Long taskVersionInDb = taskDao.getTaskVersion(task.getId());
-          expectingVersionToBeTheSameInDb = (taskVersionInDb != null) && (taskVersionInDb == task.getVersion());
-        }
-        Task taskForProcessing =
-            expectingVersionToBeTheSameInDb ? taskDao.grabForProcessing(task, tasksProperties.getClientId(), maxProcessingEndTime) : null;
+            boolean grabbed = false;
+            try {
+              boolean expectingVersionToBeTheSameInDb = true;
+              if (tasksProperties.isCheckVersionBeforeGrabbing()) {
+                Long taskVersionInDb = taskDao.getTaskVersion(task.getId());
+                expectingVersionToBeTheSameInDb = (taskVersionInDb != null) && (taskVersionInDb == task.getVersion());
+              }
+              Task taskForProcessing =
+                  expectingVersionToBeTheSameInDb ? taskDao.grabForProcessing(task, tasksProperties.getClientId(), maxProcessingEndTime) : null;
 
-        if (taskForProcessing == null) {
-          log.debug("Task '{}' was not available for processing with its version.", task.getVersionId());
-        } else {
-          scheduleTask(bucket.getBucketId(), taskHandler, concurrencyPolicy, taskForProcessing);
-          grabbed = true;
-        }
-      } finally {
-        if (!grabbed) {
-          concurrencyPolicy.freeSpaceForTask(task);
-          globalProcessingState.increaseBucketsVersion();
-          meterHelper.registerFailedTaskGrabbing(bucket.getBucketId(), task.getType());
-        }
-      }
-    } catch (Throwable t) {
-      log.error("Grabbing task '" + task.getVersionId() + "' failed.", t);
-    } finally {
-      bucket.getSize().decrementAndGet();
-      bucket.increaseVersion();
+              if (taskForProcessing == null) {
+                log.debug("Task '{}' was not available for processing with its version.", task.getVersionId());
+              } else {
+                scheduleTask(bucket.getBucketId(), taskHandler, concurrencyPolicy, taskForProcessing);
+                grabbed = true;
+              }
+            } finally {
+              if (!grabbed) {
+                concurrencyPolicy.freeSpaceForTask(task);
+                globalProcessingState.increaseBucketsVersion();
+                meterHelper.registerFailedTaskGrabbing(bucket.getBucketId(), task.getType());
+              }
+            }
+          } catch (Throwable t) {
+            log.error("Grabbing task '" + task.getVersionId() + "' failed.", t);
+          } finally {
+            bucket.getSize().decrementAndGet();
+            bucket.increaseVersion();
 
-      Lock tasksGrabbingLock = bucket.getTasksGrabbingLock();
-      tasksGrabbingLock.lock();
-      try {
-        bucket.getInProgressTasksGrabbingCount().decrementAndGet();
-        bucket.getTasksGrabbingCondition().signalAll();
-      } finally {
-        tasksGrabbingLock.unlock();
-      }
+            Lock tasksGrabbingLock = bucket.getTasksGrabbingLock();
+            tasksGrabbingLock.lock();
+            try {
+              bucket.getInProgressTasksGrabbingCount().decrementAndGet();
+              bucket.getTasksGrabbingCondition().signalAll();
+            } finally {
+              tasksGrabbingLock.unlock();
+            }
 
-      ongoingTasksGrabbingsCount.decrementAndGet();
-    }
+            ongoingTasksGrabbingsCount.decrementAndGet();
+          }
+        });
   }
 
-  protected void scheduleTask(String bucketId, ITaskHandler taskHandler, ITaskConcurrencyPolicy concurrencyPolicy, Task taskForProcessing) {
-    GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
+  protected void scheduleTask(String bucketId, ITaskHandler taskHandler, ITaskConcurrencyPolicy concurrencyPolicy, Task task) {
     taskExecutor.submit(() -> {
-      runningTasksCount.incrementAndGet();
-      bucket.getRunningTasksCount().incrementAndGet();
-      MdcContext.clear();  // Gives a clear MDC to tasks, avoids MDC leaking between tasks.
-      MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), taskForProcessing.getVersionId());
       try {
-        processTask(taskHandler, concurrencyPolicy, bucketId, taskForProcessing);
+        processTask(taskHandler, concurrencyPolicy, bucketId, task);
       } catch (Throwable t) {
-        log.error("Processing task '" + taskForProcessing.getVersionId() + "' failed.", t);
+        log.error("Task processing failed for '{}'.", task.getVersionId(), t);
       }
     });
   }
@@ -403,145 +413,170 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   protected void processTask(ITaskHandler taskHandler, ITaskConcurrencyPolicy concurrencyPolicy, String bucketId, Task task) {
-    final UUID taskId = task.getId();
-    NewRelic.addCustomParameter(tasksProperties.getTwTaskVersionIdMdcKey(), String.valueOf(task.getVersionId()));
-    NewRelic.addCustomParameter("twTaskType", task.getType());
-    NewRelic.addCustomParameter("twTaskSubType", task.getSubType());
+    mdcService.clear();  // Gives a clear MDC to tasks, avoids MDC leaking between tasks.
+    try {
+      unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS, EntryPointsNames.PROCESSING + task.getType()).toContext()
+          .execute(() -> {
+            runningTasksCount.incrementAndGet();
 
-    Instant deadline = taskHandler.getProcessingPolicy(task).getProcessingDeadline(task);
+            GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
+            bucket.getRunningTasksCount().incrementAndGet();
 
-    unitOfWorkManager.createEntryPoint("TwTasks", "Processing_" + task.getType())
-        .criticality(Criticality.SHEDDABLE_PLUS).deadline(deadline).toContext()
-        .execute(
-            () -> MdcContext.with(
-                () -> {
-                  MdcContext.put("twTaskType", task.getType());
-                  MdcContext.put("twTaskSubType", task.getSubType());
+            mdcService.put(task);
 
-                  long processingStartTimeMs = TwContextClockHolder.getClock().millis();
-                  MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
+            final UUID taskId = task.getId();
 
-                  ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
-                  processWithInterceptors(0, task, () -> {
-                    log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
-                    if (taskProcessor instanceof ISyncTaskProcessor) {
-                      try {
-                        ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
-                        MutableObject<ISyncTaskProcessor.ProcessResult> resultHolder = new MutableObject<>();
-                        boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
+            ITaskProcessingPolicy processingPolicy = taskHandler.getProcessingPolicy(task);
+            Instant deadline = processingPolicy.getProcessingDeadline(task);
+            Criticality criticality = processingPolicy.getProcessingCriticality(task);
+            String owner = processingPolicy.getOwner(task);
 
-                        Runnable process = () -> {
-                          meterHelper.registerTaskProcessingStart(bucketId, task.getType());
-                          LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.add(Thread.currentThread()));
-                          try {
-                            resultHolder.setValue(syncTaskProcessor.process(task));
-                          } finally {
-                            LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.remove(Thread.currentThread()));
-                          }
-                        };
+            TwContext currentContext = TwContext.current();
+            UnitOfWork unitOfWork = unitOfWorkManager.getUnitOfWork(currentContext);
+            unitOfWork.setDeadline(deadline);
+            unitOfWork.setCriticality(criticality);
+            if (owner != null) {
+              currentContext.setOwner(owner);
+            }
 
-                        if (!isProcessorTransactional) {
-                          process.run();
-                        }
+            long processingStartTimeMs = TwContextClockHolder.getClock().millis();
+            MutableObject<ProcessingResult> processingResultHolder = new MutableObject<>(ProcessingResult.SUCCESS);
 
-                        transactionsHelper.withTransaction().asNew().call(() -> {
-                          if (isProcessorTransactional) {
-                            process.run();
-                          }
-                          ISyncTaskProcessor.ProcessResult result = resultHolder.getValue();
-                          if (transactionsHelper.isRollbackOnly()) {
-                            log.debug("Task processor for task '{}' has crappy code. Fixing it with a rollback exception.", task.getVersionId());
-                            throw new SyncProcessingRolledbackException(result);
-                          }
-                          if (result == null || result.getResultCode() == null
-                              || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
-                            markTaskAsDone(task);
-                          } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
-                            processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
-                            setRepeatOnSuccess(bucketId, taskHandler, task);
-                          } else {
-                            processingResultHolder.setValue(ProcessingResult.ERROR);
-                            setRetriesOrError(bucketId, taskHandler, task, null);
-                          }
-                          return null;
-                        });
-                      } catch (SyncProcessingRolledbackException e) {
-                        try {
-                          transactionsHelper.withTransaction().asNew().call(() -> {
-                            ISyncTaskProcessor.ProcessResult result = e.getProcessResult();
-                            if (result == null || result.getResultCode() == null
-                                || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
-                              markTaskAsDone(task);
-                            } else {
-                              setRetriesOrError(bucketId, taskHandler, task, null);
-                            }
-                            return null;
-                          });
-                        } catch (Throwable t) {
-                          log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                              LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
-                          processingResultHolder.setValue(ProcessingResult.ERROR);
-                          setRetriesOrError(bucketId, taskHandler, task, t);
-                        }
-                      } catch (Throwable t) {
-                        // Clear the interrupted flag.
-                        if (Thread.interrupted()) {
-                          log.debug("Task {} got interrupted.", LogUtils.asParameter(task.getVersionId()));
-                        }
-                        log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
-                        processingResultHolder.setValue(ProcessingResult.ERROR);
-                        setRetriesOrError(bucketId, taskHandler, task, t);
-                      } finally {
-                        taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, processingResultHolder.getValue());
-                      }
-                    } else if (taskProcessor instanceof IAsyncTaskProcessor) {
-                      AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
-                      try {
-                        meterHelper.registerTaskProcessingStart(bucketId, task.getType());
-                        ((IAsyncTaskProcessor) taskProcessor).process(
-                            task,
-                            () -> {
-                              if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.SUCCESS);
-                              }
-                              markTaskAsDoneFromAsync(task);
-                            },
-                            (t) -> {
-                              if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                                taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
-                              }
-                              setRetriesOrErrorFromAsync(bucketId, taskHandler, task, t);
-                            });
-                      } catch (Throwable t) {
-                        log.error("Processing task '" + task.getVersionId() + "' failed.", t);
-                        if (taskMarkedAsFinished.compareAndSet(false, true)) {
-                          taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
-                        }
-                        setRetriesOrError(bucketId, taskHandler, task, t);
-                      }
-                    } else {
-                      log.error(
-                          "Marking task {} as ERROR, because No suitable processor found for task " + LogUtils.asParameter(task.getVersionId())
-                              + ".");
-                      markAsError(task, bucketId);
+            ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
+            processWithInterceptors(0, task, () -> {
+              log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
+              if (taskProcessor instanceof ISyncTaskProcessor) {
+                try {
+                  ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
+                  MutableObject<ISyncTaskProcessor.ProcessResult> resultHolder = new MutableObject<>();
+                  boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
+
+                  Runnable process = () -> {
+                    meterHelper.registerTaskProcessingStart(bucketId, task.getType());
+                    LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.add(Thread.currentThread()));
+                    try {
+                      resultHolder.setValue(syncTaskProcessor.process(task));
+                    } finally {
+                      LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.remove(Thread.currentThread()));
                     }
+                  };
+
+                  if (!isProcessorTransactional) {
+                    process.run();
+                  }
+
+                  transactionsHelper.withTransaction().asNew().call(() -> {
+                    if (isProcessorTransactional) {
+                      process.run();
+                    }
+                    ISyncTaskProcessor.ProcessResult result = resultHolder.getValue();
+                    if (transactionsHelper.isRollbackOnly()) {
+                      log.debug("Task processor for task '{}' has crappy code. Fixing it with a rollback exception.", task.getVersionId());
+                      throw new SyncProcessingRolledbackException(result);
+                    }
+                    if (result == null || result.getResultCode() == null
+                        || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
+                      markTaskAsDone(task);
+                    } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
+                      processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
+                      setRepeatOnSuccess(bucketId, taskHandler, task);
+                    } else {
+                      processingResultHolder.setValue(ProcessingResult.ERROR);
+                      setRetriesOrError(bucketId, taskHandler, task, null);
+                    }
+                    return null;
                   });
-                }));
+                } catch (SyncProcessingRolledbackException e) {
+                  try {
+                    transactionsHelper.withTransaction().asNew().call(() -> {
+                      ISyncTaskProcessor.ProcessResult result = e.getProcessResult();
+                      if (result == null || result.getResultCode() == null
+                          || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
+                        markTaskAsDone(task);
+                      } else {
+                        setRetriesOrError(bucketId, taskHandler, task, null);
+                      }
+                      return null;
+                    });
+                  } catch (Throwable t) {
+                    log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                        LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                    processingResultHolder.setValue(ProcessingResult.ERROR);
+                    setRetriesOrError(bucketId, taskHandler, task, t);
+                  }
+                } catch (Throwable t) {
+                  // Clear the interrupted flag.
+                  if (Thread.interrupted()) {
+                    log.debug("Task {} got interrupted.", LogUtils.asParameter(task.getVersionId()));
+                  }
+                  log.error("Processing task {} type: '{}' subType: '{}' failed.",
+                      LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                  processingResultHolder.setValue(ProcessingResult.ERROR);
+                  setRetriesOrError(bucketId, taskHandler, task, t);
+                } finally {
+                  taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, processingResultHolder.getValue());
+                }
+              } else if (taskProcessor instanceof IAsyncTaskProcessor) {
+                AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
+                try {
+                  meterHelper.registerTaskProcessingStart(bucketId, task.getType());
+                  ((IAsyncTaskProcessor) taskProcessor).process(task,
+                      () -> markTaskAsDoneFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
+                          processingStartTimeMs),
+                      (t) -> setRetriesOrErrorFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
+                          processingStartTimeMs, taskHandler, t));
+                } catch (Throwable t) {
+                  log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+                  if (taskMarkedAsFinished.compareAndSet(false, true)) {
+                    taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
+                  }
+                  setRetriesOrError(bucketId, taskHandler, task, t);
+                }
+              } else {
+                log.error(
+                    "Marking task {} as ERROR, because No suitable processor found for task " + LogUtils.asParameter(task.getVersionId())
+                        + ".");
+                markAsError(task, bucketId);
+              }
+            });
+          });
+    } catch (Throwable t) {
+      log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+    } finally {
+      mdcService.clear();
+    }
   }
 
-  @Trace(dispatcher = true)
-  protected void markTaskAsDoneFromAsync(Task task) {
-    NewRelic.setTransactionName("TwTasksEngine", "AsyncDone");
-    markTaskAsDone(task);
+  @EntryPoint(usesExisting = true)
+  protected void markTaskAsDoneFromAsync(Task task, boolean markAsFinished, String bucketId, ITaskConcurrencyPolicy concurrencyPolicy,
+      long processingStartTimeMs) {
+    entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.ASYNC_HANDLE_SUCCESS,
+        () -> {
+          mdcService.put(task);
+          if (markAsFinished) {
+            taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.SUCCESS);
+          }
+
+          markTaskAsDone(task);
+          return null;
+        });
   }
 
-  @Trace(dispatcher = true)
-  protected void setRetriesOrErrorFromAsync(String bucketId, ITaskHandler taskHandler, Task task, Throwable t) {
-    NewRelic.setTransactionName("TwTasksEngine", "AsyncRetriesOrError");
-    setRetriesOrError(bucketId, taskHandler, task, t);
+  @EntryPoint(usesExisting = true)
+  protected void setRetriesOrErrorFromAsync(Task task, boolean markAsFinished, String bucketId, ITaskConcurrencyPolicy concurrencyPolicy,
+      long processingStartTimeMs, ITaskHandler taskHandler, Throwable t) {
+    entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.ASYNC_HANDLE_FAIL,
+        () -> {
+          mdcService.put(task);
+          if (markAsFinished) {
+            taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
+          }
+
+          setRetriesOrError(bucketId, taskHandler, task, t);
+          return null;
+        });
   }
 
   protected void markTaskAsDone(Task task) {

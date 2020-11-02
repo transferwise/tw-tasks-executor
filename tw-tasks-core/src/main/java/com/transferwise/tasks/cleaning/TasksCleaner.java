@@ -3,11 +3,10 @@ package com.transferwise.tasks.cleaning;
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 import com.google.common.collect.ImmutableMap;
-import com.newrelic.api.agent.NewRelic;
-import com.newrelic.api.agent.Trace;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.common.leaderselector.ILock;
 import com.transferwise.common.leaderselector.LeaderSelectorV2;
@@ -15,6 +14,9 @@ import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
+import com.transferwise.tasks.entrypoints.EntryPointsNames;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -40,6 +42,8 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
   private SharedReentrantLockBuilderFactory lockBuilderFactory;
   @Autowired
   private IMeterHelper meterHelper;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   private LeaderSelectorV2 leaderSelector;
 
@@ -65,8 +69,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
 
       control.workAsyncUntilShouldStop(
           () -> {
-            taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(
-                this::deleteFinishedOldTasks,
+            taskHandleHolder.setValue(scheduledTaskExecutor.scheduleAtFixedInterval(this::deleteFinishedOldTasks,
                 tasksProperties.getTasksCleaningInterval(),
                 tasksProperties.getTasksCleaningInterval()));
             log.info("Started to clean finished tasks older than " + tasksProperties.getFinishedTasksHistoryToKeep() + " for '" + tasksProperties
@@ -90,47 +93,50 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
     }).build();
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   protected void deleteFinishedOldTasks() {
-    NewRelic.setTransactionName("TwTasksEngine", "OldTaskCleaning");
+    unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.CLEAN_OLD_TAKS).toContext()
+        .execute(() -> {
+          for (DeletableStatus deletableStatus : deletableStatuses) {
+            try {
+              TaskStatus status = deletableStatus.status;
+              ITaskDao.DeleteFinishedOldTasksResult result = taskDao
+                  .deleteOldTasks(status, tasksProperties.getFinishedTasksHistoryToKeep(), tasksProperties.getTasksHistoryDeletingBatchSize());
 
-    for (DeletableStatus deletableStatus : deletableStatuses) {
-      try {
-        TaskStatus status = deletableStatus.status;
-        ITaskDao.DeleteFinishedOldTasksResult result = taskDao
-            .deleteOldTasks(status, tasksProperties.getFinishedTasksHistoryToKeep(), tasksProperties.getTasksHistoryDeletingBatchSize());
+              Map<String, String> tags = ImmutableMap.of("taskStatus", status.name());
+              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletableTasksCount", tags, result.getFoundTasksCount());
+              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedTasksCount", tags, result.getDeletedTasksCount());
+              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedUniqueKeysCount", tags, result.getDeletedUniqueKeysCount());
 
-        Map<String, String> tags = ImmutableMap.of("taskStatus", status.name());
-        meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletableTasksCount", tags, result.getFoundTasksCount());
-        meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedTasksCount", tags, result.getDeletedTasksCount());
-        meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedUniqueKeysCount", tags, result.getDeletedUniqueKeysCount());
+              long lagSeconds = result.getFirstDeletedTaskNextEventTime() == null ? 0 :
+                  Duration.between(result.getFirstDeletedTaskNextEventTime(), result.getDeletedBeforeTime()).getSeconds();
 
-        long lagSeconds = result.getFirstDeletedTaskNextEventTime() == null ? 0 :
-            Duration.between(result.getFirstDeletedTaskNextEventTime(), result.getDeletedBeforeTime()).getSeconds();
+              boolean lagNotRegistered = deletableStatus.lagSeconds == null;
+              if (lagNotRegistered) {
+                deletableStatus.lagSeconds = new AtomicLong(lagSeconds);
+              } else {
+                deletableStatus.lagSeconds.set(lagSeconds);
+              }
+              if (lagNotRegistered) {
+                AtomicLong lagSecondsCopy = deletableStatus.lagSeconds;
+                deletableStatus.metricHandle = meterHelper.registerGauge(METRIC_PREFIX + "tasksCleaner.deleteLagSeconds",
+                    ImmutableMap.of("taskStatus", deletableStatus.status.name()), lagSecondsCopy::get);
+              }
 
-        boolean lagNotRegistered = deletableStatus.lagSeconds == null;
-        if (lagNotRegistered) {
-          deletableStatus.lagSeconds = new AtomicLong(lagSeconds);
-        } else {
-          deletableStatus.lagSeconds.set(lagSeconds);
-        }
-        if (lagNotRegistered) {
-          AtomicLong lagSecondsCopy = deletableStatus.lagSeconds;
-          deletableStatus.metricHandle = meterHelper.registerGauge(METRIC_PREFIX + "tasksCleaner.deleteLagSeconds",
-              ImmutableMap.of("taskStatus", deletableStatus.status.name()), lagSecondsCopy::get);
-        }
-
-        if (log.isDebugEnabled()) {
-          log.debug("Deleted finished old tasks for status " + status.name() + ". Found: " + result.getFoundTasksCount() + ", deleted: " + result
-              .getDeletedTasksCount() + ", deleted unique keys: " + result.getDeletedUniqueKeysCount()
-              + ". First task was '" + result.getFirstDeletedTaskId() + "':'" + result.getFirstDeletedTaskNextEventTime() + "', time barrier was '"
-              + result
-              .getDeletedBeforeTime() + "'.");
-        }
-      } catch (Throwable t) {
-        log.error(t.getMessage(), t);
-      }
-    }
+              if (log.isDebugEnabled()) {
+                log.debug(
+                    "Deleted finished old tasks for status " + status.name() + ". Found: " + result.getFoundTasksCount() + ", deleted: " + result
+                        .getDeletedTasksCount() + ", deleted unique keys: " + result.getDeletedUniqueKeysCount()
+                        + ". First task was '" + result.getFirstDeletedTaskId() + "':'" + result.getFirstDeletedTaskNextEventTime()
+                        + "', time barrier was '"
+                        + result
+                        .getDeletedBeforeTime() + "'.");
+              }
+            } catch (Throwable t) {
+              log.error(t.getMessage(), t);
+            }
+          }
+        });
   }
 
   @Override

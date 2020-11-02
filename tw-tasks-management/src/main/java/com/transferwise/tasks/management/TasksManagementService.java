@@ -1,21 +1,25 @@
 package com.transferwise.tasks.management;
 
-import com.newrelic.api.agent.Trace;
-import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.IEntryPointsService;
+import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutDataResponse;
 import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
-import com.transferwise.tasks.mdc.MdcContext;
 import com.transferwise.tasks.utils.LogUtils;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -32,145 +36,211 @@ public class TasksManagementService implements ITasksManagementService {
 
   @Autowired
   private ITaskDao taskDao;
-
   @Autowired
   private IManagementTaskDao managementTaskDao;
-
-  @Autowired
-  private TasksProperties tasksProperties;
-
   @Autowired
   private IMeterHelper meterHelper;
+  @Autowired
+  private IMdcService mdcService;
+  @Autowired
+  private IEntryPointsService entryPointsHelper;
 
   @Override
+  @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
   public MarkTasksAsFailedResponse markTasksAsFailed(MarkTasksAsFailedRequest request) {
-    MarkTasksAsFailedResponse response = new MarkTasksAsFailedResponse();
+    return entryPointsHelper.continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.MARK_AS_FAILED,
+        () -> {
+          MarkTasksAsFailedResponse response = new MarkTasksAsFailedResponse();
 
-    for (TaskVersionId taskVersionId : request.getTaskVersionIds()) {
-      MdcContext.with(() -> {
-        MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), taskVersionId);
-        BaseTask1 task = taskDao.getTask(taskVersionId.getId(), BaseTask1.class);
+          for (TaskVersionId taskVersionId : request.getTaskVersionIds()) {
+            mdcService.put(taskVersionId.getId(), taskVersionId.getVersion());
+            BaseTask1 task = taskDao.getTask(taskVersionId.getId(), BaseTask1.class);
+            mdcService.put(task);
 
-        boolean succeeded = taskDao.setStatus(taskVersionId.getId(), TaskStatus.FAILED, taskVersionId.getVersion());
-        log.info("Marking of task '" + taskVersionId.getId() + "' as FAILED " + (succeeded ? " succeeded" : "failed") + ".");
-        if (succeeded) {
-          meterHelper.registerTaskMarkedAsFailed(null, task.getType());
-        } else {
-          meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
-        }
-        response.getResults().put(taskVersionId.getId(), new MarkTasksAsFailedResponse.Result().setSuccess(succeeded));
-      });
-    }
-    return response;
+            boolean succeeded = taskDao.setStatus(taskVersionId.getId(), TaskStatus.FAILED, taskVersionId.getVersion());
+            log.info("Marking of task '" + taskVersionId.getId() + "' as FAILED " + (succeeded ? " succeeded" : "failed") + ".");
+            if (succeeded) {
+              meterHelper.registerTaskMarkedAsFailed(null, task.getType());
+            } else {
+              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
+            }
+            response.getResults().put(taskVersionId.getId(), new MarkTasksAsFailedResponse.Result().setSuccess(succeeded));
+          }
+          return response;
+        });
   }
 
   @Override
-  @Trace
+  @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
   public ResumeTasksImmediatelyResponse resumeTasksImmediately(ResumeTasksImmediatelyRequest request) {
-    ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
+    return entryPointsHelper.continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.RESUME_IMMEDIATELY,
+        () -> {
+          ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
 
-    for (TaskVersionId taskVersionId : request.getTaskVersionIds()) {
-      if (taskVersionId == null || taskVersionId.getId() == null) {
-        continue;
-      }
-      MdcContext.with(() -> {
-        MdcContext.put(tasksProperties.getTwTaskVersionIdMdcKey(), taskVersionId);
-        BaseTask1 task = taskDao.getTask(taskVersionId.getId(), BaseTask1.class);
-        if (task == null) {
-          response.getResults().put(taskVersionId.getId(), new ResumeTasksImmediatelyResponse.Result()
-              .setMessage("Task with given id not not found.").setSuccess(false));
-          log.warn("Task " + LogUtils.asParameter(taskVersionId) + " was tried to immediately resumed, but it does not exist.");
-        } else {
-          boolean succeeded = managementTaskDao.scheduleTaskForImmediateExecution(taskVersionId.getId(), taskVersionId.getVersion());
-          log.info("Marking task " + LogUtils.asParameter(taskVersionId) + " in status '" + task
-              .getStatus() + "' to be immediately resumed " + (succeeded ? " succeeded" : "failed") + ".");
-          if (succeeded) {
-            meterHelper.registerTaskResuming(null, task.getType());
-          } else {
-            meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
+          for (TaskVersionId taskVersionId : request.getTaskVersionIds()) {
+            if (taskVersionId == null || taskVersionId.getId() == null) {
+              continue;
+            }
+            mdcService.put(taskVersionId.getId(), taskVersionId.getVersion());
+            BaseTask1 task = taskDao.getTask(taskVersionId.getId(), BaseTask1.class);
+            mdcService.put(task);
+            if (task == null) {
+              response.getResults().put(taskVersionId.getId(), new ResumeTasksImmediatelyResponse.Result()
+                  .setMessage("Task with given id not not found.").setSuccess(false));
+              log.warn("Task " + LogUtils.asParameter(taskVersionId) + " was tried to immediately resumed, but it does not exist.");
+            } else {
+              boolean succeeded = managementTaskDao.scheduleTaskForImmediateExecution(taskVersionId.getId(), taskVersionId.getVersion());
+              log.info("Marking task " + LogUtils.asParameter(taskVersionId) + " in status '" + task
+                  .getStatus() + "' to be immediately resumed " + (succeeded ? " succeeded" : "failed") + ".");
+              if (succeeded) {
+                meterHelper.registerTaskResuming(null, task.getType());
+              } else {
+                meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
+              }
+              response.getResults().put(taskVersionId.getId(), new ResumeTasksImmediatelyResponse.Result()
+                  .setSuccess(succeeded));
+            }
           }
-          response.getResults().put(taskVersionId.getId(), new ResumeTasksImmediatelyResponse.Result()
-              .setSuccess(succeeded));
-        }
-      });
-    }
 
-    return response;
+          return response;
+        });
   }
 
   @Override
-  @Trace
+  @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
   public ResumeTasksImmediatelyResponse resumeAllTasksImmediately(ResumeAllTasksImmediatelyRequest request) {
-    ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.RESUME_ALL_IMMEDIATELY, () -> {
+          ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
 
-    if (StringUtils.isEmpty(request.getTaskType())) {
-      return response;
-    }
+          if (StringUtils.isEmpty(request.getTaskType())) {
+            return response;
+          }
 
-    List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
-    List<TaskVersionId> taskVersionIdsToResume = tasksInError.stream()
-        .filter(t -> t.getType().equals(request.getTaskType()))
-        .map(t -> new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-        .collect(Collectors.toList());
+          List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
+          List<TaskVersionId> taskVersionIdsToResume = tasksInError.stream()
+              .filter(t -> t.getType().equals(request.getTaskType()))
+              .map(t -> new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+              .collect(Collectors.toList());
 
-    return resumeTasksImmediately(new ResumeTasksImmediatelyRequest().setTaskVersionIds(taskVersionIdsToResume));
+          return resumeTasksImmediately(new ResumeTasksImmediatelyRequest().setTaskVersionIds(taskVersionIdsToResume));
+        });
   }
 
   @Override
-  @Trace
+  @EntryPoint(usesExisting = true)
   public GetTasksInErrorResponse getTasksInError(GetTasksInErrorRequest request) {
-    List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_IN_ERROR, () -> {
+          List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
 
-    return new GetTasksInErrorResponse().setTasksInError(
-        tasks.stream().map(t -> new GetTasksInErrorResponse.TaskInError()
-            .setErrorTime(t.getStateTime().toInstant())
-            .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-            .setType(t.getType())
-            .setSubType(t.getSubType()))
-            .collect(Collectors.toList()));
+          return new GetTasksInErrorResponse().setTasksInError(
+              tasks.stream().map(t -> new GetTasksInErrorResponse.TaskInError()
+                  .setErrorTime(t.getStateTime().toInstant())
+                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                  .setType(t.getType())
+                  .setSubType(t.getSubType()))
+                  .collect(Collectors.toList()));
+        });
   }
 
   @Override
-  @Trace
+  @EntryPoint(usesExisting = true)
   public GetTasksStuckResponse getTasksStuck(GetTasksStuckRequest request) {
-    List<DaoTask2> tasks = managementTaskDao.getStuckTasks(request.getMaxCount(), request.getDelta() == null
-        ? Duration.ofSeconds(10) : request.getDelta());
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_STUCK, () -> {
+          List<DaoTask2> tasks = managementTaskDao.getStuckTasks(request.getMaxCount(), request.getDelta() == null
+              ? Duration.ofSeconds(10) : request.getDelta());
 
-    return new GetTasksStuckResponse().setTasksStuck(
-        tasks.stream().map(t -> new GetTasksStuckResponse.TaskStuck()
-            .setStuckTime(t.getNextEventTime().toInstant())
-            .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion())))
-            .collect(Collectors.toList()));
+          return new GetTasksStuckResponse().setTasksStuck(
+              tasks.stream().map(t -> new GetTasksStuckResponse.TaskStuck()
+                  .setStuckTime(t.getNextEventTime().toInstant())
+                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion())))
+                  .collect(Collectors.toList()));
+        });
   }
 
   @Override
+  @EntryPoint(usesExisting = true)
   public GetTasksInProcessingOrWaitingResponse getTasksInProcessingOrWaiting(GetTasksInProcessingOrWaitingRequest request) {
-    List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(request.getMaxCount());
-    return new GetTasksInProcessingOrWaitingResponse().setTasksInProcessingOrWaiting(
-        tasks.stream().map(t -> new GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting()
-            .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-            .setType(t.getType())
-            .setSubType(t.getSubType())
-            .setStatus(t.getStatus())
-            .setStateTime(t.getStateTime().toInstant()))
-            .collect(Collectors.toList()));
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_IN_PROCESSING_OR_WAITING,
+            () -> {
+              List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(request.getMaxCount());
+              return new GetTasksInProcessingOrWaitingResponse().setTasksInProcessingOrWaiting(
+                  tasks.stream().map(t -> new GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting()
+                      .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                      .setType(t.getType())
+                      .setSubType(t.getSubType())
+                      .setStatus(t.getStatus())
+                      .setStateTime(t.getStateTime().toInstant()))
+                      .collect(Collectors.toList()));
+            });
   }
 
   @Override
+  @EntryPoint(usesExisting = true)
   public GetTasksByIdResponse getTasksById(GetTasksByIdRequest request) {
-    List<FullTaskRecord> tasks = managementTaskDao.getTasks(request.getTaskIds());
-    return new GetTasksByIdResponse().setTasks(
-        tasks.stream().map(t -> new GetTasksByIdResponse.Task()
-            .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-            .setType(t.getType())
-            .setSubType(t.getSubType())
-            .setStatus(t.getStatus())
-            .setStateTime(t.getStateTime().toInstant())
-        )
-            .collect(Collectors.toList())
-    );
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_BY_ID, () -> {
+          List<FullTaskRecord> tasks = managementTaskDao.getTasks(request.getTaskIds());
+          return new GetTasksByIdResponse().setTasks(
+              tasks.stream().map(t -> new GetTasksByIdResponse.Task()
+                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                  .setType(t.getType())
+                  .setSubType(t.getSubType())
+                  .setStatus(t.getStatus())
+                  .setStateTime(t.getStateTime().toInstant())
+              )
+                  .collect(Collectors.toList())
+          );
+        });
+  }
+
+  @Override
+  @EntryPoint(usesExisting = true)
+  public GetTaskWithoutDataResponse getTaskWithoutData(UUID taskId) {
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASK_WITHOUT_DATA,
+            () -> {
+              mdcService.put(taskId);
+              FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+              mdcService.put(task);
+              return new GetTaskWithoutDataResponse()
+                  .setId(taskId)
+                  .setVersion(task.getVersion())
+                  .setStatus(task.getStatus())
+                  .setType(task.getType())
+                  .setSubType(task.getSubType())
+                  .setNextEventTime(task.getNextEventTime().toInstant())
+                  .setStateTime(task.getStateTime().toInstant())
+                  .setPriority(task.getPriority())
+                  .setProcessingTriesCount(task.getProcessingTriesCount())
+                  .setProcessingClientId(task.getProcessingClientId());
+            });
+  }
+
+  @Override
+  @EntryPoint(usesExisting = true)
+  public GetTaskDataResponse getTaskData(UUID taskId) {
+    return entryPointsHelper.continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASK_DATA,
+        () -> {
+          mdcService.put(taskId);
+          GetTaskDataResponse response = new GetTaskDataResponse();
+
+          final FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+          mdcService.put(task);
+          if (task == null) {
+            response.setResultCode(ResultCode.NOT_FOUND);
+          } else {
+            response.setVersion(task.getVersion());
+            response.setType(task.getType());
+            response.setResultCode(ResultCode.SUCCESS).setData(task.getData());
+          }
+          return response;
+        });
   }
 }

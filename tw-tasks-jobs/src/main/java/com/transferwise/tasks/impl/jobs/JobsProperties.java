@@ -4,7 +4,6 @@ import com.transferwise.tasks.buckets.IBucketsManager;
 import lombok.Data;
 
 @Data
-@SuppressWarnings("checkstyle:MagicNumber")
 public class JobsProperties {
 
   private String taskTypePrefix = "TaskJob";

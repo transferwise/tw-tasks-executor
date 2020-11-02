@@ -21,6 +21,7 @@ dependencies {
     implementation libraries.twBaseUtils
     implementation libraries.twGracefulShutdown
     implementation libraries.twGracefulShutdownIntefaces
+    implementation libraries.twContext
 
     compileOnly libraries.newRelic
 

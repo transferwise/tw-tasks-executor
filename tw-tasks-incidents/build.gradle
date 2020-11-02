@@ -2,7 +2,7 @@ ext.projectName = "TwTasks Extension - Incidents"
 ext.projectDescription = '''
 Reports stuck tasks and tasks in ERROR state in a form of incidents supported by
 TransferWise incidents library - https://github.com/transferwise/tw-incidents.
-    
+
 Note that extension is deprecated and soon will be dropped, build alerting using metrics instead!
 '''
 ext.projectArtifactName = "tw-tasks-incidents"

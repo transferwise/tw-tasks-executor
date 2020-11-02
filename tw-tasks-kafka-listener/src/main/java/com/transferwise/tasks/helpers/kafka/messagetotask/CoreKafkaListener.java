@@ -2,6 +2,7 @@ package com.transferwise.tasks.helpers.kafka.messagetotask;
 
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
@@ -42,6 +43,8 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
   private IMeterHelper meterHelper;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   private ExecutorService executorService;
   private boolean shuttingDown;
@@ -102,6 +105,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
           })
           .setErrorLoggingThrottler(errorLoggingThrottler)
           .setMeterHelper(meterHelper)
+          .setUnitOfWorkManager(unitOfWorkManager)
           .consume();
     } finally {
       inProgressPollers.decrementAndGet();

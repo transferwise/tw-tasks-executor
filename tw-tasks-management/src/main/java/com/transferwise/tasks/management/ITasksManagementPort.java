@@ -1,10 +1,8 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.domain.TaskVersionId;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +109,7 @@ public interface ITasksManagementPort {
   //      add it to UI
   @GetMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/task/{taskId}/noData", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  ResponseEntity<TaskWithoutData> getTask(@PathVariable final String taskId);
+  ResponseEntity<GetTaskWithoutDataResponse> getTaskWithoutData(@PathVariable final UUID taskId);
 
   @GetMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/task/{taskId}/data", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
@@ -121,6 +119,8 @@ public interface ITasksManagementPort {
   @Accessors(chain = true)
   class GetTaskDataResponse {
 
+    private String type;
+    private long version;
     private String data;
     private ResultCode resultCode;
 
@@ -164,21 +164,20 @@ public interface ITasksManagementPort {
     }
   }
 
+  // keep it without PII (task data)
   @Data
   @Accessors(chain = true)
-  @SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
-  class TaskWithoutData {
+  class GetTaskWithoutDataResponse {
 
-    // keep it without PII (task data)
-    private String id;
+    private UUID id;
     private long version;
     private String type;
     private String subType;
     private String status;
     private long processingTriesCount;
     private int priority;
-    private Date stateTime;
-    private Date nextEventTime;
+    private Instant stateTime;
+    private Instant nextEventTime;
     private String processingClientId;
   }
 

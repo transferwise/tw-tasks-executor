@@ -7,6 +7,7 @@ import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.common.leaderselector.ILock;
 import com.transferwise.common.leaderselector.LeaderSelectorV2;
@@ -14,6 +15,9 @@ import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
+import com.transferwise.tasks.entrypoints.EntryPointsNames;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -49,6 +53,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private IMeterHelper meterHelper;
   @Autowired
   private SharedReentrantLockBuilderFactory lockBuilderFactory;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   LeaderSelectorV2 leaderSelector;
 
@@ -108,54 +114,62 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     meterHelper.registerLibrary();
   }
 
+  @EntryPoint
   protected void resetState(boolean forInit) {
-    stateLock.lock();
-    try {
-      /*
-        The main idea between unregistering the metrics, is to not left 0 or old values lying around in Grafana but make this metric disappear from
-         current node.
-        This will make the picture much more clear and accurate.
-       */
-      if (registeredMetricHandles != null) {
-        for (Object metricHandle : registeredMetricHandles) {
-          meterHelper.unregisterMetric(metricHandle);
-        }
-      }
+    unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.MONITOR_RESET).toContext().execute(
+        () -> {
+          stateLock.lock();
+          try {
+            /*
+              The main idea between unregistering the metrics, is to not left 0 or old values lying around in Grafana but make this metric disappear
+              from current node.
+              This will make the picture much more clear and accurate.
+            */
+            if (registeredMetricHandles != null) {
+              for (Object metricHandle : registeredMetricHandles) {
+                meterHelper.unregisterMetric(metricHandle);
+              }
+            }
 
-      stuckTasksCount = null;
-      approximateTasksCount = null;
-      approximateUniqueKeysCount = null;
+            stuckTasksCount = null;
+            approximateTasksCount = null;
+            approximateUniqueKeysCount = null;
 
-      erroneousTasksCount = null;
-      erroneousTasksCounts = new HashMap<>();
-      erroneousTasksCountPerType = new ArrayList<>();
-      registeredMetricHandles = new ArrayList<>();
-      taskInErrorStateHandles = new HashMap<>();
-      tasksHistoryLengthSeconds = new HashMap<>();
+            erroneousTasksCount = null;
+            erroneousTasksCounts = new HashMap<>();
+            erroneousTasksCountPerType = new ArrayList<>();
+            registeredMetricHandles = new ArrayList<>();
+            taskInErrorStateHandles = new HashMap<>();
+            tasksHistoryLengthSeconds = new HashMap<>();
 
-      initialized = forInit;
-    } finally {
-      stateLock.unlock();
-    }
+            initialized = forInit;
+          } finally {
+            stateLock.unlock();
+          }
+        });
   }
 
+  @EntryPoint
   protected void check() {
-    stateLock.lock();
-    try {
-      if (!initialized) {
-        return;
-      }
+    unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.MONITOR_CHECK).toContext().execute(
+        () -> {
+          stateLock.lock();
+          try {
+            if (!initialized) {
+              return;
+            }
 
-      checkErroneousTasks();
-      checkStuckTasks();
-      measureTasksHistoryLength();
-      if (tasksProperties.getClusterWideTasksStateMonitor().isTasksCountingEnabled()) {
-        checkApproximateTasksCount();
-        checkApproximateUniqueKeysCount();
-      }
-    } finally {
-      stateLock.unlock();
-    }
+            checkErroneousTasks();
+            checkStuckTasks();
+            measureTasksHistoryLength();
+            if (tasksProperties.getClusterWideTasksStateMonitor().isTasksCountingEnabled()) {
+              checkApproximateTasksCount();
+              checkApproximateUniqueKeysCount();
+            }
+          } finally {
+            stateLock.unlock();
+          }
+        });
   }
 
   protected void measureTasksHistoryLength() {

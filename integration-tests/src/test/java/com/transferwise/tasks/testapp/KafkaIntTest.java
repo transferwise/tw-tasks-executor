@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
+import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
@@ -31,6 +32,8 @@ class KafkaIntTest extends BaseIntTest {
   private IToKafkaSenderService toKafkaSenderService;
   @Autowired
   private ITransactionsHelper transactionsHelper;
+  @Autowired
+  private UnitOfWorkManager unitOfWorkManager;
 
   private final Duration delayTimeout = Duration.ofMillis(5);
 
@@ -68,6 +71,7 @@ class KafkaIntTest extends BaseIntTest {
             messagesReceivedCount.incrementAndGet();
           }
         })
+        .setUnitOfWorkManager(unitOfWorkManager)
         .consume();
 
     assertEquals(1, messagesReceivedCount.get());
@@ -114,6 +118,7 @@ class KafkaIntTest extends BaseIntTest {
             messagesMap.get(record.value()).incrementAndGet();
           }
         })
+        .setUnitOfWorkManager(unitOfWorkManager)
         .consume();
 
     await().until(() ->
@@ -167,6 +172,7 @@ class KafkaIntTest extends BaseIntTest {
           }
           partitionsMap.computeIfAbsent(record.partition(), k -> new AtomicInteger()).incrementAndGet();
         })
+        .setUnitOfWorkManager(unitOfWorkManager)
         .consume();
 
     await().until(() ->
@@ -219,6 +225,7 @@ class KafkaIntTest extends BaseIntTest {
             messagesMap.get(record.value()).incrementAndGet();
           }
         })
+        .setUnitOfWorkManager(unitOfWorkManager)
         .consume();
 
     await().until(() ->

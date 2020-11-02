@@ -2,8 +2,9 @@ package com.transferwise.tasks.helpers.kafka;
 
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
-import com.newrelic.api.agent.NewRelic;
-import com.newrelic.api.agent.Trace;
+import com.transferwise.common.context.UnitOfWorkManager;
+import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.utils.WaitUtils;
@@ -48,6 +49,8 @@ public class ConsistentKafkaConsumer<T> {
   private IMeterHelper meterHelper;
   @Setter
   private IErrorLoggingThrottler errorLoggingThrottler;
+  @Setter
+  private UnitOfWorkManager unitOfWorkManager;
 
   public void consume() {
     MutableObject<Consumer<String, T>> consumerHolder = new MutableObject<>();
@@ -80,65 +83,65 @@ public class ConsistentKafkaConsumer<T> {
     }
   }
 
-  @Trace(dispatcher = true)
+  @EntryPoint
   protected void handlePolledKafkaMessages(MutableObject<Consumer<String, T>> consumerHolder, ConsumerRecords<String, T> consumerRecords) {
-    NewRelic.setTransactionName("TwTasksEngine", "HandlePolledKafkaMessages");
-
-    if (log.isDebugEnabled()) {
-      log.debug("Polled " + consumerRecords.count() + " messages from Kafka.");
-    }
-    if (consumerRecords.isEmpty()) {
+    unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, "handlePolledKafkaMessages").toContext().execute(() -> {
       if (log.isDebugEnabled()) {
-        log.debug("No records found for: " + StringUtils.join(consumerHolder.getValue().subscription(), ", "));
+        log.debug("Polled " + consumerRecords.count() + " messages from Kafka.");
       }
-      return;
-    }
-
-    Map<TopicPartition, Long> committableOffsets = new HashMap<>();
-
-    for (ConsumerRecord<String, T> consumerRecord : consumerRecords) {
-      if (log.isDebugEnabled()) {
-        log.debug("Received Kafka message from topic '{}', partition {}, offset {}.", consumerRecord.topic(), consumerRecord.partition(),
-            consumerRecord
-                .offset());
-      }
-
-      TopicPartition topicPartition = new TopicPartition(consumerRecord.topic(), consumerRecord.partition());
-
-      while (!shouldFinishPredicate.get()) {
-        try {
-          recordConsumer.accept(consumerRecord);
-          committableOffsets.put(topicPartition, consumerRecord.offset() + 1);
-          break;
-        } catch (Throwable t) {
-          log.error("Accepting Kafka message from topic '" + consumerRecord.topic() + "', partition " + consumerRecord
-              .partition() + ", offset " + consumerRecord
-              .offset() + " failed.", t);
-          WaitUtils.sleepQuietly(delayTimeout);
+      if (consumerRecords.isEmpty()) {
+        if (log.isDebugEnabled()) {
+          log.debug("No records found for: " + StringUtils.join(consumerHolder.getValue().subscription(), ", "));
         }
+        return;
       }
-    }
 
-    if (!committableOffsets.isEmpty()) {
-      Map<TopicPartition, OffsetAndMetadata> commitOffsetMap = committableOffsets.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-          entry -> new OffsetAndMetadata(entry.getValue())));
+      Map<TopicPartition, Long> committableOffsets = new HashMap<>();
 
-      if (shouldFinishPredicate.get()) {
-        try {
-          consumerHolder.getValue().commitSync(commitOffsetMap);
-        } catch (Throwable t) {
-          registerCommitException(t);
+      for (ConsumerRecord<String, T> consumerRecord : consumerRecords) {
+        if (log.isDebugEnabled()) {
+          log.debug("Received Kafka message from topic '{}', partition {}, offset {}.", consumerRecord.topic(), consumerRecord.partition(),
+              consumerRecord
+                  .offset());
         }
-      } else {
-        consumerHolder.getValue().commitAsync(commitOffsetMap, (map, e) -> {
-          if (e == null) {
-            log.debug("Committing offsets completed.");
-          } else {
-            registerCommitException(e);
+
+        TopicPartition topicPartition = new TopicPartition(consumerRecord.topic(), consumerRecord.partition());
+
+        while (!shouldFinishPredicate.get()) {
+          try {
+            recordConsumer.accept(consumerRecord);
+            committableOffsets.put(topicPartition, consumerRecord.offset() + 1);
+            break;
+          } catch (Throwable t) {
+            log.error("Accepting Kafka message from topic '" + consumerRecord.topic() + "', partition " + consumerRecord
+                .partition() + ", offset " + consumerRecord
+                .offset() + " failed.", t);
+            WaitUtils.sleepQuietly(delayTimeout);
           }
-        });
+        }
       }
-    }
+
+      if (!committableOffsets.isEmpty()) {
+        Map<TopicPartition, OffsetAndMetadata> commitOffsetMap = committableOffsets.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+            entry -> new OffsetAndMetadata(entry.getValue())));
+
+        if (shouldFinishPredicate.get()) {
+          try {
+            consumerHolder.getValue().commitSync(commitOffsetMap);
+          } catch (Throwable t) {
+            registerCommitException(t);
+          }
+        } else {
+          consumerHolder.getValue().commitAsync(commitOffsetMap, (map, e) -> {
+            if (e == null) {
+              log.debug("Committing offsets completed.");
+            } else {
+              registerCommitException(e);
+            }
+          });
+        }
+      }
+    });
   }
 
   protected void registerCommitException(Throwable t) {

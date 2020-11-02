@@ -82,9 +82,9 @@ public class TasksProperties {
    */
   private DbType dbType;
   /**
-   * MDC key for task id.
+   * MDC keys config.
    */
-  private String twTaskVersionIdMdcKey = "twTaskVersionId";
+  private Mdc mdc = new Mdc();
   /**
    * We support Transferwise Kafka failover, where for every topic, we additionally listen to 2 other topics, one starting with "fra." and other with
    * ".aws.".
@@ -289,11 +289,20 @@ public class TasksProperties {
     private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
     /**
      * Roles for all other task management endpoints.
-     *
-     * <p>TODO: We move to = new HashSet<>(Arrays.asList("ROLE_DEVEL"));
-     * with next PR. Needs to fix many tests.
      */
-    private Set<String> roles;
+    private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_DEVEL"));
+  }
+
+  /**
+   * Allows to specify MDC keys used.
+   */
+  @Data
+  public static class Mdc {
+
+    private String taskIdKey = "twTaskId";
+    private String taskVersionKey = "twTaskVersion";
+    private String taskTypeKey = "twTaskType";
+    private String taskSubTypeKey = "twTaskSubType";
   }
 
   /**

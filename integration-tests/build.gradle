@@ -46,10 +46,6 @@ if (!Boolean.parseBoolean(System.getenv('CI'))) {
     dockerCompose.isRequiredBy(test)
 }
 
-ServerSocket ss = new ServerSocket(0)
-def freePort = ss.getLocalPort()
-ss.close()
-
 dockerCompose {
     useComposeFiles = ["src/test/resources/docker-compose.yml"]
     // Create some flakiness on slower comps
@@ -58,6 +54,4 @@ dockerCompose {
     // Set to true if you have anomalies
     stopContainers = true
     removeContainers = true
-
-    environment.put "KAFKA_RANDOM_PORT", "${freePort}"
 }

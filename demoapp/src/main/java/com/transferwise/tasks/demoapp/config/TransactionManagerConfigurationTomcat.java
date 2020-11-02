@@ -14,6 +14,7 @@ import org.springframework.boot.jdbc.DatabaseDriver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.jdbc.datasource.IsolationLevelDataSourceAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.jta.JtaTransactionManager;
 
@@ -38,6 +39,7 @@ public class TransactionManagerConfigurationTomcat {
     ServiceRegistry serviceRegistry = ServiceRegistryHolder.getServiceRegistry();
     JtaTransactionManager jtaTransactionManager = new JtaTransactionManager(gafferUserTransaction(), gafferTransactionManager());
     jtaTransactionManager.setTransactionSynchronizationRegistry(serviceRegistry.getTransactionSynchronizationRegistry());
+    jtaTransactionManager.setAllowCustomIsolationLevels(true);
     return jtaTransactionManager;
   }
 
@@ -67,7 +69,9 @@ public class TransactionManagerConfigurationTomcat {
           dataSourceImpl.setRegisterAsMBean(false);
           dataSourceImpl.init();
 
-          return dataSourceImpl;
+          IsolationLevelDataSourceAdapter da = new IsolationLevelDataSourceAdapter();
+          da.setTargetDataSource(dataSourceImpl);
+          return da;
         }
         return bean;
       }
