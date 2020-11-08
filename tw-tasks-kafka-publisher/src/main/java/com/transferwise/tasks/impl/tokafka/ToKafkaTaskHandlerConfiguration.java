@@ -66,11 +66,19 @@ public class ToKafkaTaskHandlerConfiguration {
                     });
           }
         })
-    ).setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(toKafkaProperties.getMaxConcurrency())).setProcessingPolicy(
-        new SimpleTaskProcessingPolicy().setMaxProcessingDuration(Duration.ofMillis(toKafkaProperties.getMaxProcessingDurationMs()))).setRetryPolicy(
-        new ExponentialTaskRetryPolicy().setDelay(Duration.ofMillis(toKafkaProperties.getRetryDelayMs()))
-            .setMultiplier(toKafkaProperties.getRetryExponent())
-            .setMaxCount(toKafkaProperties.getRetryMaxCount()).setMaxDelay(Duration.ofMillis(toKafkaProperties.getRetryMaxDelayMs())));
+    ).setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(toKafkaProperties.getMaxConcurrency()))
+        .setProcessingPolicy(
+            new SimpleTaskProcessingPolicy()
+                .setMaxProcessingDuration(Duration.ofMillis(toKafkaProperties.getMaxProcessingDurationMs()))
+                .setDeleteOnFinish(true)
+        )
+        .setRetryPolicy(
+            new ExponentialTaskRetryPolicy()
+                .setDelay(Duration.ofMillis(toKafkaProperties.getRetryDelayMs()))
+                .setMultiplier(toKafkaProperties.getRetryExponent())
+                .setMaxCount(toKafkaProperties.getRetryMaxCount())
+                .setMaxDelay(Duration.ofMillis(toKafkaProperties.getRetryMaxDelayMs()))
+        );
   }
 
   private List<Header> toKafkaHeaders(Multimap<String, byte[]> headers) {
@@ -78,9 +86,9 @@ public class ToKafkaTaskHandlerConfiguration {
       return null;
     }
     return headers.entries()
-            .stream()
-            .map(header -> new RecordHeader(header.getKey(), header.getValue()))
-            .collect(Collectors.toList());
+        .stream()
+        .map(header -> new RecordHeader(header.getKey(), header.getValue()))
+        .collect(Collectors.toList());
   }
 
   private void registerSentMessage(String topic) {
