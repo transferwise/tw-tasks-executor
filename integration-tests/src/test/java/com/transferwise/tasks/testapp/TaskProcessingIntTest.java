@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.Criticality;
 import com.transferwise.common.context.TwContext;
 import com.transferwise.common.context.UnitOfWork;
@@ -16,6 +17,7 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
+import com.transferwise.tasks.handler.interfaces.IAsyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
@@ -29,10 +31,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -337,6 +341,33 @@ public class TaskProcessingIntTest extends BaseIntTest {
     assertThat(ownerRef.getValue()).isEqualTo("TransferWise");
     assertThat(criticalityRef.getValue()).isEqualTo(Criticality.CRITICAL_PLUS);
     assertThat(deadlineRef.getValue()).isAfter(Instant.now());
+  }
+
+  @ParameterizedTest
+  @ValueSource(classes = {ISyncTaskProcessor.class, IAsyncTaskProcessor.class})
+  void taskIsDeletedAfterSuccessfulProcessingAsDefinedByPolicy(Class<?> processorType) {
+    AtomicBoolean processed = new AtomicBoolean(false);
+    if (ISyncTaskProcessor.class.equals(processorType)) {
+      testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+        processed.set(true);
+        return null;
+      });
+    } else if (IAsyncTaskProcessor.class.equals(processorType)) {
+      testTaskHandlerAdapter.setProcessor((IAsyncTaskProcessor) (task, okCallback, errCallback) -> {
+        processed.set(true);
+        okCallback.run();
+      });
+    }
+
+    testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setDeleteOnFinish(true));
+
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
+    transactionsHelper.withTransaction().asNew().call(() ->
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setTaskId(taskId))
+    );
+
+    await().until(processed::get);
+    await().until(() -> taskDao.getTask(taskId, Task.class) == null);
   }
 
   private int counterSum(String name) {

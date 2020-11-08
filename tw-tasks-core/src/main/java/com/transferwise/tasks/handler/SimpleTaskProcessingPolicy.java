@@ -36,6 +36,10 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   @Accessors(chain = true)
   private StuckTaskResolutionStrategy stuckTaskResolutionStrategy = StuckTaskResolutionStrategy.MARK_AS_ERROR;
 
+  @Setter
+  @Accessors(chain = true)
+  private boolean deleteOnFinish;
+
   @Override
   public String getProcessingBucket(IBaseTask task) {
     return processingBucket;
@@ -69,5 +73,10 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   @Override
   public String getOwner(IBaseTask task) {
     return owner;
+  }
+
+  @Override
+  public boolean deleteTaskOnFinish() {
+    return deleteOnFinish;
   }
 }

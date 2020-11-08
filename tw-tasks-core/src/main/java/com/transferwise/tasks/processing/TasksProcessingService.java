@@ -478,7 +478,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                     }
                     if (result == null || result.getResultCode() == null
                         || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
-                      markTaskAsDone(task);
+                      markTaskAsDone(task, processingPolicy);
                     } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
                       processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
                       setRepeatOnSuccess(bucketId, taskHandler, task);
@@ -494,7 +494,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                       ISyncTaskProcessor.ProcessResult result = e.getProcessResult();
                       if (result == null || result.getResultCode() == null
                           || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
-                        markTaskAsDone(task);
+                        markTaskAsDone(task, processingPolicy);
                       } else {
                         setRetriesOrError(bucketId, taskHandler, task, null);
                       }
@@ -522,9 +522,16 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                 AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
                 try {
                   meterHelper.registerTaskProcessingStart(bucketId, task.getType());
-                  ((IAsyncTaskProcessor) taskProcessor).process(task,
-                      () -> markTaskAsDoneFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
-                          processingStartTimeMs),
+                  ((IAsyncTaskProcessor) taskProcessor).process(
+                      task,
+                      () -> markTaskAsDoneFromAsync(
+                          task,
+                          taskMarkedAsFinished.compareAndSet(false, true),
+                          bucketId,
+                          concurrencyPolicy,
+                          processingPolicy,
+                          processingStartTimeMs
+                      ),
                       (t) -> setRetriesOrErrorFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
                           processingStartTimeMs, taskHandler, t));
                 } catch (Throwable t) {
@@ -550,8 +557,14 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   }
 
   @EntryPoint(usesExisting = true)
-  protected void markTaskAsDoneFromAsync(Task task, boolean markAsFinished, String bucketId, ITaskConcurrencyPolicy concurrencyPolicy,
-      long processingStartTimeMs) {
+  protected void markTaskAsDoneFromAsync(
+      Task task,
+      boolean markAsFinished,
+      String bucketId,
+      ITaskConcurrencyPolicy concurrencyPolicy,
+      ITaskProcessingPolicy processingPolicy,
+      long processingStartTimeMs
+  ) {
     entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.ASYNC_HANDLE_SUCCESS,
         () -> {
           mdcService.put(task);
@@ -559,7 +572,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.SUCCESS);
           }
 
-          markTaskAsDone(task);
+          markTaskAsDone(task, processingPolicy);
           return null;
         });
   }
@@ -579,10 +592,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         });
   }
 
-  protected void markTaskAsDone(Task task) {
+  protected void markTaskAsDone(Task task, ITaskProcessingPolicy processingPolicy) {
     UUID taskId = task.getId();
     log.debug("Task '{}' finished successfully.", taskId);
-    if (tasksProperties.isDeleteTaskOnFinish()) {
+    if (tasksProperties.isDeleteTaskOnFinish() || processingPolicy.deleteTaskOnFinish()) {
       taskDao.deleteTask(taskId, task.getVersion());
     } else if (tasksProperties.isClearPayloadOnFinish()) {
       if (!taskDao.clearPayloadAndMarkDone(taskId, task.getVersion())) {

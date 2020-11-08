@@ -49,4 +49,14 @@ public interface ITaskProcessingPolicy {
   default boolean canExecuteTaskOnThisNode(IBaseTask task) {
     return true;
   }
+
+  /**
+   * Returns true if the task should be deleted after successful execution,
+   * otherwise task will be kept and deleted later by cleaner as configured.
+   *
+   * <p>Note that task id based uniqueness guarantees are lost if task is deleted.
+   */
+  default boolean deleteTaskOnFinish() {
+    return false;
+  }
 }
