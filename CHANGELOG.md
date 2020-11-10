@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.19.1 - 2020/11/10
+- Fix AdminClient Jmx registration issue.
+
 #### 1.19.0 - 2020/11/01
 - Allowing most beans defined by auto configuration to be overridden.
 
