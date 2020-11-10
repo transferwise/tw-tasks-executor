@@ -34,6 +34,8 @@ public class AdminClientTopicPartitionsManager implements ITopicPartitionsManage
   public void setPartitionsCount(String topic, int partitionsCount) {
     ExceptionUtils.doUnchecked(() -> {
       Map<String, Object> adminConfig = kafkaConfiguration.getKafkaProperties().buildAdminProperties();
+      //we are passing empty client-id, this will generate auto increment id with format: "adminclient-" + ADMIN_CLIENT_ID_SEQUENCE.getAndIncrement()
+      //see https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java#generateClientId
       adminConfig.put(AdminClientConfig.CLIENT_ID_CONFIG, "");
       AdminClient adminClient = AdminClient.create(adminConfig);
       //noinspection TryFinallyCanBeTryWithResources
