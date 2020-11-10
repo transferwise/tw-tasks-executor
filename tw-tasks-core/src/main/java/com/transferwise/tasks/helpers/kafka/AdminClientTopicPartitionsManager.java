@@ -7,10 +7,12 @@ import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
+import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.admin.DescribeTopicsResult;
 import org.apache.kafka.clients.admin.NewPartitions;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -31,7 +33,11 @@ public class AdminClientTopicPartitionsManager implements ITopicPartitionsManage
   @Override
   public void setPartitionsCount(String topic, int partitionsCount) {
     ExceptionUtils.doUnchecked(() -> {
-      AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
+      Map<String, Object> adminConfig = kafkaConfiguration.getKafkaProperties().buildAdminProperties();
+      //we are passing empty client-id, this will generate auto increment id with format: "adminclient-" + ADMIN_CLIENT_ID_SEQUENCE.getAndIncrement()
+      //see https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java#generateClientId
+      adminConfig.put(AdminClientConfig.CLIENT_ID_CONFIG, "");
+      AdminClient adminClient = AdminClient.create(adminConfig);
       //noinspection TryFinallyCanBeTryWithResources
       try {
         DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singletonList(topic));
