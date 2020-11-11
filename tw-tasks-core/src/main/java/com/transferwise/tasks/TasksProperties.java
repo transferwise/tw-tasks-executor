@@ -187,8 +187,6 @@ public class TasksProperties {
    */
   private List<String> additionalProcessingBuckets = new ArrayList<>();
 
-  private boolean configureKafkaTopics = false;
-
   /**
    * Need to make it configurable as in some environments, like smoke tests, we don't need a zookeeper connection.
    */

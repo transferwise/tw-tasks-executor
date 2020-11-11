@@ -33,7 +33,6 @@ import com.transferwise.tasks.helpers.MicrometerMeterHelper;
 import com.transferwise.tasks.helpers.NoOpMeterHelper;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
-import com.transferwise.tasks.helpers.kafka.AdminClientTopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.NoOpTopicPartitionsManager;
 import com.transferwise.tasks.processing.GlobalProcessingState;
@@ -160,10 +159,7 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ITopicPartitionsManager.class)
-  public ITopicPartitionsManager twTasksTopicPartitionsManager(TasksProperties tasksProperties) {
-    if (tasksProperties.isConfigureKafkaTopics()) {
-      return new AdminClientTopicPartitionsManager();
-    }
+  public ITopicPartitionsManager twTasksTopicPartitionsManager() {
     return new NoOpTopicPartitionsManager();
   }
 
