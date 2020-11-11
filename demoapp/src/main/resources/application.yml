@@ -70,7 +70,6 @@ tw-tasks:
     max-node-count: 1
     additional-processing-buckets:
       - emails
-    configure-kafka-topics: true
     #trigger-same-task-in-all-nodes: true
     #tasksHistoryDeletingBatchSize: 500
     #tasksCleaningInterval: PT0.5s
