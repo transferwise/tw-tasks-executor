@@ -4,7 +4,7 @@ Describes notable changes.
 
 #### 1.19.2 - 2020/11/11
 - Remove AdminClientTopicPartitionsManager and remove configureKafkaTopics.
-
+  You need to remove the configuration property: `tw-tasks.core.configure-kafka-topics`.
 #### 1.19.1 - 2020/11/10
 - Fix AdminClient Jmx registration issue.
 
