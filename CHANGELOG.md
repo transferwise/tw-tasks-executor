@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.19.2 - 2020/11/11
+- Remove AdminClientTopicPartitionsManager and remove configureKafkaTopics.
+
 #### 1.19.1 - 2020/11/10
 - Fix AdminClient Jmx registration issue.
 
