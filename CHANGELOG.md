@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.20.0 - 2020/11/14
+- `ITaskProcessingPolicy` now offers configuration option to delete a task after successful execution. Disabled by default.
+- Automatic tasks removal is now enabled for `SendToKafka` tasks (the task type used by the tw-tasks-ext-kafka-publisher).
+
 #### 1.19.2 - 2020/11/11
 - Remove AdminClientTopicPartitionsManager and remove configureKafkaTopics.
   You need to remove the configuration property: `tw-tasks.core.configure-kafka-topics`.
