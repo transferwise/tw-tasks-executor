@@ -153,10 +153,7 @@ public class TasksProperties {
    * situation. Can use TCP/IP flow control algorithms.
    */
   private int tasksHistoryDeletingBatchSize = 2 * 125;
-
-  //TODO: This does not make sense as generic parameter.
-  //      taskhandler should provide this info programmatically.
-  //      No usage so far in Tw
+  
   /**
    * Should we delete a task immediately after it has marked as DONE. Maybe in the future the task handler can provide this information.
    *
