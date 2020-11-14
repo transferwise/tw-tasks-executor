@@ -70,7 +70,7 @@ public class ToKafkaTaskHandlerConfiguration {
         .setProcessingPolicy(
             new SimpleTaskProcessingPolicy()
                 .setMaxProcessingDuration(Duration.ofMillis(toKafkaProperties.getMaxProcessingDurationMs()))
-                .setDeleteOnFinish(true)
+                .setDeleteTaskOnFinish(true)
         )
         .setRetryPolicy(
             new ExponentialTaskRetryPolicy()

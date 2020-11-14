@@ -359,7 +359,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
       });
     }
 
-    testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setDeleteOnFinish(true));
+    testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setDeleteTaskOnFinish(true));
 
     UUID taskId = UuidUtils.generatePrefixCombUuid();
     transactionsHelper.withTransaction().asNew().call(() ->

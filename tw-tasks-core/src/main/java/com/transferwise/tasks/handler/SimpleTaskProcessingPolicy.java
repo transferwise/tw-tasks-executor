@@ -38,7 +38,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
 
   @Setter
   @Accessors(chain = true)
-  private boolean deleteOnFinish;
+  private boolean deleteTaskOnFinish;
 
   @Override
   public String getProcessingBucket(IBaseTask task) {
@@ -77,6 +77,6 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
 
   @Override
   public boolean deleteTaskOnFinish() {
-    return deleteOnFinish;
+    return deleteTaskOnFinish;
   }
 }
