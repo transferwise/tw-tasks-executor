@@ -140,6 +140,9 @@ tw-tasks:
 
 ##### Configure Zookeeper access by providing CuratorFramework bean.
 
+- [*Recommended way of setting up curator*](https://github.com/transferwise/tw-curator)
+
+- Manual way of setting up curator:
 ```java
 @Bean(destroyMethod = "close")
 public CuratorFramework curatorFramework() {
@@ -165,7 +168,7 @@ First, provide a task handler.
 ```java
 @Bean
 public ITaskHandler helloWorldTaskHandler() {
-    return new TaskHandlerAdapter(task -> task.getType().startsWith("HELLO_WORLD_TASK"), task -> System.out.println("Hello World!"))
+    return new TaskHandlerAdapter(task -> task.getType().startsWith("HELLO_WORLD_TASK"), (ISyncTaskProcessor) task -> System.out.println("Hello World!"))
         .setConcurrencyPolicy(taskConcurrencyPolicy())
         .setProcessingPolicy(new SimpleTaskProcessingPolicy().setMaxProcessingDuration(Duration.ofMinutes(30)))
         .setRetryPolicy(new ExponentialTaskRetryPolicy().setDelay(Duration.ofSeconds(5)).setMultiplier(2).setMaxCount(20).setMaxDelay(Duration.ofMinutes(120)));
