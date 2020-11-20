@@ -343,9 +343,10 @@ For simplicity we use `TaskHandlerAdapter`.
 ```java
 @Bean
 public ITaskHandler executePayoutTaskHandler() {
-    return new TaskHandlerAdapter((type) -> type.startsWith("EXECUTE_PAYOUT"), (ISyncTaskProcessor) task -> {
+    return new TaskHandlerAdapter(task -> task.getType().startsWith("EXECUTE_PAYOUT"), (ISyncTaskProcessor) task -> {
         ExecutePayoutCommand command = jsonConverter.toObject(task.getData(), ExecutePayoutCommand.class);
         payoutService.executePayout(command);
+        return new ISyncTaskProcessor.ProcessResult().setResultCode(ISyncTaskProcessor.ProcessResult.ResultCode.DONE);
     })
     .setConcurrencyPolicy(payoutTaskConcurrencyPolicy)
     .setProcessingPolicy(new SimpleTaskProcessingPolicy().setMaxProcessingDuration(Duration.ofMinutes(30))
