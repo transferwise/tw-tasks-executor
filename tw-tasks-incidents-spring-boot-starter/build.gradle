@@ -6,4 +6,5 @@ apply from: '../build.starter.gradle'
 
 dependencies {
     api project(":tw-tasks-incidents")
+    implementation 'com.transferwise.common:tw-incidents:1.0.1'
 }
