@@ -93,6 +93,8 @@ public interface ITaskDao {
 
   int getStuckTasksCount(ZonedDateTime age, int maxCount);
 
+  List<Pair<String, Integer>> getStuckTasksCountGrouped(ZonedDateTime age, int maxCount);
+
   <T> T getTask(UUID taskId, Class<T> clazz);
 
   DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize);

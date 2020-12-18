@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.19.3 - 2020/12/18
+- Stuck tasks warning has information and metrics about specific task types.
+
 #### 1.19.2 - 2020/11/11
 - Remove AdminClientTopicPartitionsManager and remove configureKafkaTopics.
   You need to remove the configuration property: `tw-tasks.core.configure-kafka-topics`.

@@ -121,7 +121,7 @@ class KafkaIntTest extends BaseIntTest {
         .setUnitOfWorkManager(unitOfWorkManager)
         .consume();
 
-    await().until(() ->
+    await().atMost(Duration.ofSeconds(30)).until(() ->
         messagesMap.values().stream().noneMatch(v -> v.get() != 1)
     );
   }

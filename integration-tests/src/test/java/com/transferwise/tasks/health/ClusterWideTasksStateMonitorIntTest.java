@@ -5,6 +5,8 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.transferwise.common.baseutils.clock.TestClock;
+import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
@@ -15,6 +17,8 @@ import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -52,6 +56,9 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
   @Test
   void metricsAreCorrectlyRegistered() {
+    TestClock testClock = new TestClock(Instant.now(), ZoneId.systemDefault());
+    TwContextClockHolder.setClock(testClock);
+
     clusterWideTasksStateMonitor.resetState(false);
     clusterWideTasksStateMonitor.resetState(true);
     clusterWideTasksStateMonitor.check();
@@ -104,6 +111,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     clusterWideTasksStateMonitor.check();
 
     assertEquals(1, meterRegistry.get("twTasks.health.tasksInErrorCount").gauge().value());
+    assertEquals(1, meterRegistry.get("twTasks.health.tasksInErrorCountPerType").tags("taskType", "test").gauge().value());
 
     // resetting the task
     transactionsHelper.withTransaction().asNew().call(() -> {
@@ -120,6 +128,37 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
             .map(Meter::getId)
             .map(Id::getName)
             .noneMatch("twTasks.health.tasksInErrorCountPerType"::equals)
+    );
+
+    testTasksService.stopProcessing();
+
+    transactionsHelper.withTransaction().asNew().call(() ->
+        testTasksService.addTask(new ITasksService.AddTaskRequest()
+            .setDataString("Hello World!")
+            .setType("test"))
+    );
+
+    testClock.tick(Duration.ofHours(1));
+
+    clusterWideTasksStateMonitor.check();
+
+    assertEquals(1, meterRegistry.get("twTasks.health.stuckTasksCount").gauge().value());
+    assertEquals(1, meterRegistry.get("twTasks.health.stuckTasksCountPerType").tags("taskType", "test").gauge().value());
+
+    transactionsHelper.withTransaction().asNew().call(() -> {
+      testTasksService.resetAndDeleteTasksWithTypes("test");
+      return null;
+    });
+
+    clusterWideTasksStateMonitor.check();
+
+    assertEquals(0, meterRegistry.get("twTasks.health.stuckTasksCount").gauge().value());
+    assertTrue(
+        meterRegistry.getMeters()
+            .stream()
+            .map(Meter::getId)
+            .map(Id::getName)
+            .noneMatch("twTasks.health.stuckTasksCountPerType"::equals)
     );
   }
 

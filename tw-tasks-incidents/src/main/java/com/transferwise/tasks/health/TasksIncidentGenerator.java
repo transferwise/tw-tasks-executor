@@ -44,7 +44,7 @@ public class TasksIncidentGenerator implements IncidentGenerator {
             if (errorIncident == null) {
               errorIncident = new Incident()
                   .setId("twTasks/error")
-                  .setMessage(buildDetailedErrorReport(erroneousTasksCountPerType))
+                  .setMessage(buildDetailedErrorReport(erroneousTasksCountPerType, "in ERROR"))
                   .setSummary("" + cnt + " tasks in ERROR state.")
                   .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(cnt)));
             }
@@ -52,14 +52,15 @@ public class TasksIncidentGenerator implements IncidentGenerator {
             errorIncident = null;
           }
 
-          Integer stuckTasksCount = tasksStateMonitor.getStuckTasksCount();
-          if (stuckTasksCount != null && stuckTasksCount > 0) {
+          List<Pair<String, Integer>> stuckTasksCountPerType = tasksStateMonitor.getStuckTasksCountPerType();
+          if (CollectionUtils.isNotEmpty(erroneousTasksCountPerType)) {
+            int cnt = stuckTasksCountPerType.stream().mapToInt(Pair::getValue).sum();
             if (stuckIncident == null) {
               stuckIncident = new Incident()
                   .setId("twTasks/stuck")
-                  .setMessage("" + stuckTasksCount + " tasks are stuck.")
-                  .setSummary("" + stuckTasksCount + " tasks are stuck.")
-                  .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(stuckTasksCount)));
+                  .setMessage(buildDetailedErrorReport(stuckTasksCountPerType, "stuck"))
+                  .setSummary("" + cnt + " tasks are stuck.")
+                  .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(cnt)));
             }
           } else {
             stuckIncident = null;
@@ -74,14 +75,14 @@ public class TasksIncidentGenerator implements IncidentGenerator {
     return tasksProperties.getStuckTasksPollingInterval();
   }
 
-  private static String buildDetailedErrorReport(List<Pair<String, Integer>> tasksInErrorPerType) {
+  private static String buildDetailedErrorReport(List<Pair<String, Integer>> tasksInErrorPerType, String status) {
     StringBuilder msg = new StringBuilder();
     for (Pair<String, Integer> entry : tasksInErrorPerType) {
       msg.append("- ")
           .append(entry.getValue())
           .append(" tasks of type ")
           .append(entry.getKey())
-          .append(" in ERROR\n");
+          .append(" ").append(status).append("\n");
     }
     return msg.toString();
   }

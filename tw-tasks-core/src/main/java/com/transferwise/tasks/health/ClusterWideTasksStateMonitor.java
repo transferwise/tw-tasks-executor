@@ -63,6 +63,9 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private AtomicInteger erroneousTasksCount;
 
   private AtomicInteger stuckTasksCount;
+  private List<Pair<String, Integer>> stuckTasksCountPerType;
+  private Map<String, AtomicInteger> stuckTasksCounts;
+
   private AtomicLong approximateTasksCount;
   private AtomicLong approximateUniqueKeysCount;
 
@@ -70,6 +73,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
   private List<Object> registeredMetricHandles;
   private Map<String, Object> taskInErrorStateHandles;
+  private Map<String, Object> stuckTasksStateHandles;
 
   private final Lock stateLock = new ReentrantLock();
   private boolean initialized;
@@ -131,15 +135,19 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
               }
             }
 
-            stuckTasksCount = null;
             approximateTasksCount = null;
             approximateUniqueKeysCount = null;
+
+            stuckTasksCount = null;
+            stuckTasksCounts = new HashMap<>();
+            stuckTasksCountPerType = new ArrayList<>();
 
             erroneousTasksCount = null;
             erroneousTasksCounts = new HashMap<>();
             erroneousTasksCountPerType = new ArrayList<>();
             registeredMetricHandles = new ArrayList<>();
             taskInErrorStateHandles = new HashMap<>();
+            stuckTasksStateHandles = new HashMap<>();
             tasksHistoryLengthSeconds = new HashMap<>();
 
             initialized = forInit;
@@ -235,14 +243,45 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   protected void checkStuckTasks() {
-    int stuckTasksCountValue = taskDao.getStuckTasksCount(ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()),
-        tasksProperties.getMaxDatabaseFetchSize());
+    ZonedDateTime age = ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge());
+    int stuckTasksCountValue = taskDao.getStuckTasksCount(age, tasksProperties.getMaxDatabaseFetchSize());
+
+    if (stuckTasksCountValue == 0) {
+      stuckTasksCountPerType = Collections.emptyList();
+    } else {
+      stuckTasksCountPerType = taskDao.getStuckTasksCountGrouped(age, tasksProperties.getMaxDatabaseFetchSize());
+    }
 
     if (stuckTasksCount == null) {
       stuckTasksCount = new AtomicInteger(stuckTasksCountValue);
       registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCount::get));
     } else {
       stuckTasksCount.set(stuckTasksCountValue);
+    }
+
+    Set<String> stuckTaskTypes = new HashSet<>();
+    for (Pair<String, Integer> typeStuck : stuckTasksCountPerType) {
+      stuckTaskTypes.add(typeStuck.getKey());
+      AtomicInteger typeCounter = stuckTasksCounts.computeIfAbsent(typeStuck.getKey(), (k) -> {
+        AtomicInteger cnt = new AtomicInteger();
+        Object handle = meterHelper
+            .registerGauge(METRIC_PREFIX + "health.stuckTasksCountPerType", ImmutableMap.of("taskType", typeStuck.getKey()), cnt::get);
+        registeredMetricHandles.add(handle);
+        stuckTasksStateHandles.put(typeStuck.getKey(), handle);
+        return cnt;
+      });
+      typeCounter.set(typeStuck.getValue());
+    }
+
+    // make sure that we reset values for the tasks that are not in error state anymore
+    for (Iterator<String> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
+      String taskType = it.next();
+      if (!stuckTaskTypes.contains(taskType)) {
+        Object handle = stuckTasksStateHandles.remove(taskType);
+        registeredMetricHandles.remove(handle);
+        meterHelper.unregisterMetric(handle);
+        it.remove();
+      }
     }
   }
 
@@ -293,5 +332,10 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   @Override
   public List<Pair<String, Integer>> getErroneousTasksCountPerType() {
     return erroneousTasksCountPerType;
+  }
+
+  @Override
+  public List<Pair<String, Integer>> getStuckTasksCountPerType() {
+    return stuckTasksCountPerType;
   }
 }

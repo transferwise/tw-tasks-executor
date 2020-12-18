@@ -175,7 +175,7 @@ public class TasksProperties {
   /**
    * How long a task has to be stuck, before we start sending out VictorOps alerts.
    */
-  private Duration stuckTaskAge = taskStuckTimeout;
+  private Duration stuckTaskAge = Duration.ofMinutes(5);
 
   private boolean checkVersionBeforeGrabbing = false;
 

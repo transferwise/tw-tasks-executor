@@ -8,4 +8,6 @@ public interface ITasksStateMonitor {
   Integer getStuckTasksCount();
 
   List<Pair<String, Integer>> getErroneousTasksCountPerType();
+
+  List<Pair<String, Integer>> getStuckTasksCountPerType();
 }
