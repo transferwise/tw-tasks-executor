@@ -33,7 +33,6 @@ class TasksIncidentGeneratorTest {
 
   @Test
   void createMessageWithMultipleTaskDetailsWorks() {
-    when(tasksStateMonitor.getStuckTasksCount()).thenReturn(0);
     when(tasksStateMonitor.getErroneousTasksCountPerType()).thenReturn(Arrays.asList(
         new ImmutablePair<>("AAA", 2),
         new ImmutablePair<>("BBB", 1)

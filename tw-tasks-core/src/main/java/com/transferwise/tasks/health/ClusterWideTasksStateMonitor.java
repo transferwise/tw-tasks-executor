@@ -273,7 +273,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       typeCounter.set(typeStuck.getValue());
     }
 
-    // make sure that we reset values for the tasks that are not in error state anymore
+    // make sure that we reset values for the tasks that are not stuck anymore
     for (Iterator<String> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
       String taskType = it.next();
       if (!stuckTaskTypes.contains(taskType)) {
