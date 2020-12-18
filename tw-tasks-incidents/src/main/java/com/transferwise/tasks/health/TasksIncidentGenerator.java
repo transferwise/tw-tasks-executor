@@ -10,9 +10,8 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import lombok.Setter;
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TasksIncidentGenerator implements IncidentGenerator {
@@ -38,13 +37,13 @@ public class TasksIncidentGenerator implements IncidentGenerator {
   public List<Incident> getActiveIncidents() {
     return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, "ActiveIncidentsFinder",
         () -> {
-          List<Pair<String, Integer>> erroneousTasksCountPerType = tasksStateMonitor.getErroneousTasksCountPerType();
-          if (CollectionUtils.isNotEmpty(erroneousTasksCountPerType)) {
-            int cnt = erroneousTasksCountPerType.stream().mapToInt(Pair::getValue).sum();
+          Map<String, Integer> erroneousTasksCountByType = tasksStateMonitor.getErroneousTasksCountByType();
+          if (erroneousTasksCountByType != null && !erroneousTasksCountByType.isEmpty()) {
+            int cnt = erroneousTasksCountByType.values().stream().mapToInt(Integer::intValue).sum();
             if (errorIncident == null) {
               errorIncident = new Incident()
                   .setId("twTasks/error")
-                  .setMessage(buildDetailedErrorReport(erroneousTasksCountPerType))
+                  .setMessage(buildDetailedErrorReport(erroneousTasksCountByType, "in ERROR"))
                   .setSummary("" + cnt + " tasks in ERROR state.")
                   .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(cnt)));
             }
@@ -52,14 +51,15 @@ public class TasksIncidentGenerator implements IncidentGenerator {
             errorIncident = null;
           }
 
-          Integer stuckTasksCount = tasksStateMonitor.getStuckTasksCount();
-          if (stuckTasksCount != null && stuckTasksCount > 0) {
+          Map<String, Integer> stuckTasksCountByType = tasksStateMonitor.getStuckTasksCountByType();
+          if (stuckTasksCountByType != null && !stuckTasksCountByType.isEmpty()) {
+            int cnt = stuckTasksCountByType.values().stream().mapToInt(Integer::intValue).sum();
             if (stuckIncident == null) {
               stuckIncident = new Incident()
                   .setId("twTasks/stuck")
-                  .setMessage("" + stuckTasksCount + " tasks are stuck.")
-                  .setSummary("" + stuckTasksCount + " tasks are stuck.")
-                  .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(stuckTasksCount)));
+                  .setMessage(buildDetailedErrorReport(stuckTasksCountByType, "stuck"))
+                  .setSummary("" + cnt + " tasks are stuck.")
+                  .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(cnt)));
             }
           } else {
             stuckIncident = null;
@@ -74,15 +74,16 @@ public class TasksIncidentGenerator implements IncidentGenerator {
     return tasksProperties.getStuckTasksPollingInterval();
   }
 
-  private static String buildDetailedErrorReport(List<Pair<String, Integer>> tasksInErrorPerType) {
+  private static String buildDetailedErrorReport(Map<String, Integer> tasksInErrorPerType, String status) {
     StringBuilder msg = new StringBuilder();
-    for (Pair<String, Integer> entry : tasksInErrorPerType) {
+    tasksInErrorPerType.forEach((type, count) -> {
       msg.append("- ")
-          .append(entry.getValue())
+          .append(count)
           .append(" tasks of type ")
-          .append(entry.getKey())
-          .append(" in ERROR\n");
-    }
+          .append(type)
+          .append(" ").append(status).append("\n");
+    });
+
     return msg.toString();
   }
 }

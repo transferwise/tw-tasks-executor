@@ -9,10 +9,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.apache.commons.lang3.tuple.Pair;
 
 public interface ITaskDao {
 
@@ -89,9 +89,11 @@ public interface ITaskDao {
 
   int getTasksCountInStatus(int maxCount, TaskStatus status);
 
-  List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount);
+  Map<String, Integer> getErronousTasksCountByType(int maxCount);
 
   int getStuckTasksCount(ZonedDateTime age, int maxCount);
+
+  Map<String, Integer> getStuckTasksCountByType(ZonedDateTime age, int maxCount);
 
   <T> T getTask(UUID taskId, Class<T> clazz);
 

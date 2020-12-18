@@ -34,10 +34,10 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -315,19 +315,18 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   @Test
-  void gettingErrorTasksInGroup() {
+  void gettingErrorTasksCountByType() {
     randomDoneTask().save();
     randomErrorTask().save();
     randomErrorTask().save();
     randomErrorTask().withType("XXX").save();
 
-    List<Pair<String, Integer>> tasksInErrorStatus = taskDao.getTasksCountInErrorGrouped(10);
+    Map<String, Integer> tasksInErrorStatus = taskDao.getErronousTasksCountByType(10);
 
     assertEquals(2, tasksInErrorStatus.size());
-    assertEquals("TEST", tasksInErrorStatus.get(0).getLeft());
-    assertEquals(2, tasksInErrorStatus.get(0).getRight());
-    assertEquals("XXX", tasksInErrorStatus.get(1).getLeft());
-    assertEquals(1, tasksInErrorStatus.get(1).getRight());
+    assertThat(tasksInErrorStatus.get("TEST")).isEqualTo(2);
+    assertThat(tasksInErrorStatus.get("XXX")).isEqualTo(1);
+    assertThat(tasksInErrorStatus.get("OOO")).isNull();
   }
 
   @Test
@@ -343,6 +342,22 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     int count = taskDao.getStuckTasksCount(limitTime, 10);
 
     assertEquals(4, count);
+  }
+
+  @Test
+  void gettingStuckTasksCountByType() {
+    randomProcessingTask().save();
+    randomSubmittedTask().withType("XXX").save();
+    randomNewTask().save();
+    randomWaitingTask().save();
+    randomDoneTask().save();
+
+    ZonedDateTime limitTime = ZonedDateTime.now().plusSeconds(1);
+
+    Map<String, Integer> stuckTask = taskDao.getStuckTasksCountByType(limitTime, 10);
+    assertThat(stuckTask).size().isEqualTo(2);
+    assertThat(stuckTask.get("TEST")).isEqualTo(3);
+    assertThat(stuckTask.get("XXX")).isEqualTo(1);
   }
 
   @Test

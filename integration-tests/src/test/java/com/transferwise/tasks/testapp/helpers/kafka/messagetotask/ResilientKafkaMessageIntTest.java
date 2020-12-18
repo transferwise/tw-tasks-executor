@@ -10,6 +10,7 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.CorruptedKafkaMessage;
 import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -31,6 +32,7 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
   private TwTasksKafkaConfiguration kafkaConfiguration;
 
   @AfterEach
+  @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
   void cleanup() {
     try (AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties())) {
       adminClient.deleteTopics(Collections.singletonList(CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES));

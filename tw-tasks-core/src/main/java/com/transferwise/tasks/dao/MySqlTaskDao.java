@@ -27,14 +27,18 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -92,6 +96,7 @@ public class MySqlTaskDao implements ITaskDao {
   protected String getTasksCountInStatusSql;
   protected String getTasksCountInErrorGroupedSql;
   protected String getStuckTasksCountSql;
+  protected String getStuckTasksCountGroupedSql;
   protected String getTaskSql;
   protected String getTaskSql1;
   protected String getTaskSql2;
@@ -143,8 +148,10 @@ public class MySqlTaskDao implements ITaskDao {
     getTasksCountInStatusSql = "select count(*) from (select 1 from " + taskTable + " where status = ? order by next_event_time limit ?) q";
     getTasksCountInErrorGroupedSql = "select type, count(*) from (select type from " + taskTable + " where status='"
         + TaskStatus.ERROR.name() + "' order by next_event_time limit ?) q group by type";
-    getStuckTasksCountSql = "select count(*) from (select 1 from " + taskTable + " where status in (?)"
+    getStuckTasksCountSql = "select count(*) from (select 1 from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time limit ?) q";
+    getStuckTasksCountGroupedSql = "select type, count(*) from (select type from " + taskTable + " where status=?"
+        + " and next_event_time<? order by next_event_time limit ?) q group by type";
     getTaskSql = "select id,version,type,status,priority from " + taskTable + " where id=?";
     getTaskSql1 = "select id,version,type,status,priority,sub_type,data,processing_tries_count from " + taskTable + " where id=?";
     getTaskSql2 = "select id,version,type,status,priority,sub_type,data"
@@ -331,9 +338,12 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
   @MonitoringQuery
-  public List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount) {
-    return jdbcTemplate.query(getTasksCountInErrorGroupedSql, args(maxCount), (rs, rowNum) ->
-        new ImmutablePair<>(rs.getString(1), rs.getInt(2)));
+  public Map<String, Integer> getErronousTasksCountByType(int maxCount) {
+    Map<String, Integer> resultMap = new HashMap<>();
+    jdbcTemplate.query(getTasksCountInErrorGroupedSql, args(maxCount), rs -> {
+      resultMap.put(rs.getString(1), rs.getInt(2));
+    });
+    return resultMap;
   }
 
   @Override
@@ -349,6 +359,19 @@ public class MySqlTaskDao implements ITaskDao {
     }
 
     return cnt;
+  }
+
+  @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
+  public Map<String, Integer> getStuckTasksCountByType(ZonedDateTime age, int maxCount) {
+    Map<String, MutableInt> resultMap = new HashMap<>();
+    for (TaskStatus taskStatus : stuckStatuses) {
+      jdbcTemplate.query(getStuckTasksCountGroupedSql, args(taskStatus, age, maxCount), rs -> {
+        resultMap.computeIfAbsent(rs.getString(1), k -> new MutableInt(0)).add(rs.getInt(2));
+      });
+    }
+    return resultMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getValue()));
   }
 
   @SuppressWarnings("unchecked")

@@ -37,7 +37,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
-import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
@@ -58,11 +57,14 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
   LeaderSelectorV2 leaderSelector;
 
-  private List<Pair<String, Integer>> erroneousTasksCountPerType;
+  private Map<String, Integer> erroneousTasksCountByType;
   private Map<String, AtomicInteger> erroneousTasksCounts;
   private AtomicInteger erroneousTasksCount;
 
   private AtomicInteger stuckTasksCount;
+  private Map<String, Integer> stuckTasksCountByType;
+  private Map<String, AtomicInteger> stuckTasksCounts;
+
   private AtomicLong approximateTasksCount;
   private AtomicLong approximateUniqueKeysCount;
 
@@ -70,6 +72,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
   private List<Object> registeredMetricHandles;
   private Map<String, Object> taskInErrorStateHandles;
+  private Map<String, Object> stuckTasksStateHandles;
 
   private final Lock stateLock = new ReentrantLock();
   private boolean initialized;
@@ -131,15 +134,19 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
               }
             }
 
-            stuckTasksCount = null;
             approximateTasksCount = null;
             approximateUniqueKeysCount = null;
 
+            stuckTasksCount = null;
+            stuckTasksCounts = new HashMap<>();
+            stuckTasksCountByType = new HashMap<>();
+
             erroneousTasksCount = null;
             erroneousTasksCounts = new HashMap<>();
-            erroneousTasksCountPerType = new ArrayList<>();
+            erroneousTasksCountByType = new HashMap<>();
             registeredMetricHandles = new ArrayList<>();
             taskInErrorStateHandles = new HashMap<>();
+            stuckTasksStateHandles = new HashMap<>();
             tasksHistoryLengthSeconds = new HashMap<>();
 
             initialized = forInit;
@@ -196,9 +203,9 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   protected void checkErroneousTasks() {
     int tasksCountInError = taskDao.getTasksCountInStatus(tasksProperties.getMaxDatabaseFetchSize(), TaskStatus.ERROR);
     if (tasksCountInError == 0) {
-      erroneousTasksCountPerType = Collections.emptyList();
+      erroneousTasksCountByType = Collections.emptyMap();
     } else {
-      erroneousTasksCountPerType = taskDao.getTasksCountInErrorGrouped(tasksProperties.getMaxDatabaseFetchSize());
+      erroneousTasksCountByType = taskDao.getErronousTasksCountByType(tasksProperties.getMaxDatabaseFetchSize());
     }
 
     if (erroneousTasksCount == null) {
@@ -209,18 +216,18 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     }
 
     Set<String> erroneousTaskTypes = new HashSet<>();
-    for (Pair<String, Integer> typeInError : erroneousTasksCountPerType) {
-      erroneousTaskTypes.add(typeInError.getKey());
-      AtomicInteger typeCounter = erroneousTasksCounts.computeIfAbsent(typeInError.getKey(), (k) -> {
+    erroneousTasksCountByType.forEach((type, count) -> {
+      erroneousTaskTypes.add(type);
+      AtomicInteger typeCounter = erroneousTasksCounts.computeIfAbsent(type, k -> {
         AtomicInteger cnt = new AtomicInteger();
         Object handle = meterHelper
-            .registerGauge(METRIC_PREFIX + "health.tasksInErrorCountPerType", ImmutableMap.of("taskType", typeInError.getKey()), cnt::get);
+            .registerGauge(METRIC_PREFIX + "health.tasksInErrorCountPerType", ImmutableMap.of("taskType", type), cnt::get);
         registeredMetricHandles.add(handle);
-        taskInErrorStateHandles.put(typeInError.getKey(), handle);
+        taskInErrorStateHandles.put(type, handle);
         return cnt;
       });
-      typeCounter.set(typeInError.getValue());
-    }
+      typeCounter.set(count);
+    });
 
     // make sure that we reset values for the tasks that are not in error state anymore
     for (Iterator<String> it = erroneousTasksCounts.keySet().iterator(); it.hasNext(); ) {
@@ -235,14 +242,45 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   protected void checkStuckTasks() {
-    int stuckTasksCountValue = taskDao.getStuckTasksCount(ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge()),
-        tasksProperties.getMaxDatabaseFetchSize());
+    ZonedDateTime age = ZonedDateTime.now(TwContextClockHolder.getClock()).minus(tasksProperties.getStuckTaskAge());
+    int stuckTasksCountValue = taskDao.getStuckTasksCount(age, tasksProperties.getMaxDatabaseFetchSize());
+
+    if (stuckTasksCountValue == 0) {
+      stuckTasksCountByType = Collections.emptyMap();
+    } else {
+      stuckTasksCountByType = taskDao.getStuckTasksCountByType(age, tasksProperties.getMaxDatabaseFetchSize());
+    }
 
     if (stuckTasksCount == null) {
       stuckTasksCount = new AtomicInteger(stuckTasksCountValue);
       registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCount::get));
     } else {
       stuckTasksCount.set(stuckTasksCountValue);
+    }
+
+    Set<String> stuckTaskTypes = new HashSet<>();
+    stuckTasksCountByType.forEach((type, count) -> {
+      stuckTaskTypes.add(type);
+      AtomicInteger typeCounter = stuckTasksCounts.computeIfAbsent(type, k -> {
+        AtomicInteger cnt = new AtomicInteger();
+        Object handle = meterHelper
+            .registerGauge(METRIC_PREFIX + "health.stuckTasksCountPerType", ImmutableMap.of("taskType", type), cnt::get);
+        registeredMetricHandles.add(handle);
+        stuckTasksStateHandles.put(type, handle);
+        return cnt;
+      });
+      typeCounter.set(count);
+    });
+
+    // make sure that we reset values for the tasks that are not stuck anymore
+    for (Iterator<String> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
+      String taskType = it.next();
+      if (!stuckTaskTypes.contains(taskType)) {
+        Object handle = stuckTasksStateHandles.remove(taskType);
+        registeredMetricHandles.remove(handle);
+        meterHelper.unregisterMetric(handle);
+        it.remove();
+      }
     }
   }
 
@@ -286,12 +324,12 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   @Override
-  public Integer getStuckTasksCount() {
-    return stuckTasksCount == null ? null : stuckTasksCount.get();
+  public Map<String, Integer> getErroneousTasksCountByType() {
+    return erroneousTasksCountByType;
   }
 
   @Override
-  public List<Pair<String, Integer>> getErroneousTasksCountPerType() {
-    return erroneousTasksCountPerType;
+  public Map<String, Integer> getStuckTasksCountByType() {
+    return stuckTasksCountByType;
   }
 }
