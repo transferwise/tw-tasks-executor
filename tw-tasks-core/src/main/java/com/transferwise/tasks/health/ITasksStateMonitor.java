@@ -1,13 +1,10 @@
 package com.transferwise.tasks.health;
 
-import java.util.List;
-import org.apache.commons.lang3.tuple.Pair;
+import java.util.Map;
 
 public interface ITasksStateMonitor {
 
-  Integer getStuckTasksCount();
+  Map<String, Integer> getErroneousTasksCountByType();
 
-  List<Pair<String, Integer>> getErroneousTasksCountPerType();
-
-  List<Pair<String, Integer>> getStuckTasksCountPerType();
+  Map<String, Integer> getStuckTasksCountByType();
 }

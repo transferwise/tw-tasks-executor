@@ -5,14 +5,13 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.incidents.Incident;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.health.ITasksStateMonitor;
 import com.transferwise.tasks.health.TasksIncidentGenerator;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -33,10 +32,7 @@ class TasksIncidentGeneratorTest {
 
   @Test
   void createMessageWithMultipleTaskDetailsWorks() {
-    when(tasksStateMonitor.getErroneousTasksCountPerType()).thenReturn(Arrays.asList(
-        new ImmutablePair<>("AAA", 2),
-        new ImmutablePair<>("BBB", 1)
-    ));
+    when(tasksStateMonitor.getErroneousTasksCountByType()).thenReturn(ImmutableMap.of("AAA", 2, "BBB", 1));
     //noinspection unchecked,rawtypes
     when(entryPointsService.continueOrCreate(anyString(), anyString(), any(Supplier.class))).thenAnswer(
         invocation -> ((Supplier) invocation.getArgument(2)).get());

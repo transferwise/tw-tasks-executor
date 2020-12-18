@@ -338,9 +338,12 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
   @MonitoringQuery
-  public List<Pair<String, Integer>> getTasksCountInErrorGrouped(int maxCount) {
-    return jdbcTemplate.query(getTasksCountInErrorGroupedSql, args(maxCount), (rs, rowNum) ->
-        new ImmutablePair<>(rs.getString(1), rs.getInt(2)));
+  public Map<String, Integer> getErronousTasksCountByType(int maxCount) {
+    Map<String, Integer> resultMap = new HashMap<>();
+    jdbcTemplate.query(getTasksCountInErrorGroupedSql, args(maxCount), rs -> {
+      resultMap.put(rs.getString(1), rs.getInt(2));
+    });
+    return resultMap;
   }
 
   @Override
@@ -361,14 +364,14 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
   @MonitoringQuery
-  public List<Pair<String, Integer>> getStuckTasksCountGrouped(ZonedDateTime age, int maxCount) {
+  public Map<String, Integer> getStuckTasksCountByType(ZonedDateTime age, int maxCount) {
     Map<String, MutableInt> resultMap = new HashMap<>();
     for (TaskStatus taskStatus : stuckStatuses) {
       jdbcTemplate.query(getStuckTasksCountGroupedSql, args(taskStatus, age, maxCount), rs -> {
         resultMap.computeIfAbsent(rs.getString(1), k -> new MutableInt(0)).add(rs.getInt(2));
       });
     }
-    return resultMap.entrySet().stream().map(e -> Pair.of(e.getKey(), e.getValue().getValue())).collect(Collectors.toList());
+    return resultMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getValue()));
   }
 
   @SuppressWarnings("unchecked")
