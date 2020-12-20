@@ -9,7 +9,6 @@ import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.CorruptedKafkaMessage;
-import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
@@ -19,11 +18,12 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 
 class ResilientKafkaMessageIntTest extends BaseIntTest {
 
   @Autowired
-  private IToKafkaTestHelper toKafkaTestHelper;
+  private KafkaTemplate<String, String> kafkaTemplate;
 
   @Autowired
   private ObjectMapper objectMapper;
@@ -42,7 +42,7 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
   @Test
   void corruptedMessageResultsInErrorTaskOfCorruptedType() throws Exception {
     // send corrupted message
-    toKafkaTestHelper.sendDirectKafkaMessage(
+    kafkaTemplate.send(
         new ProducerRecord<>(
             CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES,
             null,
@@ -53,7 +53,7 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
     );
 
     // send consistent message
-    toKafkaTestHelper.sendDirectKafkaMessage(
+    kafkaTemplate.send(
         new ProducerRecord<>(
             CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES,
             null,

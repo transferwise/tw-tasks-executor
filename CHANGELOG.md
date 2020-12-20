@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.20.0 - 2020/12/20
+- Removed deprecated kafka-publisher modules.
+Tw-tkms has been successfully used in 19 services and is stable now.
+
 #### 1.19.3 - 2020/12/18
 - Stuck tasks warning has information and metrics about specific task types.
 
@@ -187,10 +191,8 @@ The typical library consumer will replace tw-tasks-executor dependency with:
 implementation("com.transferwise.tasks:tw-tasks-core-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-incidents-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-kafka-listener-spring-boot-starter:${twTasksVersion}")
-implementation("com.transferwise.tasks:tw-tasks-kafka-publisher-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-management-spring-boot-starter:${twTasksVersion}")
 
-testImplementation("com.transferwise.tasks:tw-tasks-kafka-publisher-test:${twTasksVersion}")
 testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}")
 ```
 

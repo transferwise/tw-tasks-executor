@@ -318,14 +318,21 @@ public class TaskProcessingIntTest extends BaseIntTest {
         tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setSubType("mdc").setDataString("Hello World!"))
     );
 
-    Task task = await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
-      try {
-        return testTasksService.getFinishedTasks("test", null);
-      } catch (Throwable t) {
-        log.error(t.getMessage(), t);
-      }
-      return null;
-    }), res -> res != null && res.size() == 1).get(0);
+    Task task = await().until(() -> transactionsHelper.withTransaction().asNew().call(
+        () -> {
+          try {
+            return testTasksService.getFinishedTasks("test", null);
+          } catch (Throwable t) {
+            log.error(t.getMessage(), t);
+          }
+          return null;
+        }),
+        res -> {
+          if (res == null) {
+            return false;
+          }
+          return res.size() == 1;
+        }).get(0);
 
     Map<String, String> mdcMap = mdcMapRef.getValue();
     assertThat(mdcMap.get("twTaskId")).isEqualTo(task.getId().toString());

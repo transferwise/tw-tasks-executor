@@ -7,7 +7,6 @@ import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
-import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,12 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 
 @Slf4j
 class ConsistentKafkaConsumerIntTest extends BaseIntTest {
 
   @Autowired
-  private IToKafkaTestHelper toKafkaTestHelper;
+  private KafkaTemplate<String, String> kafkaTemplate;
   @Autowired
   private TwTasksKafkaConfiguration kafkaConfiguration;
   @Autowired
@@ -36,7 +36,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     for (int i = 0; i < n; i++) {
       String message = "Message" + i;
       messagesReceivedCounts.put(message, new AtomicInteger(0));
-      toKafkaTestHelper.sendDirectKafkaMessage(testTopic, message);
+      kafkaTemplate.send(testTopic, message);
     }
 
     AtomicBoolean shouldFinish = new AtomicBoolean(false);
@@ -68,7 +68,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     // another kafka consumer starts up
     String message = "Message" + n;
     messagesReceivedCounts.put(message, new AtomicInteger(0));
-    toKafkaTestHelper.sendDirectKafkaMessage(testTopic, message);
+    kafkaTemplate.send(testTopic, message);
 
     shouldFinish.set(false);
 

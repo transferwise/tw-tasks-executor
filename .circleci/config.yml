@@ -97,12 +97,6 @@ jobs:
       - store_test_results:
           path: ./tw-tasks-kafka-listener-spring-boot-starter/build/test-results/
       - store_test_results:
-          path: ./tw-tasks-kafka-publisher/build/test-results/
-      - store_test_results:
-          path: ./tw-tasks-kafka-publisher-spring-boot-starter/build/test-results/
-      - store_test_results:
-          path: ./tw-tasks-kafka-publisher-test/build/test-results/
-      - store_test_results:
           path: ./tw-tasks-management/build/test-results/
       - store_test_results:
           path: ./tw-tasks-management-spring-boot-starter/build/test-results/

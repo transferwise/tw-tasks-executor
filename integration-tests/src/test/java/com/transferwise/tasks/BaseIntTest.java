@@ -8,7 +8,7 @@ import com.transferwise.tasks.testapp.TestTaskHandler;
 import com.transferwise.tasks.testapp.config.TestApplication;
 import com.transferwise.tasks.testapp.config.TestConfiguration;
 import io.micrometer.core.instrument.MeterRegistry;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
@@ -29,7 +29,8 @@ import org.springframework.test.context.ContextConfiguration;
 public abstract class BaseIntTest {
 
   static {
-    Awaitility.setDefaultPollInterval(5, TimeUnit.MILLISECONDS);
+    Awaitility.setDefaultPollInterval(Duration.ofMillis(5));
+    Awaitility.setDefaultTimeout(Duration.ofSeconds(20));
   }
 
   @Autowired

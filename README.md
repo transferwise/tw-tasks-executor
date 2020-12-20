@@ -78,7 +78,7 @@ Basically fire-and-forget-until-alert kind of system.
     - Lots of effort is put into performance and efficiency. Local machine performance tests show about 1750 tasks set up and executed in a second.
     During that, CPU utilization is low and the bottleneck is underlying database, especially its commit (read fsync) speed.
     - 1750 tasks/s should always considered when designing algorithms based on TwTasks, for example its much more efficient to send
-    batch of Kafka messages with one tasks, instead creating a separate task for every single message.
+    batch of Kafka messages with one task, instead creating a separate task for every single message.
 - Support for both synchronous and asynchronous tasks.
     - Payout execution for example is synchronous, but sending a Kafka message is asynchronous.
 - Support for both Postgres and MySQL databases.
@@ -112,11 +112,9 @@ TwTask depends on and needs following infrastructure services.
 ##### Add dependencies
 ```groovy
 implementation("com.transferwise.tasks:tw-tasks-core-spring-boot-starter:${twTasksVersion}")
-implementation("com.transferwise.tasks:tw-tasks-kafka-publisher-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-kafka-listener-spring-boot-starter:${twTasksVersion}")
 implementation("com.transferwise.tasks:tw-tasks-management-spring-boot-starter:${twTasksVersion}")
 
-testImplementation("com.transferwise.tasks:tw-tasks-kafka-publisher-test:${twTasksVersion}")
 testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}")
 ```
 
