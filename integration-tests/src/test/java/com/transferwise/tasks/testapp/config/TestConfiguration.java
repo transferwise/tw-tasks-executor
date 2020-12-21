@@ -10,8 +10,6 @@ import com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguratio
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.test.JobsTestConfiguration;
-import com.transferwise.tasks.impl.tokafka.test.IToKafkaTestHelper;
-import com.transferwise.tasks.impl.tokafka.test.ToKafkaTestHelper;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
 import com.transferwise.tasks.test.TestTasksService;
 import com.transferwise.tasks.test.dao.ITestTaskDao;
@@ -90,11 +88,6 @@ public class TestConfiguration {
       }
       processor.run();
     };
-  }
-
-  @Bean
-  public IToKafkaTestHelper toKafkaTestHelper() {
-    return new ToKafkaTestHelper();
   }
 
   @Bean

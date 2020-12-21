@@ -4,9 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
-import com.transferwise.tasks.impl.tokafka.IToKafkaSenderService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,7 +18,7 @@ public class PayoutProcessingTaskProcessor implements ISyncTaskProcessor {
   @Autowired
   private ObjectMapper objectMapper;
   @Autowired
-  private IToKafkaSenderService toKafkaSenderService;
+  private KafkaTemplate<String, String> kafkaTemplate;
 
   @Override
   public ProcessResult process(ITask task) {
@@ -33,8 +33,7 @@ public class PayoutProcessingTaskProcessor implements ISyncTaskProcessor {
       }
       */
 
-      toKafkaSenderService.sendMessage(new IToKafkaSenderService.SendMessageRequest()
-          .setTopic("payout.succeeded").setPayloadString(task.getData()));
+      kafkaTemplate.send("payout.succeeded", task.getData());
       log.debug("Processed payout #" + poi.getId() + " for " + poi.getType());
     });
     return null;
