@@ -1,12 +1,15 @@
 package com.transferwise.tasks;
 
+import io.micrometer.core.instrument.Tag;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import lombok.Data;
+import lombok.experimental.Accessors;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ValidationUtils;
 
@@ -323,5 +326,27 @@ public class TasksProperties {
      * If enabled, we will gather approximate tasks and unique keys counts from database information schema tables.
      */
     private boolean tasksCountingEnabled = true;
+  }
+
+  @Data
+  @Accessors(chain = true)
+  public static class Compression {
+
+    private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
+
+    /**
+     * Can be quite large, even when we have small(er) messages, because we reuse memory buffers.
+     */
+    private int blockSize = 32 * 1024;
+
+    /**
+     * Approximate message size is considered.
+     */
+    private int minSize = 128;
+
+    /**
+     * Used when applicable.
+     */
+    private int level = 3;
   }
 }
