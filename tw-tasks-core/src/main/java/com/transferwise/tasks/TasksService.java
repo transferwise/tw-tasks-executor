@@ -45,8 +45,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   @Autowired
   private ITasksExecutionTriggerer tasksExecutionTriggerer;
   @Autowired
-  private ObjectMapper objectMapper;
-  @Autowired
   private TasksProperties tasksProperties;
   @Autowired
   private IExecutorsHelper executorsHelper;
@@ -98,24 +96,13 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
               request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
 
           final int priority = priorityManager.normalize(request.getPriority());
-          byte[] data = request.getData();
-          if (data == null) {
-            if (request.getDataString() != null) {
-              data = request.getDataString().getBytes(StandardCharsets.UTF_8);
-            }
-          }
-          if (data == null) {
-            if (request.getDataObject() != null) {
-              data = ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsBytes(request.getDataObject()));
-            }
-          }
-
           if (StringUtils.isEmpty(StringUtils.trim(request.getType()))) {
             throw new IllegalStateException("Task type is mandatory, but '" + request.getType() + "' was provided.");
           }
 
           ZonedDateTime maxStuckTime =
               request.getExpectedQueueTime() == null ? now.plus(tasksProperties.getTaskStuckTimeout()) : now.plus(request.getExpectedQueueTime());
+          byte[] data = request.getData();
           ITaskDao.InsertTaskResponse insertTaskResponse = taskDao.insertTask(
               new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getKey())
                   .setRunAfterTime(request.getRunAfterTime())

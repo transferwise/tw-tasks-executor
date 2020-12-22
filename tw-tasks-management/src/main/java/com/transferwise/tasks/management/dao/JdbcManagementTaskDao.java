@@ -1,7 +1,7 @@
 package com.transferwise.tasks.management.dao;
 
 import com.transferwise.common.context.TwContextClockHolder;
-import com.transferwise.tasks.dao.ITaskDataSerializer;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -70,9 +70,9 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   private final Queries queries;
   private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> queriesCache;
-  private final ITaskDataSerializer taskDataSerializer;
+  private final ITaskDaoDataSerializer taskDataSerializer;
 
-  public JdbcManagementTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDataSerializer taskDataSerializer) {
+  public JdbcManagementTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDaoDataSerializer taskDataSerializer) {
     this.jdbcTemplate = new JdbcTemplate(dataSource);
     this.queries = new Queries(tables);
     this.sqlMapper = sqlMapper;

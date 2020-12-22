@@ -1,5 +1,6 @@
 package com.transferwise.tasks.dao;
 
+import com.transferwise.tasks.ITasksService.AddTaskRequest.CompressionRequest;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.Task;
@@ -52,6 +53,7 @@ public interface ITaskDao {
     private TaskStatus status;
     private ZonedDateTime maxStuckTime;
     private Integer priority;
+    private CompressionRequest compression;
   }
 
   @Data

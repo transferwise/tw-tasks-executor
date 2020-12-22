@@ -2,6 +2,7 @@ package com.transferwise.tasks.demoapp.payout;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
@@ -19,6 +20,8 @@ public class PayoutSubmittingTaskProcessor implements ISyncTaskProcessor {
   private ObjectMapper objectMapper;
   @Autowired
   private ITasksService tasksService;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @Override
   public ProcessResult process(ITask task) {
@@ -29,7 +32,7 @@ public class PayoutSubmittingTaskProcessor implements ISyncTaskProcessor {
 
         tasksService.addTask(new ITasksService.AddTaskRequest()
             .setType(PayoutProcessingTaskHandlerConfiguration.TASK_TYPE_PROCESSING + "." + poi.getType())
-            .setDataObject(poi)
+            .setData(taskDataSerializer.serializeAsJson(poi))
             .setPriority(poi.getPriority())
         );
 

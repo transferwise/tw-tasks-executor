@@ -7,7 +7,7 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.dao.ITaskDataSerializer.SerializeResult;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializeResult;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -72,7 +72,7 @@ public class MySqlTaskDao implements ITaskDao {
   @Autowired
   protected TasksProperties tasksProperties;
   @Autowired
-  protected ITaskDataSerializer taskDataSerializer;
+  protected ITaskDaoDataSerializer taskDataSerializer;
 
   private final ConcurrentHashMap<CacheKey, String> sqlCache = new ConcurrentHashMap<>();
 
@@ -243,7 +243,7 @@ public class MySqlTaskDao implements ITaskDao {
       }
 
       if (request.getData() != null) {
-        SerializeResult serializeResult = taskDataSerializer.serialize(request.getData());
+        SerializeResult serializeResult = taskDataSerializer.serialize(request.getData(), request.getCompression());
         jdbcTemplate.update(insertTaskDataSql, args(taskId, Integer.valueOf(serializeResult.getDataFormat()), serializeResult.getData()));
       }
 

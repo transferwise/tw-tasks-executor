@@ -1,5 +1,7 @@
 package com.transferwise.tasks.helpers.kafka.messagetotask;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.ITasksService;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -20,10 +22,11 @@ public class CreateTaskForCorruptedMessageRecoveryStrategy implements CorruptedM
   public static final String DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE = "CORRUPTED_KAFKA_MESSAGE";
 
   private final ITasksService tasksService;
+  private final ObjectMapper objectMapper;
   private final String type;
 
-  public CreateTaskForCorruptedMessageRecoveryStrategy(ITasksService tasksService) {
-    this(tasksService, DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE);
+  public CreateTaskForCorruptedMessageRecoveryStrategy(ITasksService tasksService, ObjectMapper objectMapper) {
+    this(tasksService, objectMapper, DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE);
   }
 
   @Override
@@ -32,7 +35,7 @@ public class CreateTaskForCorruptedMessageRecoveryStrategy implements CorruptedM
     tasksService.addTask(
         new ITasksService.AddTaskRequest()
             .setType(type)
-            .setDataObject(new CorruptedKafkaMessage(record.topic(), record.value()))
+            .setData(ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsBytes(new CorruptedKafkaMessage(record.topic(), record.value()))))
     );
   }
 

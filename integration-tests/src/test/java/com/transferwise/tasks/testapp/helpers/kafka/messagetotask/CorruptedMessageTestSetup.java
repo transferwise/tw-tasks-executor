@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testapp.helpers.kafka.messagetotask;
 
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.TaskHandlerAdapter;
@@ -25,12 +26,12 @@ public class CorruptedMessageTestSetup {
   }
 
   @Bean
-  IKafkaMessageHandler<String> newHandlerForCorruptedMessagesTopic(KafkaMessageHandlerFactory factory) {
+  IKafkaMessageHandler<String> newHandlerForCorruptedMessagesTopic(KafkaMessageHandlerFactory factory, ITaskDataSerializer taskDataSerializer) {
     return factory.createDefaultResilientHandler(
         TestMessage.class,
         (testMessage, record, addTaskRequest) -> {
           addTaskRequest.setType(TASK_TYPE);
-          addTaskRequest.setDataString(record.value());
+          addTaskRequest.setData(taskDataSerializer.serialize(record.value()));
           return true;
         },
         KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES

@@ -1,6 +1,6 @@
 package com.transferwise.tasks.test.dao;
 
-import com.transferwise.tasks.dao.ITaskDataSerializer;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.Task;
@@ -69,9 +69,9 @@ public class JdbcTestTaskDao implements ITestTaskDao {
   private final Queries queries;
   private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> sqlCache;
-  private final ITaskDataSerializer taskDataSerializer;
+  private final ITaskDaoDataSerializer taskDataSerializer;
 
-  public JdbcTestTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDataSerializer taskDataSerializer) {
+  public JdbcTestTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDaoDataSerializer taskDataSerializer) {
     this.sqlCache = new ConcurrentHashMap<>();
     jdbcTemplate = new JdbcTemplate(dataSource);
     queries = new Queries(tables);

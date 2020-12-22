@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -41,6 +42,8 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor;
   @Autowired
   private TasksProperties tasksProperties;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   private Duration originalStartDelay;
 
@@ -101,7 +104,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     });
     transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.addTask(new ITasksService.AddTaskRequest()
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test"))
     );
 
@@ -134,7 +137,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.addTask(new ITasksService.AddTaskRequest()
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test"))
     );
 

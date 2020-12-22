@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.TasksProcessingState;
 import com.transferwise.tasks.buckets.IBucketsManager;
@@ -37,6 +38,8 @@ class ManualStartIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @BeforeEach
   void setup() {
@@ -57,7 +60,7 @@ class ManualStartIntTest extends BaseIntTest {
 
     log.info("Submitting a task.");
     UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
-        testTasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString(st))
+        testTasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize(st)))
     ).getTaskId();
 
     assertEquals(TasksProcessingState.STOPPED, testTasksService.getTasksProcessingState(BUCKET_ID));

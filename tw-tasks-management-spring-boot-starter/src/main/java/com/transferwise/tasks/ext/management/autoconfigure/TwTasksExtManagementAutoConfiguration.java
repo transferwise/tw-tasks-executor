@@ -2,7 +2,7 @@ package com.transferwise.tasks.ext.management.autoconfigure;
 
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.core.autoconfigure.TwTasksDataSourceProvider;
-import com.transferwise.tasks.dao.ITaskDataSerializer;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.management.ITasksManagementService;
 import com.transferwise.tasks.management.TasksManagementPortController;
 import com.transferwise.tasks.management.TasksManagementService;
@@ -21,7 +21,7 @@ public class TwTasksExtManagementAutoConfiguration {
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
   @ConditionalOnMissingBean(IManagementTaskDao.class)
   public PostgresManagementTaskDao postgresManagementTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, TasksProperties tasksProperties,
-      ITaskDataSerializer taskDataSerializer) {
+      ITaskDaoDataSerializer taskDataSerializer) {
     return new PostgresManagementTaskDao(twTasksDataSourceProvider.getDataSource(), tasksProperties, taskDataSerializer);
   }
 
@@ -29,7 +29,7 @@ public class TwTasksExtManagementAutoConfiguration {
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
   @ConditionalOnMissingBean(IManagementTaskDao.class)
   public MySqlManagementTaskDao mysqlManagementTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider, TasksProperties tasksProperties,
-      ITaskDataSerializer taskDataSerializer) {
+      ITaskDaoDataSerializer taskDataSerializer) {
     return new MySqlManagementTaskDao(twTasksDataSourceProvider.getDataSource(), tasksProperties, taskDataSerializer);
   }
 

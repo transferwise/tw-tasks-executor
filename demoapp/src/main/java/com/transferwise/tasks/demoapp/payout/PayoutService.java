@@ -1,5 +1,6 @@
 package com.transferwise.tasks.demoapp.payout;
 
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.demoapp.NoiseGenerator;
 import lombok.extern.slf4j.Slf4j;
@@ -14,15 +15,16 @@ public class PayoutService {
 
   @Autowired
   private ITasksService tasksService;
-
   @Autowired
   private NoiseGenerator noiseGenerator;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   public void submitPayout(PayoutInstruction poi) {
     poi.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
         .setType(PayoutProcessingTaskHandlerConfiguration.TASK_TYPE_SUBMITTING)
-        .setDataObject(poi)
+        .setData(taskDataSerializer.serializeAsJson(poi))
         .setPriority(poi.getPriority())
     );
     log.debug("Payout #" + poi.getId() + " submitted.");

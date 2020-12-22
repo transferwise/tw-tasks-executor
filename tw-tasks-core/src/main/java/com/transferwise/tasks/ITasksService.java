@@ -36,16 +36,22 @@ public interface ITasksService {
     private String subType;
     @SuppressFBWarnings("EI_EXPOSE_REP")
     private byte[] data;
-    // Deprecated
-    private String dataString;
-    // Deprecated
-    private Object dataObject;
     private UUID taskId;
     private String key;
     private ZonedDateTime runAfterTime;
     private Integer priority;
     private boolean warnWhenTaskExists;
     private Duration expectedQueueTime;
+    private CompressionRequest compression;
+
+    @Data
+    @Accessors(chain = true)
+    public static class CompressionRequest {
+
+      private CompressionAlgorithm algorithm;
+      private int blockSizeBytes = 32 * 1024;
+      private int level = 3;
+    }
   }
 
   @Data
