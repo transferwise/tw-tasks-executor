@@ -22,7 +22,7 @@ public class PayoutService {
     poi.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
         .setType(PayoutProcessingTaskHandlerConfiguration.TASK_TYPE_SUBMITTING)
-        .setData(poi)
+        .setDataObject(poi)
         .setPriority(poi.getPriority())
     );
     log.debug("Payout #" + poi.getId() + " submitted.");

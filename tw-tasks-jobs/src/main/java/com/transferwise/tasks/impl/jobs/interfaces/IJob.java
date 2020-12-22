@@ -54,7 +54,7 @@ public interface IJob {
   /**
    * Saved as task's data field when task is initially registered.
    */
-  default String getInitialData() {
+  default byte[] getInitialData() {
     return null;
   }
 

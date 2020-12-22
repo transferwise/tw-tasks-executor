@@ -3,6 +3,7 @@ package com.transferwise.tasks;
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
@@ -21,6 +22,7 @@ import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -92,17 +94,20 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
           mdcService.putType(request.getType());
           mdcService.putSubType(request.getSubType());
           ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
-          TaskStatus status =
+          final TaskStatus status =
               request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
 
-          int priority = priorityManager.normalize(request.getPriority());
-
-          String data;
-          if (request.getDataString() == null) {
-            Object dataObj = request.getData();
-            data = JsonUtils.toJson(objectMapper, dataObj);
-          } else {
-            data = request.getDataString();
+          final int priority = priorityManager.normalize(request.getPriority());
+          byte[] data = request.getData();
+          if (data == null) {
+            if (request.getDataString() != null) {
+              data = request.getDataString().getBytes(StandardCharsets.UTF_8);
+            }
+          }
+          if (data == null) {
+            if (request.getDataObject() != null) {
+              data = ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsBytes(request.getDataObject()));
+            }
           }
 
           if (StringUtils.isEmpty(StringUtils.trim(request.getType()))) {

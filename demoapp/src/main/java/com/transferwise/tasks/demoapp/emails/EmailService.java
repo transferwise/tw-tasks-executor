@@ -19,7 +19,7 @@ public class EmailService {
   public void sendEmail(Email email) {
     email.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
-        .setData(email)
+        .setDataObject(email)
         .setType(EmailsTaskHandlerConfiguration.TASK_TYPE_SEND_EMAILS));
   }
 }

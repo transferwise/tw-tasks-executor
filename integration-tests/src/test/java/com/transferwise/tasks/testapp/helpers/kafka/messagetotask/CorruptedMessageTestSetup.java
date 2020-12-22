@@ -30,7 +30,7 @@ public class CorruptedMessageTestSetup {
         TestMessage.class,
         (testMessage, record, addTaskRequest) -> {
           addTaskRequest.setType(TASK_TYPE);
-          addTaskRequest.setData(record.value());
+          addTaskRequest.setDataString(record.value());
           return true;
         },
         KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES

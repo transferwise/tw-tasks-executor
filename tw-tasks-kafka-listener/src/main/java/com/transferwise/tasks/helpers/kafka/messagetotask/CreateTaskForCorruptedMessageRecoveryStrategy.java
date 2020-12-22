@@ -32,7 +32,7 @@ public class CreateTaskForCorruptedMessageRecoveryStrategy implements CorruptedM
     tasksService.addTask(
         new ITasksService.AddTaskRequest()
             .setType(type)
-            .setData(new CorruptedKafkaMessage(record.topic(), record.value()))
+            .setDataObject(new CorruptedKafkaMessage(record.topic(), record.value()))
     );
   }
 

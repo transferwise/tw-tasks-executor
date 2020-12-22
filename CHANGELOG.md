@@ -2,6 +2,29 @@
 
 Describes notable changes.
 
+#### 1.21.0 - 2020/12/21
+- Task data is binary.
+
+Migration for MySql.
+
+```mariadb
+CREATE TABLE tw_task_data (
+  task_id BINARY(16) PRIMARY KEY NOT NULL,
+  data_format INT NOT NULL,
+  data LONGBLOB NOT NULL
+);
+```
+
+```postgresql
+CREATE TABLE tw_task_data (
+  task_id UUID PRIMARY KEY NOT NULL,
+  data_format INT NOT NULL,
+  data BYTEA NOT NULL
+) WITH (toast_tuple_target=8160);
+
+ALTER TABLE tw_task_data ALTER COLUMN data SET STORAGE EXTERNAL;
+```
+
 #### 1.20.0 - 2020/12/20
 - Removed deprecated kafka-publisher modules.
 Tw-tkms has been successfully used in 19 services and is stable now.

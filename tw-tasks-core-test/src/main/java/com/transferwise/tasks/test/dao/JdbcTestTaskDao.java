@@ -1,5 +1,6 @@
 package com.transferwise.tasks.test.dao;
 
+import com.transferwise.tasks.dao.ITaskDataSerializer;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.Task;
@@ -32,25 +33,32 @@ public class JdbcTestTaskDao implements ITestTaskDao {
 
     final String deleteFromTaskTable;
     final String deleteFromUniqueKeyTable;
+    final String deleteFromTaskDataTable;
     final String deleteTaskByIdAndVersion;
     final String deleteUniqueTaskKeyByTaskId;
+    final String deleteTaskDataByTaskId;
     final String[] getIdAndVersionFromTaskByTypeAndSubTypeAndStatus;
     final String[] getTasksByTypeAndStatusAndSubType;
 
     Queries(ITwTaskTables tables) {
       String tasksTable = tables.getTaskTableIdentifier();
       String keysTable = tables.getUniqueTaskKeyTableIdentifier();
+      String dataTable = tables.getTaskDataTableIdentifier();
       deleteFromTaskTable = "delete from " + tasksTable;
       deleteFromUniqueKeyTable = "delete from " + keysTable;
+      deleteFromTaskDataTable = "delete from " + dataTable;
       deleteTaskByIdAndVersion = "delete from " + tasksTable + " where id=? and version=?";
       deleteUniqueTaskKeyByTaskId = "delete from " + keysTable + " where task_id=?";
+      deleteTaskDataByTaskId = "delete from " + dataTable + " where task_id=?";
       getIdAndVersionFromTaskByTypeAndSubTypeAndStatus = new String[]{
           "select id, version from " + tasksTable + " where type=?",
           " and sub_type=?",
           " and status in (??)"
       };
       getTasksByTypeAndStatusAndSubType = new String[]{
-          "select id,type,sub_type,data,status,version,processing_tries_count,priority from " + tasksTable + " where type=?",
+          "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,d.data_format,d.data"
+          + " from " + tasksTable + " t left join " + dataTable + " d on t.id=d.task_id"
+              + " where type=?",
           " and status in (??)",
           " and sub_type=?"
       };
@@ -61,12 +69,14 @@ public class JdbcTestTaskDao implements ITestTaskDao {
   private final Queries queries;
   private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> sqlCache;
+  private final ITaskDataSerializer taskDataSerializer;
 
-  public JdbcTestTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper) {
+  public JdbcTestTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDataSerializer taskDataSerializer) {
     this.sqlCache = new ConcurrentHashMap<>();
     jdbcTemplate = new JdbcTemplate(dataSource);
     queries = new Queries(tables);
     this.sqlMapper = sqlMapper;
+    this.taskDataSerializer = taskDataSerializer;
   }
 
   @Override
@@ -136,6 +146,18 @@ public class JdbcTestTaskDao implements ITestTaskDao {
         return deletedIds.size();
       }
     });
+
+    jdbcTemplate.batchUpdate(queries.deleteTaskDataByTaskId, new BatchPreparedStatementSetter() {
+      @Override
+      public void setValues(PreparedStatement ps, int i) throws SQLException {
+        ps.setObject(1, deletedIds.get(i));
+      }
+
+      @Override
+      public int getBatchSize() {
+        return deletedIds.size();
+      }
+    });
   }
 
   @Override
@@ -169,16 +191,24 @@ public class JdbcTestTaskDao implements ITestTaskDao {
     return jdbcTemplate.query(
         sql,
         args(args.toArray()),
-        (rs, rowNum) ->
-            new Task()
-                .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
-                .setType(rs.getString(2))
-                .setSubType(rs.getString(3))
-                .setData(rs.getString(4))
-                .setStatus(rs.getString(5))
-                .setVersion(rs.getLong(6))
-                .setProcessingTriesCount(rs.getLong(7))
-                .setPriority(rs.getInt(8))
+        (rs, rowNum) -> {
+          byte[] data;
+          byte[] newData = rs.getBytes(10);
+          if (newData != null) {
+            data = taskDataSerializer.deserialize(rs.getInt(9), newData);
+          } else {
+            data = rs.getBytes(4);
+          }
+          return new Task()
+              .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
+              .setType(rs.getString(2))
+              .setSubType(rs.getString(3))
+              .setData(data)
+              .setStatus(rs.getString(5))
+              .setVersion(rs.getLong(6))
+              .setProcessingTriesCount(rs.getLong(7))
+              .setPriority(rs.getInt(8));
+        }
     );
   }
 
@@ -187,6 +217,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
   public void deleteAllTasks() {
     jdbcTemplate.update(queries.deleteFromTaskTable);
     jdbcTemplate.update(queries.deleteFromUniqueKeyTable);
+    jdbcTemplate.update(queries.deleteFromTaskDataTable);
   }
 
   private PreparedStatementSetter args(Object... args) {

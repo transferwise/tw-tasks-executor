@@ -7,14 +7,17 @@ public class PostgresTaskTables implements ITwTaskTables {
 
   private final String taskTableIdentifier;
   private final String uniqueTaskKeyIdentifier;
+  private final String taskDataTableIdentifier;
 
   public PostgresTaskTables(TasksProperties tasksProperties) {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       taskTableIdentifier = tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getTaskTableName();
       uniqueTaskKeyIdentifier = tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getUniqueTaskKeyTableName();
+      taskDataTableIdentifier = tasksProperties.getTaskTablesSchemaName() + "." + tasksProperties.getTaskDataTableName();
     } else {
       taskTableIdentifier = tasksProperties.getTaskTableName();
       uniqueTaskKeyIdentifier = tasksProperties.getUniqueTaskKeyTableName();
+      taskDataTableIdentifier = tasksProperties.getTaskDataTableName();
     }
   }
 
@@ -26,5 +29,10 @@ public class PostgresTaskTables implements ITwTaskTables {
   @Override
   public String getUniqueTaskKeyTableIdentifier() {
     return uniqueTaskKeyIdentifier;
+  }
+
+  @Override
+  public String getTaskDataTableIdentifier() {
+    return taskDataTableIdentifier;
   }
 }

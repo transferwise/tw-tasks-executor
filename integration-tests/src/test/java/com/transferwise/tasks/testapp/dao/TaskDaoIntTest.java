@@ -22,12 +22,15 @@ import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.DeleteFinishedOldTasksResult;
 import com.transferwise.tasks.dao.ITaskDao.GetStuckTasksResponse;
+import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskResponse;
 import com.transferwise.tasks.dao.ITaskDao.StuckTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.test.dao.ITestTaskDao;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -56,6 +59,9 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
   private TasksProperties tasksProperties;
+
+  @Autowired
+  private ITestTaskDao testTaskDao;
 
   @BeforeEach
   void taskDaoIntTestSetup() {
@@ -90,7 +96,6 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     InsertTaskResponse response = TaskTestBuilder.newTask()
         .withStatus(TaskStatus.NEW)
         .withKey(key)
-        .withData("")
         .withPriority(5)
         .withMaxStuckTime(ZonedDateTime.now().plusMinutes(30))
         .withType("Test")
@@ -101,7 +106,6 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     response = taskDao.insertTask(new ITaskDao.InsertTaskRequest()
         .setStatus(TaskStatus.NEW)
         .setKey(key)
-        .setData("")
         .setMaxStuckTime(ZonedDateTime.now().plusMinutes(30))
         .setType("Test")
         .setPriority(5));
@@ -136,7 +140,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertEquals("TEST", task.getType());
     assertEquals(5, task.getPriority());
     assertEquals(0, task.getVersion());
-    assertEquals("DATA", task.getData());
+    assertThat("DATA".getBytes(StandardCharsets.UTF_8)).isEqualTo(task.getData());
     assertEquals("SUBTYPE", task.getSubType());
     assertEquals(0, task.getProcessingTriesCount());
     assertNull(task.getProcessingClientId());
@@ -409,8 +413,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     TwContextClockHolder.setClock(testClock);
 
     for (int i = 0; i < 117; i++) {
-      taskDao.insertTask(new ITaskDao.InsertTaskRequest()
-          .setType("Test").setData("Test").setPriority(5)
+      taskDao.insertTask(new InsertTaskRequest()
+          .setType("Test").setData("Test".getBytes(StandardCharsets.UTF_8)).setPriority(5)
           .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
           .setKey(UuidUtils.generatePrefixCombUuid().toString())
           .setStatus(TaskStatus.DONE)
@@ -460,7 +464,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
     assertEquals(taskId, task.getId());
     assertEquals("DONE", task.getStatus());
-    assertEquals("", task.getData());
+    assertEquals(null, task.getData());
   }
 
   @Test
@@ -480,17 +484,18 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     String taskType = "UUID_TEST";
     try {
       for (int i = 0; i < 117; i++) {
-        taskDao.insertTask(new ITaskDao.InsertTaskRequest()
-            .setType(taskType).setData(String.valueOf(i)).setPriority(5)
+        taskDao.insertTask(new InsertTaskRequest()
+            .setType(taskType).setData(String.valueOf(i).getBytes(StandardCharsets.UTF_8)).setPriority(5)
             .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
             .setTaskId(UuidUtils.generatePrefixCombUuid())
             .setStatus(TaskStatus.DONE)
         );
         clock.tick(Duration.ofMillis(2));
       }
+      List<Task> tasks = testTaskDao.findTasksByTypeSubTypeAndStatus(taskType, null, TaskStatus.DONE);
 
-      List<String> result = jdbcTemplate.queryForList("select data from tw_task where type=? order by id", String.class, taskType);
-      List<Integer> resultInts = result.stream().map(Integer::parseInt).collect(Collectors.toList());
+      List<Integer> resultInts = tasks.stream().map(t -> Integer.parseInt(new String(t.getData(), StandardCharsets.UTF_8)))
+          .collect(Collectors.toList());
       assertThat(resultInts).isSorted();
     } finally {
       TestClock.reset();

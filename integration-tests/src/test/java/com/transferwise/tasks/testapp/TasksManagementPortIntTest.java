@@ -21,6 +21,7 @@ import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorRes
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse.TaskStuck;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -135,7 +136,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(status)
-            .withData("the payload")
+            .withData("the payload".getBytes(StandardCharsets.UTF_8))
             .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
             .save()
             .getTaskId()

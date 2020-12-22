@@ -7,14 +7,17 @@ public class MySqlTaskTables implements ITwTaskTables {
 
   private final String taskTableIdentifier;
   private final String uniqueTaskKeyTableIdentifier;
+  private final String taskDataTableIdentifier;
 
   public MySqlTaskTables(TasksProperties tasksProperties) {
     if (StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName())) {
       taskTableIdentifier = "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getTaskTableName() + "`";
       uniqueTaskKeyTableIdentifier = "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getUniqueTaskKeyTableName() + "`";
+      taskDataTableIdentifier = "`" + tasksProperties.getTaskTablesSchemaName() + "`.`" + tasksProperties.getTaskDataTableName() + "`";
     } else {
       taskTableIdentifier = "`" + tasksProperties.getTaskTableName() + "`";
       uniqueTaskKeyTableIdentifier = "`" + tasksProperties.getUniqueTaskKeyTableName() + "`";
+      taskDataTableIdentifier = "`" + tasksProperties.getTaskDataTableName() + "`";
     }
   }
 
@@ -26,5 +29,10 @@ public class MySqlTaskTables implements ITwTaskTables {
   @Override
   public String getUniqueTaskKeyTableIdentifier() {
     return uniqueTaskKeyTableIdentifier;
+  }
+
+  @Override
+  public String getTaskDataTableIdentifier() {
+    return taskDataTableIdentifier;
   }
 }

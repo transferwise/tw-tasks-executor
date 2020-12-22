@@ -18,7 +18,7 @@ public class PayoutProcessingTaskProcessor implements ISyncTaskProcessor {
   @Autowired
   private ObjectMapper objectMapper;
   @Autowired
-  private KafkaTemplate<String, String> kafkaTemplate;
+  private KafkaTemplate<String, byte[]> kafkaTemplate;
 
   @Override
   public ProcessResult process(ITask task) {

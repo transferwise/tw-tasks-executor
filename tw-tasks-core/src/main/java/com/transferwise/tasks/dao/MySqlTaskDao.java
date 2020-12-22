@@ -7,6 +7,7 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.dao.ITaskDataSerializer.SerializeResult;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -17,8 +18,10 @@ import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
 import com.transferwise.tasks.helpers.sql.CacheKey;
 import com.transferwise.tasks.helpers.sql.SqlHelper;
 import com.transferwise.tasks.utils.TimeUtils;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -64,9 +67,12 @@ public class MySqlTaskDao implements ITaskDao {
 
   private static final String DELETE_TASKS_BY_ID_BATCHES = "deleteTasksByIdBatchesSql";
   private static final String DELETE_UNIQUE_TASK_KEYS_BY_ID_BATCHES = "deleteUniqueTaskKeysByIdBatchesSql";
+  private static final String DELETE_TASK_DATAS_BY_ID_BATCHES = "deleteTaskDatasByIdBatchesSql";
 
   @Autowired
   protected TasksProperties tasksProperties;
+  @Autowired
+  protected ITaskDataSerializer taskDataSerializer;
 
   private final ConcurrentHashMap<CacheKey, String> sqlCache = new ConcurrentHashMap<>();
 
@@ -86,6 +92,7 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected String insertTaskSql;
   protected String insertUniqueTaskKeySql;
+  protected String insertTaskDataSql;
   protected String setToBeRetriedSql;
   protected String setToBeRetriedSql1;
   protected String grabForProcessingSql;
@@ -102,6 +109,7 @@ public class MySqlTaskDao implements ITaskDao {
   protected String getTaskSql2;
   protected String deleteTaskSql;
   protected String deleteUniqueTaskKeySql;
+  protected String deleteTaskDataSql;
   protected String deleteFinishedOldTasksSql;
   protected String deleteFinishedOldTasksSql1;
   protected String clearPayloadAndMarkDoneSql;
@@ -109,6 +117,7 @@ public class MySqlTaskDao implements ITaskDao {
   protected String getTaskVersionSql;
   protected String deleteTasksByIdBatchesSql;
   protected String deleteUniqueTaskKeysByIdBatchesSql;
+  protected String deleteTaskDatasByIdBatchesSql;
   protected String deleteFinishedOldTasksSql2;
   protected String getApproximateTasksCountSql;
   protected String getApproximateTasksCountSql1;
@@ -128,10 +137,12 @@ public class MySqlTaskDao implements ITaskDao {
     ITwTaskTables tables = twTaskTables(tasksProperties);
     String taskTable = tables.getTaskTableIdentifier();
     String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();
+    String taskDataTable = tables.getTaskDataTableIdentifier();
 
     insertTaskSql = "insert ignore into " + taskTable + "(id,type,sub_type,status,data,next_event_time"
         + ",state_time,time_created,time_updated,processing_tries_count,version,priority) values (?,?,?,?,?,?,?,?,?,?,?,?)";
     insertUniqueTaskKeySql = "insert ignore into " + uniqueTaskKeyTable + "(task_id,key_hash,`key`) values (?, ?, ?)";
+    insertTaskDataSql = "insert into " + taskDataTable + "(task_id,data_format,data) values (?,?,?)";
     setToBeRetriedSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     setToBeRetriedSql1 = "update " + taskTable + " set status=?,next_event_time=?"
         + ",processing_tries_count=?,state_time=?,time_updated=?,version=? where id=? and version=?";
@@ -153,13 +164,19 @@ public class MySqlTaskDao implements ITaskDao {
     getStuckTasksCountGroupedSql = "select type, count(*) from (select type from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time limit ?) q group by type";
     getTaskSql = "select id,version,type,status,priority from " + taskTable + " where id=?";
-    getTaskSql1 = "select id,version,type,status,priority,sub_type,data,processing_tries_count from " + taskTable + " where id=?";
-    getTaskSql2 = "select id,version,type,status,priority,sub_type,data"
-        + ",processing_tries_count,state_time,next_event_time,processing_client_id from " + taskTable + " where id=?";
+    getTaskSql1 = "select id,version,type,status,priority,sub_type,t.data,processing_tries_count,d.data_format,d.data"
+        + " from " + taskTable + " t left join " + taskDataTable + " d on t.id=d.task_id"
+        + " where t.id=?";
+    getTaskSql2 = "select id,version,type,status,priority,sub_type,t.data"
+        + ",processing_tries_count,state_time,next_event_time,processing_client_id,d.data_format,d.data"
+        + " from " + taskTable + " t left join " + taskDataTable + " d on t.id=d.task_id"
+        + " where t.id=?";
     deleteTaskSql = "delete from " + taskTable + " where id=? and version=?";
     deleteUniqueTaskKeySql = "delete from " + uniqueTaskKeyTable + " where task_id=?";
+    deleteTaskDataSql = "delete from " + taskDataTable + " where task_id=?";
     deleteTasksByIdBatchesSql = "delete from " + taskTable + " where id in (??)";
     deleteUniqueTaskKeysByIdBatchesSql = "delete from " + uniqueTaskKeyTable + " where task_id in (??)";
+    deleteTaskDatasByIdBatchesSql = "delete from " + taskDataTable + " where task_id in (??)";
     deleteFinishedOldTasksSql = "select id,version from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
     deleteFinishedOldTasksSql1 = "select next_event_time from " + taskTable + " where id=?";
     deleteFinishedOldTasksSql2 = "select id from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
@@ -203,7 +220,7 @@ public class MySqlTaskDao implements ITaskDao {
       try {
         try (PreparedStatement ps = con.prepareStatement(insertTaskSql)) {
           args(taskId, request.getType(), request.getSubType(),
-              request.getStatus(), request.getData(), nextEventTime, now, now, now, 0, 0, request.getPriority())
+              request.getStatus(), "", nextEventTime, now, now, now, 0, 0, request.getPriority())
               .setValues(ps);
 
           int insertedCount = ps.executeUpdate();
@@ -223,6 +240,11 @@ public class MySqlTaskDao implements ITaskDao {
         }
       } finally {
         DataSourceUtils.releaseConnection(con, dataSource);
+      }
+
+      if (request.getData() != null) {
+        SerializeResult serializeResult = taskDataSerializer.serialize(request.getData());
+        jdbcTemplate.update(insertTaskDataSql, args(taskId, Integer.valueOf(serializeResult.getDataFormat()), serializeResult.getData()));
       }
 
       return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
@@ -387,27 +409,42 @@ public class MySqlTaskDao implements ITaskDao {
               .setStatus(rs.getString(4)).setPriority(rs.getInt(5)));
       return (T) getFirst(result);
     } else if (clazz.equals(Task.class)) {
-      List<Task> result = jdbcTemplate.query(getTaskSql1, args(taskId), (rs, rowNum) ->
-          new Task().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
-              .setVersion(rs.getLong(2)).setType(rs.getString(3))
-              .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
-              .setSubType(rs.getString(6)).setData(rs.getString(7))
-              .setProcessingTriesCount(rs.getLong(8)));
+      List<Task> result = jdbcTemplate.query(getTaskSql1, args(taskId), (rs, rowNum) -> {
+        byte[] data = getData(rs, 7, 9, 10);
+        return new Task().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
+            .setVersion(rs.getLong(2)).setType(rs.getString(3))
+            .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
+            .setSubType(rs.getString(6)).setData(data)
+            .setProcessingTriesCount(rs.getLong(8));
+      });
       return (T) getFirst(result);
     } else if (clazz.equals(FullTaskRecord.class)) {
-      List<FullTaskRecord> result = jdbcTemplate.query(getTaskSql2, args(taskId), (rs, rowNum) ->
-          new FullTaskRecord().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
-              .setVersion(rs.getLong(2)).setType(rs.getString(3))
-              .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
-              .setSubType(rs.getString(6)).setData(rs.getString(7))
-              .setProcessingTriesCount(rs.getLong(8))
-              .setStateTime(toZonedDateTime(rs.getTimestamp(9)))
-              .setNextEventTime(toZonedDateTime(rs.getTimestamp(10)))
-              .setProcessingClientId(rs.getString(11)));
+      List<FullTaskRecord> result = jdbcTemplate.query(getTaskSql2, args(taskId), (rs, rowNum) -> {
+        byte[] data = getData(rs, 7, 12, 13);
+        return new FullTaskRecord().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
+            .setVersion(rs.getLong(2)).setType(rs.getString(3))
+            .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
+            .setSubType(rs.getString(6)).setData(data)
+            .setProcessingTriesCount(rs.getLong(8))
+            .setStateTime(toZonedDateTime(rs.getTimestamp(9)))
+            .setNextEventTime(toZonedDateTime(rs.getTimestamp(10)))
+            .setProcessingClientId(rs.getString(11));
+      });
       return (T) getFirst(result);
     } else {
       throw new IllegalStateException("Unsupported class of '" + clazz.getCanonicalName() + "'.");
     }
+  }
+
+  protected byte[] getData(ResultSet rs, int deprecatedDataIdx, int dataFormatIdx, int dataIdx) throws SQLException {
+    byte[] data = rs.getBytes(dataIdx);
+    if (data != null) {
+      return taskDataSerializer.deserialize(rs.getInt(dataFormatIdx), data);
+    } else {
+      String deprecatedData = rs.getString(deprecatedDataIdx);
+      return StringUtils.isEmpty(deprecatedData) ? null : deprecatedData.getBytes(StandardCharsets.UTF_8);
+    }
+
   }
 
   @Override
@@ -435,6 +472,7 @@ public class MySqlTaskDao implements ITaskDao {
 
     int deletedTasksCount = 0;
     int deletedUniqueTaskKeysCount = 0;
+    int deleteTaskDatasCount = 0;
     int processedIdsCount = 0;
 
     for (int b = questionBuckets.length - 1; b >= 0; b--) {
@@ -478,12 +516,32 @@ public class MySqlTaskDao implements ITaskDao {
           return ps;
         });
 
+        String taskDatasDeleteSql = sqlCache.computeIfAbsent(
+            new CacheKey(DELETE_TASK_DATAS_BY_ID_BATCHES, b),
+            k -> SqlHelper.expandParametersList(deleteTaskDatasByIdBatchesSql, bucketSize)
+        );
+
+        deleteTaskDatasCount += jdbcTemplate.update(con -> {
+          PreparedStatement ps = con.prepareStatement(taskDatasDeleteSql);
+          try {
+            for (int i = 0; i < bucketSize; i++) {
+              ps.setObject(1 + i, taskIds.get(i + currentProcessedIdsCount));
+            }
+          } catch (Throwable t) {
+            ps.close();
+            throw t;
+          }
+          return ps;
+        });
+
         processedIdsCount += bucketSize;
       }
+
     }
 
     result.setDeletedTasksCount(deletedTasksCount);
     result.setDeletedUniqueKeysCount(deletedUniqueTaskKeysCount);
+    result.setDeletedTaskDatasCount(deleteTaskDatasCount);
     result.setFoundTasksCount(taskIds.size());
     result.setDeletedBeforeTime(TimeUtils.toZonedDateTime(deletedBeforeTime));
 
@@ -542,8 +600,21 @@ public class MySqlTaskDao implements ITaskDao {
       }
     })).sum();
 
+    int taskDatasCount = Arrays.stream(jdbcTemplate.batchUpdate(deleteTaskDataSql, new BatchPreparedStatementSetter() {
+      @Override
+      public void setValues(PreparedStatement ps, int i) throws SQLException {
+        ps.setObject(1, deletedIds.get(i));
+      }
+
+      @Override
+      public int getBatchSize() {
+        return deletedIds.size();
+      }
+    })).sum();
+
     result.setDeletedTasksCount(result.getDeletedTasksCount() + tasksCount);
     result.setDeletedUniqueKeysCount(result.getDeletedUniqueKeysCount() + uniqueTaskKeysCount);
+    result.setDeletedTaskDatasCount(result.getDeletedTaskDatasCount() + taskDatasCount);
     result.setFoundTasksCount(result.getFoundTasksCount() + taskVersionIds.size());
     result.setDeletedBeforeTime(TimeUtils.toZonedDateTime(deletedBeforeTime));
 
@@ -556,6 +627,7 @@ public class MySqlTaskDao implements ITaskDao {
     int updatedCount = jdbcTemplate.update(deleteTaskSql, args(taskId, version));
     if (updatedCount != 0) {
       jdbcTemplate.update(deleteUniqueTaskKeySql, args(taskId));
+      jdbcTemplate.update(deleteTaskDataSql, args(taskId));
     }
     return updatedCount > 0;
   }
@@ -566,6 +638,10 @@ public class MySqlTaskDao implements ITaskDao {
     Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
     int updatedCount = jdbcTemplate.update(clearPayloadAndMarkDoneSql, args(TaskStatus.DONE, now, now, version + 1,
         taskId, version));
+
+    if (updatedCount == 1) {
+      jdbcTemplate.update(deleteTaskDataSql, args(taskId));
+    }
 
     return updatedCount == 1;
   }

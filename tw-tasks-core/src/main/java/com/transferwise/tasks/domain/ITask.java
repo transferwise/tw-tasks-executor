@@ -6,7 +6,7 @@ public interface ITask extends IBaseTask {
 
   String getSubType();
 
-  String getData();
+  byte[] getData();
 
   String getStatus();
 

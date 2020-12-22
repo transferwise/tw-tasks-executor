@@ -10,6 +10,7 @@ import com.transferwise.common.context.TwContext;
 import com.transferwise.common.context.UnitOfWork;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.domain.Task;
@@ -25,6 +26,7 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -86,7 +88,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
         final int key = i;
         executorService.submit(() -> {
           try {
-            tasksService.addTask(new ITasksService.AddTaskRequest()
+            tasksService.addTask(new AddTaskRequest()
                 .setDataString("Hello World! " + key)
                 .setType("test")
                 .setKey(String.valueOf(key)));
@@ -200,8 +202,9 @@ public class TaskProcessingIntTest extends BaseIntTest {
       sb.append("Hello World!");
     }
     String st = sb.toString();
+    byte[] stBytes = st.getBytes(StandardCharsets.UTF_8);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertEquals(st, task.getData());
+      assertThat(stBytes).isEqualTo(task.getData());
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
 
@@ -223,8 +226,9 @@ public class TaskProcessingIntTest extends BaseIntTest {
   @ValueSource(ints = {-1, 0, 5, 9, 10})
   void taskWithSpecificPriorityCanBeHandled(int priority) {
     String st = "Hello World!";
+    byte[] stBytes = st.getBytes(StandardCharsets.UTF_8);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertEquals(st, task.getData());
+      assertThat(stBytes).isEqualTo(task.getData());
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
 

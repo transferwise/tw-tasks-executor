@@ -6,6 +6,7 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskResponse;
 import com.transferwise.tasks.domain.TaskStatus;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -47,7 +48,7 @@ public class TaskTestBuilder {
     builder.insertTaskRequest = new InsertTaskRequest();
     return builder.withType(DEFAULT_TYPE)
         .withSubType(DEFAULT_SUBTYPE)
-        .withData(DEFAULT_DATA)
+        .withData(DEFAULT_DATA.getBytes(StandardCharsets.UTF_8))
         .withMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
         .withId(UuidUtils.generatePrefixCombUuid())
         .withPriority(DEFAULT_PRIORITY);
@@ -56,7 +57,7 @@ public class TaskTestBuilder {
   public static TaskTestBuilder newTask() {
     TaskTestBuilder b = new TaskTestBuilder();
     b.insertTaskRequest = new ITaskDao.InsertTaskRequest();
-    return b.withType("test").withData("Hello World!").withPriority(DEFAULT_PRIORITY);
+    return b.withType("test").withData("Hello World!".getBytes(StandardCharsets.UTF_8)).withPriority(DEFAULT_PRIORITY);
   }
 
   public TaskTestBuilder withPriority(int priority) {
@@ -64,7 +65,7 @@ public class TaskTestBuilder {
     return this;
   }
 
-  public TaskTestBuilder withData(String data) {
+  public TaskTestBuilder withData(byte[] data) {
     insertTaskRequest.setData(data);
     return this;
   }

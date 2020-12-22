@@ -10,6 +10,7 @@ public class BaseTask1 implements IBaseTask {
 
   private UUID id;
   private String type;
+  private String key;
   private long version;
   private int priority;
   private String status;

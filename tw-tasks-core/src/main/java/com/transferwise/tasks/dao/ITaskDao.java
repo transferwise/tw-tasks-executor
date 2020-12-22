@@ -5,6 +5,7 @@ import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
@@ -23,6 +24,7 @@ public interface ITaskDao {
     private TaskVersionId versionId;
     private int priority;
     private String type;
+    private String key;
     private String status;
 
     @Override
@@ -42,7 +44,8 @@ public interface ITaskDao {
 
     private String type;
     private String subType;
-    private String data;
+    @SuppressFBWarnings("EI_EXPOSE_REP")
+    private byte[] data;
     private UUID taskId;
     private String key;
     private ZonedDateTime runAfterTime;
@@ -74,6 +77,7 @@ public interface ITaskDao {
     private int foundTasksCount;
     private int deletedTasksCount;
     private int deletedUniqueKeysCount;
+    private int deletedTaskDatasCount;
     private UUID firstDeletedTaskId;
     private ZonedDateTime firstDeletedTaskNextEventTime;
     private ZonedDateTime deletedBeforeTime;

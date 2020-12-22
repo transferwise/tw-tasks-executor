@@ -16,8 +16,10 @@ import com.transferwise.tasks.cleaning.ITasksCleaner;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.dao.ITaskDataSerializer;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
+import com.transferwise.tasks.dao.TaskDataSerializer;
 import com.transferwise.tasks.entrypoints.EntryPointsService;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
@@ -232,4 +234,9 @@ public class TwTasksCoreAutoConfiguration {
     return new EntryPointsService();
   }
 
+  @Bean
+  @ConditionalOnMissingBean(ITaskDataSerializer.class)
+  public ITaskDataSerializer twTasksTaskDataSerializer() {
+    return new TaskDataSerializer();
+  }
 }

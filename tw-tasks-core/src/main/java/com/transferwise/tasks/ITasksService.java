@@ -1,5 +1,6 @@
 package com.transferwise.tasks;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -33,8 +34,12 @@ public interface ITasksService {
 
     private String type;
     private String subType;
-    private Object data;
+    @SuppressFBWarnings("EI_EXPOSE_REP")
+    private byte[] data;
+    // Deprecated
     private String dataString;
+    // Deprecated
+    private Object dataObject;
     private UUID taskId;
     private String key;
     private ZonedDateTime runAfterTime;

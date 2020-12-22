@@ -17,6 +17,7 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import com.transferwise.tasks.utils.LogUtils;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
@@ -238,7 +239,7 @@ public class TasksManagementService implements ITasksManagementService {
           } else {
             response.setVersion(task.getVersion());
             response.setType(task.getType());
-            response.setResultCode(ResultCode.SUCCESS).setData(task.getData());
+            response.setResultCode(ResultCode.SUCCESS).setData(new String(task.getData(), StandardCharsets.UTF_8));
           }
           return response;
         });

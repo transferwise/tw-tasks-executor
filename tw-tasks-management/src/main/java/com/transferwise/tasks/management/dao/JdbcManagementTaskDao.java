@@ -1,6 +1,7 @@
 package com.transferwise.tasks.management.dao;
 
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.tasks.dao.ITaskDataSerializer;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -44,8 +45,10 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
           + " and next_event_time<? order by next_event_time desc limit ?";
       getTasksInStatus = "select id,version,state_time,type,sub_type,status,next_event_time from " + tables.getTaskTableIdentifier()
           + " where status in (?) order by next_event_time desc limit ?";
-      getTasks = "select id,type,sub_type,data,status,version,processing_tries_count,priority,state_time"
-          + ",next_event_time,processing_client_id from " + tables.getTaskTableIdentifier() + " where id in (??)";
+      getTasks = "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,state_time"
+          + ",next_event_time,processing_client_id,d.data_format,d.data from " + tables.getTaskTableIdentifier() + " t, " + tables
+          .getTaskDataTableIdentifier() + " d"
+          + " where t.id = d.task_id and t.id in (??)";
     }
   }
 
@@ -67,12 +70,14 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   private final Queries queries;
   private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> queriesCache;
+  private final ITaskDataSerializer taskDataSerializer;
 
-  public JdbcManagementTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper) {
+  public JdbcManagementTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDataSerializer taskDataSerializer) {
     this.jdbcTemplate = new JdbcTemplate(dataSource);
     this.queries = new Queries(tables);
     this.sqlMapper = sqlMapper;
     this.queriesCache = new ConcurrentHashMap<>();
+    this.taskDataSerializer = taskDataSerializer;
   }
 
   @Override
@@ -178,18 +183,27 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
           jdbcTemplate.query(
               sql,
               args(taskIds.subList(idx, idx + questionsCount)),
-              (rs, rowNum) ->
-                  new FullTaskRecord()
-                      .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
-                      .setType(rs.getString(2))
-                      .setSubType(rs.getString(3))
-                      .setData(rs.getString(4))
-                      .setStatus(rs.getString(5))
-                      .setVersion(rs.getLong(6))
-                      .setProcessingTriesCount(rs.getLong(7))
-                      .setPriority(rs.getInt(8))
-                      .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(9)))
-                      .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(10)))
+              (rs, rowNum) -> {
+                byte[] data;
+                byte[] newData = rs.getBytes(13);
+                if (newData != null) {
+                  data = taskDataSerializer.deserialize(rs.getInt(12), newData);
+                } else {
+                  data = rs.getBytes(4);
+                }
+                return new FullTaskRecord()
+                    .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
+                    .setType(rs.getString(2))
+                    .setSubType(rs.getString(3))
+                    .setData(data)
+                    .setStatus(rs.getString(5))
+                    .setVersion(rs.getLong(6))
+                    .setProcessingTriesCount(rs.getLong(7))
+                    .setPriority(rs.getInt(8))
+                    .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(9)))
+                    .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(10)))
+                    .setProcessingClientId(rs.getString(11));
+              }
           )
       );
       idx += questionsCount;

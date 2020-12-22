@@ -17,6 +17,6 @@ public class SlowTasksService {
   public void submitSlowTask(String data) {
     log.info("Submitting slow task.");
 
-    tasksService.addTask(new ITasksService.AddTaskRequest().setData(data).setType(SlowTasksHandlerConfiguration.TASK_TYPE_SLOW));
+    tasksService.addTask(new ITasksService.AddTaskRequest().setDataString(data).setType(SlowTasksHandlerConfiguration.TASK_TYPE_SLOW));
   }
 }

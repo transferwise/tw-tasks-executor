@@ -129,7 +129,7 @@ public class NoOpMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data) {
+  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, byte[] data) {
 
   }
 

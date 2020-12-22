@@ -197,6 +197,7 @@ public class TasksProperties {
 
   private String taskTableName = "tw_task";
   private String uniqueTaskKeyTableName = "unique_tw_task_key";
+  private String taskDataTableName = "tw_task_data";
   private String taskTablesSchemaName = "";
 
   /**
@@ -264,6 +265,8 @@ public class TasksProperties {
   }
 
   private TasksManagement tasksManagement = new TasksManagement();
+
+  private Compression compression = new Compression();
 
   public static class Validator implements org.springframework.validation.Validator {
 

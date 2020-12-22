@@ -107,6 +107,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
               meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletableTasksCount", tags, result.getFoundTasksCount());
               meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedTasksCount", tags, result.getDeletedTasksCount());
               meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedUniqueKeysCount", tags, result.getDeletedUniqueKeysCount());
+              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedTaskDatasCount", tags, result.getDeletedTaskDatasCount());
 
               long lagSeconds = result.getFirstDeletedTaskNextEventTime() == null ? 0 :
                   Duration.between(result.getFirstDeletedTaskNextEventTime(), result.getDeletedBeforeTime()).getSeconds();
@@ -127,6 +128,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
                 log.debug(
                     "Deleted finished old tasks for status " + status.name() + ". Found: " + result.getFoundTasksCount() + ", deleted: " + result
                         .getDeletedTasksCount() + ", deleted unique keys: " + result.getDeletedUniqueKeysCount()
+                        + ", deleted task datas: " + result.getDeletedTaskDatasCount()
                         + ". First task was '" + result.getFirstDeletedTaskId() + "':'" + result.getFirstDeletedTaskNextEventTime()
                         + "', time barrier was '"
                         + result
