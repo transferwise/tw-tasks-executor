@@ -114,15 +114,15 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
-  public ITaskDao twTasksPostgresTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider) {
-    return new PostgresTaskDao(twTasksDataSourceProvider.getDataSource());
+  public PostgresTaskDao twTasksPostgresTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider, IMeterHelper meterHelper) {
+    return new PostgresTaskDao(twTasksDataSourceProvider.getDataSource(), meterHelper);
   }
 
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public ITaskDao twTasksMysqlTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider) {
-    return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource());
+  public MySqlTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider, IMeterHelper meterHelper) {
+    return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource(), meterHelper);
   }
 
   @Bean

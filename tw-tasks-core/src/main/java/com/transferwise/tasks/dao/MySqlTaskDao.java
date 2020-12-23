@@ -3,6 +3,7 @@ package com.transferwise.tasks.dao;
 import static com.transferwise.tasks.utils.TimeUtils.toZonedDateTime;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
@@ -14,6 +15,7 @@ import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
 import com.transferwise.tasks.helpers.sql.CacheKey;
 import com.transferwise.tasks.helpers.sql.SqlHelper;
@@ -79,15 +81,17 @@ public class MySqlTaskDao implements ITaskDao {
   private final JdbcTemplate jdbcTemplate;
   private final ITaskSqlMapper sqlMapper;
   private final DataSource dataSource;
+  private final IMeterHelper meterHelper;
 
-  public MySqlTaskDao(DataSource dataSource) {
-    this(dataSource, new MySqlTaskTypesMapper());
+  public MySqlTaskDao(DataSource dataSource, IMeterHelper meterHelper) {
+    this(dataSource, new MySqlTaskTypesMapper(), meterHelper);
   }
 
-  public MySqlTaskDao(DataSource dataSource, ITaskSqlMapper sqlMapper) {
+  public MySqlTaskDao(DataSource dataSource, ITaskSqlMapper sqlMapper, IMeterHelper meterHelper) {
     this.dataSource = dataSource;
     jdbcTemplate = new JdbcTemplate(dataSource);
     this.sqlMapper = sqlMapper;
+    this.meterHelper = meterHelper;
   }
 
   protected String insertTaskSql;
@@ -241,9 +245,13 @@ public class MySqlTaskDao implements ITaskDao {
         DataSourceUtils.releaseConnection(con, dataSource);
       }
 
-      if (request.getData() != null) {
-        SerializedData serializedData = taskDataSerializer.serialize(request.getData(), request.getCompression());
+      byte[] data = request.getData();
+      if (data != null) {
+        SerializedData serializedData = taskDataSerializer.serialize(data, request.getCompression());
         jdbcTemplate.update(insertTaskDataSql, args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData()));
+        meterHelper.incrementCounter(IMeterHelper.METRIC_PREFIX + "dao.data.size", ImmutableMap.of("taskType", request.getType()), data.length);
+        meterHelper.incrementCounter(IMeterHelper.METRIC_PREFIX + "dao.data.serialized.size", ImmutableMap.of("taskType", request.getType()),
+            serializedData.getData().length);
       }
 
       return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
