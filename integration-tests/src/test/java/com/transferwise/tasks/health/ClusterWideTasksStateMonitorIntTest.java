@@ -80,7 +80,6 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     assertThat(meterRegistry.get("twTasks.state.approximateTasks").gauge().value()).isGreaterThan(-1);
     assertThat(meterRegistry.get("twTasks.state.approximateUniqueKeys").gauge().value()).isGreaterThan(-1);
-    assertThat(meterRegistry.get("twTasks.state.approximateTasks").gauge().value()).isGreaterThan(-1);
     assertThat(meterRegistry.get("twTasks.state.approximateTaskDatas").gauge().value()).isGreaterThan(-1);
 
     clusterWideTasksStateMonitor.leaderSelector.stop();
