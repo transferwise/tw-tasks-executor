@@ -33,7 +33,7 @@ public class TwTasksCoreTestAutoConfiguration {
 
   @Bean
   @Primary()
-  public TestTasksService twTasksTestTasksService(){
+  public TestTasksService twTasksTestTasksService() {
     return new TestTasksService();
   }
 }
