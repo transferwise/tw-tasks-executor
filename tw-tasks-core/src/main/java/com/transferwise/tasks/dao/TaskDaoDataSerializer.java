@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import javax.annotation.Nonnull;
 import net.jpountz.lz4.LZ4BlockInputStream;
 import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.jpountz.lz4.LZ4Factory;
@@ -26,68 +27,80 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
   private TasksProperties tasksProperties;
 
   @Override
-  public SerializeResult serialize(byte[] inputData, CompressionRequest compressionRequest) {
+  public SerializedData serialize(@Nonnull byte[] inputData, CompressionRequest compressionRequest) {
     return ExceptionUtils.doUnchecked(() -> {
-      CompressionRequest compression = compressionRequest;
-
-      if (compression == null) {
-        TasksProperties.Compression globalCompression = tasksProperties.getCompression();
-        if (inputData.length <= globalCompression.getMinSize()) {
-          compression = new CompressionRequest().setAlgorithm(globalCompression.getAlgorithm())
-              .setBlockSizeBytes(globalCompression.getBlockSizeBytes()).setLevel(globalCompression.getLevel());
-        }
-      }
-
-      if (compression == null || compression.getAlgorithm() == null || compression.getAlgorithm() == CompressionAlgorithm.NONE) {
+      SerializedData serializedData = compress(inputData, compressionRequest);
+      if (serializedData == null || serializedData.getData().length > inputData.length) {
         return doNotCompress(inputData);
       }
-
-      CompressionAlgorithm algorithm = compression.getAlgorithm();
-      if (algorithm == CompressionAlgorithm.RANDOM) {
-        algorithm = CompressionAlgorithm.getRandom();
-      }
-
-      if (algorithm == CompressionAlgorithm.NONE) {
-        return doNotCompress(inputData);
-      }
-      if (algorithm == CompressionAlgorithm.GZIP) {
-        return compressGzip(inputData);
-      }
-      if (algorithm == CompressionAlgorithm.LZ4) {
-        return compressLz4(inputData, compression);
-      }
-
-      throw new IllegalStateException("No support for compression algorithm of " + algorithm + ".");
+      return serializedData;
     });
   }
 
-  protected SerializeResult doNotCompress(byte[] inputData) {
-    return new SerializeResult().setDataFormat(COMPRESSION_NONE).setData(inputData);
+  protected SerializedData compress(byte[] inputData, CompressionRequest compression) throws IOException {
+    if (compression == null) {
+      TasksProperties.Compression globalCompression = tasksProperties.getCompression();
+      if (inputData.length >= globalCompression.getMinSize()) {
+        compression = new CompressionRequest().setAlgorithm(globalCompression.getAlgorithm())
+            .setBlockSizeBytes(globalCompression.getBlockSizeBytes()).setLevel(globalCompression.getLevel());
+      }
+    }
+
+    if (compression == null || compression.getAlgorithm() == null || compression.getAlgorithm() == CompressionAlgorithm.NONE) {
+      return null;
+    }
+
+    CompressionAlgorithm algorithm = compression.getAlgorithm();
+    if (algorithm == CompressionAlgorithm.RANDOM) {
+      algorithm = CompressionAlgorithm.getRandom();
+    }
+
+    if (algorithm == CompressionAlgorithm.NONE) {
+      return null;
+    }
+    if (algorithm == CompressionAlgorithm.GZIP) {
+      return compressGzip(inputData);
+    }
+    if (algorithm == CompressionAlgorithm.LZ4) {
+      return compressLz4(inputData, compression);
+    }
+
+    throw new IllegalStateException("No support for compression algorithm of " + algorithm + ".");
   }
 
-  protected SerializeResult compressLz4(byte[] inputData, CompressionRequest compression) throws IOException {
+  protected SerializedData doNotCompress(byte[] inputData) {
+    return new SerializedData().setDataFormat(COMPRESSION_NONE).setData(inputData);
+  }
+
+  protected SerializedData compressLz4(byte[] inputData, CompressionRequest compression) throws IOException {
     UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
     try (LZ4BlockOutputStream compressOut = new LZ4BlockOutputStream(bos, compression.getBlockSizeBytes(),
         LZ4Factory.fastestJavaInstance().fastCompressor())) {
       compressOut.write(inputData);
     }
-    return new SerializeResult().setDataFormat(COMPRESSION_LZ4).setData(bos.toByteArray());
+    return new SerializedData().setDataFormat(COMPRESSION_LZ4).setData(bos.toByteArray());
   }
 
-  protected SerializeResult compressGzip(byte[] inputData) throws IOException {
+  protected SerializedData compressGzip(byte[] inputData) throws IOException {
     UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
     try (GZIPOutputStream compressOut = new GZIPOutputStream(bos)) {
       compressOut.write(inputData);
     }
-    return new SerializeResult().setDataFormat(COMPRESSION_GZIP).setData(bos.toByteArray());
+    return new SerializedData().setDataFormat(COMPRESSION_GZIP).setData(bos.toByteArray());
   }
 
   @Override
-  public byte[] deserialize(int dataFormat, byte[] data) {
+  public byte[] deserialize(SerializedData serializedData) {
     return ExceptionUtils.doUnchecked(() -> {
+      if (serializedData == null) {
+        return null;
+      }
+
+      final byte[] data = serializedData.getData();
       if (data == null) {
         return null;
       }
+      final int dataFormat = serializedData.getDataFormat();
 
       if (dataFormat == COMPRESSION_GZIP) {
         UnsynchronizedByteArrayInputStream bis = new UnsynchronizedByteArrayInputStream(data);
@@ -103,7 +116,7 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
         }
       }
 
-      return data;
+      return serializedData.getData();
     });
   }
 }

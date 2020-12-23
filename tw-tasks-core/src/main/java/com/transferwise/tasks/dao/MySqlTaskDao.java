@@ -7,7 +7,7 @@ import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializeResult;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -123,6 +123,8 @@ public class MySqlTaskDao implements ITaskDao {
   protected String getApproximateTasksCountSql1;
   protected String getApproximateUniqueKeysCountSql;
   protected String getApproximateUniqueKeysCountSql1;
+  protected String getApproximateTaskDatasCountSql;
+  protected String getApproximateTaskDatasCountSql1;
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
 
@@ -183,15 +185,12 @@ public class MySqlTaskDao implements ITaskDao {
     clearPayloadAndMarkDoneSql = "update " + taskTable + " set data='',status=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     getEarliesTaskNextEventTimeSql = "select min(next_event_time) from " + taskTable + " where status=?";
     getTaskVersionSql = "select version from " + taskTable + " where id=?";
-    getApproximateTasksCountSql = "select table_rows from information_schema.tables where table_schema=DATABASE() and "
-        + "table_name = '" + tasksProperties.getTaskTableName() + "'";
-    getApproximateTasksCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
-        + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getTaskTableName() + "'";
-    getApproximateUniqueKeysCountSql =
-        "select table_rows from information_schema.tables where table_schema=DATABASE() and table_name = '" + tasksProperties
-            .getUniqueTaskKeyTableName() + "'";
-    getApproximateUniqueKeysCountSql1 = "select table_rows from information_schema.tables where table_schema ='"
-        + tasksProperties.getTaskTablesSchemaName() + "' and table_name = '" + tasksProperties.getUniqueTaskKeyTableName() + "'";
+    getApproximateTasksCountSql = getApproximateTableCountSql(false, tasksProperties.getTaskTableName());
+    getApproximateTasksCountSql1 = getApproximateTableCountSql(true, tasksProperties.getTaskTableName());
+    getApproximateUniqueKeysCountSql = getApproximateTableCountSql(false, tasksProperties.getUniqueTaskKeyTableName());
+    getApproximateUniqueKeysCountSql1 = getApproximateTableCountSql(true, tasksProperties.getUniqueTaskKeyTableName());
+    getApproximateTaskDatasCountSql = getApproximateTableCountSql(false, tasksProperties.getTaskDataTableName());
+    getApproximateTaskDatasCountSql1 = getApproximateTableCountSql(true, tasksProperties.getTaskDataTableName());
   }
 
   @Override
@@ -243,8 +242,8 @@ public class MySqlTaskDao implements ITaskDao {
       }
 
       if (request.getData() != null) {
-        SerializeResult serializeResult = taskDataSerializer.serialize(request.getData(), request.getCompression());
-        jdbcTemplate.update(insertTaskDataSql, args(taskId, Integer.valueOf(serializeResult.getDataFormat()), serializeResult.getData()));
+        SerializedData serializedData = taskDataSerializer.serialize(request.getData(), request.getCompression());
+        jdbcTemplate.update(insertTaskDataSql, args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData()));
       }
 
       return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
@@ -434,17 +433,6 @@ public class MySqlTaskDao implements ITaskDao {
     } else {
       throw new IllegalStateException("Unsupported class of '" + clazz.getCanonicalName() + "'.");
     }
-  }
-
-  protected byte[] getData(ResultSet rs, int deprecatedDataIdx, int dataFormatIdx, int dataIdx) throws SQLException {
-    byte[] data = rs.getBytes(dataIdx);
-    if (data != null) {
-      return taskDataSerializer.deserialize(rs.getInt(dataFormatIdx), data);
-    } else {
-      String deprecatedData = rs.getString(deprecatedDataIdx);
-      return StringUtils.isEmpty(deprecatedData) ? null : deprecatedData.getBytes(StandardCharsets.UTF_8);
-    }
-
   }
 
   @Override
@@ -674,6 +662,18 @@ public class MySqlTaskDao implements ITaskDao {
     return rows.isEmpty() ? -1 : rows.get(0);
   }
 
+  @Override
+  @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
+  @MonitoringQuery
+  public long getApproximateTaskDatasCount() {
+    assertIsolationLevel(Isolation.READ_UNCOMMITTED);
+
+    String sql =
+        StringUtils.isNotEmpty(tasksProperties.getTaskTablesSchemaName()) ? getApproximateTaskDatasCountSql1 : getApproximateTaskDatasCountSql;
+    List<Long> rows = jdbcTemplate.queryForList(sql, Long.class);
+    return rows.isEmpty() ? -1 : rows.get(0);
+  }
+
   //////////////////////////
 
   protected <T> T getFirst(List<T> list) {
@@ -712,5 +712,23 @@ public class MySqlTaskDao implements ITaskDao {
         DataSourceUtils.releaseConnection(con, dataSource);
       }
     }
+  }
+
+  protected byte[] getData(ResultSet rs, int deprecatedDataIdx, int dataFormatIdx, int dataIdx) throws SQLException {
+    byte[] data = rs.getBytes(dataIdx);
+    if (data != null) {
+      return taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(dataFormatIdx)).setData(data));
+    } else {
+      String deprecatedData = rs.getString(deprecatedDataIdx);
+      return StringUtils.isEmpty(deprecatedData) ? null : deprecatedData.getBytes(StandardCharsets.UTF_8);
+    }
+  }
+
+  protected String getApproximateTableCountSql(boolean withSchema, String table) {
+    String schema = "DATABASE()";
+    if (!withSchema) {
+      schema = "'" + tasksProperties.getTaskTablesSchemaName() + "'";
+    }
+    return "select table_rows from information_schema.tables where table_schema=" + schema + " and table_name = '" + table + "'";
   }
 }

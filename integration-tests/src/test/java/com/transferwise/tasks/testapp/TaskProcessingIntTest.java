@@ -94,7 +94,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
             tasksService.addTask(new AddTaskRequest()
                 .setData(taskDataSerializer.serialize("Hello World! " + key))
                 .setType("test")
-                .setKey(String.valueOf(key)));
+                .setUniqueKey(String.valueOf(key)));
           } catch (Throwable t) {
             log.error(t.getMessage(), t);
           }
@@ -158,7 +158,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
             tasksService.addTask(new ITasksService.AddTaskRequest()
                 .setData(taskDataSerializer.serialize("Hello World! 1"))
                 .setType("test")
-                .setKey("1")
+                .setUniqueKey("1")
             )
         )
     );
@@ -207,7 +207,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     String st = sb.toString();
     byte[] stBytes = st.getBytes(StandardCharsets.UTF_8);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertThat(stBytes).isEqualTo(task.getData());
+      assertThat(task.getData()).isEqualTo(stBytes);
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
 
@@ -231,7 +231,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     String st = "Hello World!";
     byte[] stBytes = st.getBytes(StandardCharsets.UTF_8);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertThat(stBytes).isEqualTo(task.getData());
+      assertThat(task.getData()).isEqualTo(stBytes);
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
 

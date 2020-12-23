@@ -32,7 +32,7 @@ public class PayoutSubmittingTaskProcessor implements ISyncTaskProcessor {
 
         tasksService.addTask(new ITasksService.AddTaskRequest()
             .setType(PayoutProcessingTaskHandlerConfiguration.TASK_TYPE_PROCESSING + "." + poi.getType())
-            .setData(taskDataSerializer.serializeAsJson(poi))
+            .setData(taskDataSerializer.serializeToJson(poi))
             .setPriority(poi.getPriority())
         );
 

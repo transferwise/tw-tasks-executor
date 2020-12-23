@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.TaskTestBuilder;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -21,7 +22,6 @@ import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorRes
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse.TaskStuck;
-import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -39,6 +39,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @Test
   void erroneousTasksWillBeCorrectlyFound() {
@@ -136,7 +138,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(status)
-            .withData("the payload".getBytes(StandardCharsets.UTF_8))
+            .withData(taskDataSerializer.serialize("the payload"))
             .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
             .save()
             .getTaskId()

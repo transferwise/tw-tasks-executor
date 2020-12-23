@@ -67,6 +67,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
   private AtomicLong approximateTasksCount;
   private AtomicLong approximateUniqueKeysCount;
+  private AtomicLong approximateTaskDatasCount;
 
   private Map<TaskStatus, AtomicLong> tasksHistoryLengthSeconds;
 
@@ -136,6 +137,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
             approximateTasksCount = null;
             approximateUniqueKeysCount = null;
+            approximateTaskDatasCount = null;
 
             stuckTasksCount = null;
             stuckTasksCounts = new HashMap<>();
@@ -172,6 +174,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
             if (tasksProperties.getClusterWideTasksStateMonitor().isTasksCountingEnabled()) {
               checkApproximateTasksCount();
               checkApproximateUniqueKeysCount();
+              checkApproximateTaskDatasCount();
             }
           } finally {
             stateLock.unlock();
@@ -303,6 +306,17 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateUniqueKeys", approximateUniqueKeysCount::get));
     } else {
       approximateUniqueKeysCount.set(approximateUniqueKeysCountValue);
+    }
+  }
+
+  protected void checkApproximateTaskDatasCount() {
+    long approximateTaskDatasCountValue = taskDao.getApproximateTaskDatasCount();
+
+    if (approximateTaskDatasCount == null) {
+      approximateTaskDatasCount = new AtomicLong(approximateTaskDatasCountValue);
+      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateTaskDatas", approximateTaskDatasCount::get));
+    } else {
+      approximateTaskDatasCount.set(approximateTaskDatasCountValue);
     }
   }
 

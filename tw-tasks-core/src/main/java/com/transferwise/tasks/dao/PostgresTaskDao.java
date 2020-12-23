@@ -30,23 +30,21 @@ public class PostgresTaskDao extends MySqlTaskDao {
         + "(?,?,?,?,?,?,?,?,?,?,?,?) on conflict do nothing";
     insertUniqueTaskKeySql = "insert into " + uniqueTaskKeyTable + "(task_id,key_hash,key) values"
         + "(?, ?, ?) on conflict (key_hash, key) do nothing";
-    getApproximateTasksCountSql = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
-        + "pg_class.relnamespace=pg_namespace.oid and nspname=current_schema() and relname = '" + tasksProperties
-        .getTaskTableName() + "'";
-    getApproximateTasksCountSql1 = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
-        + "pg_class.relnamespace=pg_namespace.oid and nspname='" + tasksProperties.getTaskTablesSchemaName() + "' and relname = '" + tasksProperties
-        .getTaskTableName() + "'";
-    getApproximateUniqueKeysCountSql = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
-        + " pg_class.relnamespace=pg_namespace.oid and nspname=current_schema() and relname = '" + tasksProperties
-        .getUniqueTaskKeyTableName() + "'";
-    getApproximateUniqueKeysCountSql1 = "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
-        + " pg_class.relnamespace=pg_namespace.oid and nspname='" + tasksProperties.getTaskTablesSchemaName() + "' and relname = '" + tasksProperties
-        .getUniqueTaskKeyTableName() + "'";
-
   }
 
   @Override
   protected boolean didInsertFailDueToDuplicateKeyConflict(SQLWarning warnings) {
     return warnings == null;
+  }
+
+  @Override
+  protected String getApproximateTableCountSql(boolean withSchema, String table) {
+    String schema = "current_schema()";
+    if (!withSchema) {
+      schema = "'" + tasksProperties.getTaskTablesSchemaName() + "'";
+    }
+
+    return "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
+        + " pg_class.relnamespace=pg_namespace.oid and nspname=" + schema + " and relname = '" + table + "'";
   }
 }

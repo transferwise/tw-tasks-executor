@@ -57,7 +57,7 @@ abstract class TestTaskDaoIntTest extends BaseIntTest {
     assertEquals(taskId, task.getId());
     assertEquals(type, task.getType());
     assertEquals(DEFAULT_SUBTYPE, task.getSubType());
-    assertThat(task.getData()).isEqualTo(DEFAULT_DATA.getBytes(StandardCharsets.UTF_8));
+    assertThat(task.getData()).isEqualTo(DEFAULT_DATA);
     assertEquals("PROCESSING", task.getStatus());
     assertEquals(0, task.getVersion());
     assertEquals(0, task.getProcessingTriesCount());

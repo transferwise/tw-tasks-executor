@@ -16,7 +16,7 @@ public class TaskDataSerializer implements ITaskDataSerializer {
   }
 
   @Override
-  public byte[] serializeAsJson(Object data) {
+  public byte[] serializeToJson(Object data) {
     return data == null ? null : ExceptionUtils.doUnchecked(() -> objectMapper.writeValueAsBytes(data));
   }
 }

@@ -1,6 +1,7 @@
 package com.transferwise.tasks.test.dao;
 
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.Task;
@@ -14,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.ArrayUtils;
@@ -37,6 +39,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
     final String deleteTaskByIdAndVersion;
     final String deleteUniqueTaskKeyByTaskId;
     final String deleteTaskDataByTaskId;
+    final String getSerializedData;
     final String[] getIdAndVersionFromTaskByTypeAndSubTypeAndStatus;
     final String[] getTasksByTypeAndStatusAndSubType;
 
@@ -57,11 +60,12 @@ public class JdbcTestTaskDao implements ITestTaskDao {
       };
       getTasksByTypeAndStatusAndSubType = new String[]{
           "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,d.data_format,d.data"
-          + " from " + tasksTable + " t left join " + dataTable + " d on t.id=d.task_id"
+              + " from " + tasksTable + " t left join " + dataTable + " d on t.id=d.task_id"
               + " where type=?",
           " and status in (??)",
           " and sub_type=?"
       };
+      getSerializedData = "select data_format,data from " + tables.getTaskDataTableIdentifier() + " where task_id=?";
     }
   }
 
@@ -195,7 +199,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
           byte[] data;
           byte[] newData = rs.getBytes(10);
           if (newData != null) {
-            data = taskDataSerializer.deserialize(rs.getInt(9), newData);
+            data = taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(9)).setData(newData));
           } else {
             data = rs.getBytes(4);
           }
@@ -218,6 +222,13 @@ public class JdbcTestTaskDao implements ITestTaskDao {
     jdbcTemplate.update(queries.deleteFromTaskTable);
     jdbcTemplate.update(queries.deleteFromUniqueKeyTable);
     jdbcTemplate.update(queries.deleteFromTaskDataTable);
+  }
+
+  @Override
+  public SerializedData getSerializedData(UUID taskId) {
+    List<SerializedData> result = jdbcTemplate
+        .query(queries.getSerializedData, args(taskId), (rs, rowNum) -> new SerializedData().setDataFormat(rs.getInt(1)).setData(rs.getBytes(2)));
+    return result.isEmpty() ? null : result.get(0);
   }
 
   private PreparedStatementSetter args(Object... args) {

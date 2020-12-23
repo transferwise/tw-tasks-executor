@@ -21,7 +21,7 @@ public class EmailService {
   public void sendEmail(Email email) {
     email.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
-        .setData(taskDataSerializer.serializeAsJson(email))
+        .setData(taskDataSerializer.serializeToJson(email))
         .setType(EmailsTaskHandlerConfiguration.TASK_TYPE_SEND_EMAILS));
   }
 }

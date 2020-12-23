@@ -37,7 +37,7 @@ public interface ITasksService {
     @SuppressFBWarnings("EI_EXPOSE_REP")
     private byte[] data;
     private UUID taskId;
-    private String key;
+    private String uniqueKey;
     private ZonedDateTime runAfterTime;
     private Integer priority;
     private boolean warnWhenTaskExists;
@@ -48,7 +48,7 @@ public interface ITasksService {
     @Accessors(chain = true)
     public static class CompressionRequest {
 
-      private CompressionAlgorithm algorithm;
+      private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
       private int blockSizeBytes = 32 * 1024;
       private int level = 3;
     }

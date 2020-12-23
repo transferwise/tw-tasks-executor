@@ -25,7 +25,6 @@ public interface ITaskDao {
     private TaskVersionId versionId;
     private int priority;
     private String type;
-    private String key;
     private String status;
 
     @Override
@@ -123,4 +122,6 @@ public interface ITaskDao {
   long getApproximateTasksCount();
 
   long getApproximateUniqueKeysCount();
+
+  long getApproximateTaskDatasCount();
 }

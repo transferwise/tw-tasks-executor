@@ -12,7 +12,6 @@ public class Task implements ITask {
   private UUID id;
   private String type;
   private String subType;
-  private String key;
   @SuppressFBWarnings("EI_EXPOSE_REP")
   private byte[] data;
   private String status;

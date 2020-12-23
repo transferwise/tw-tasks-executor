@@ -2,8 +2,6 @@ package com.transferwise.tasks;
 
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
@@ -20,9 +18,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
-import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
-import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
@@ -104,19 +100,20 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
               request.getExpectedQueueTime() == null ? now.plus(tasksProperties.getTaskStuckTimeout()) : now.plus(request.getExpectedQueueTime());
           byte[] data = request.getData();
           ITaskDao.InsertTaskResponse insertTaskResponse = taskDao.insertTask(
-              new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getKey())
+              new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getUniqueKey())
                   .setRunAfterTime(request.getRunAfterTime())
                   .setSubType(request.getSubType())
                   .setType(request.getType()).setTaskId(request.getTaskId())
-                  .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority));
+                  .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority)
+                  .setCompression(request.getCompression()));
 
-          meterHelper.registerTaskAdding(request.getType(), request.getKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
+          meterHelper.registerTaskAdding(request.getType(), request.getUniqueKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
 
           if (!insertTaskResponse.isInserted()) {
             meterHelper.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
             if (request.isWarnWhenTaskExists()) {
               log.warn("Task with uuid '" + request.getTaskId() + "'"
-                  + (request.getKey() == null ? "" : " and key '" + request.getKey() + "'")
+                  + (request.getUniqueKey() == null ? "" : " and key '" + request.getUniqueKey() + "'")
                   + " already exists (type " + request.getType() + ", subType " + request.getSubType() + ").");
             }
             return new AddTaskResponse().setResult(AddTaskResponse.Result.ALREADY_EXISTS);

@@ -239,6 +239,7 @@ public class TasksManagementService implements ITasksManagementService {
           } else {
             response.setVersion(task.getVersion());
             response.setType(task.getType());
+            // TODO: Allow a toggle which will provide HEX.
             response.setResultCode(ResultCode.SUCCESS).setData(new String(task.getData(), StandardCharsets.UTF_8));
           }
           return response;

@@ -147,7 +147,7 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
     assertEquals(DEFAULT_TYPE, task1.getType());
     assertEquals(5, task1.getPriority());
     assertEquals(0, task1.getVersion());
-    assertThat(task1.getData()).isEqualTo(DEFAULT_DATA.getBytes(StandardCharsets.UTF_8));
+    assertThat(task1.getData()).isEqualTo(DEFAULT_DATA);
     assertEquals(DEFAULT_SUBTYPE, task1.getSubType());
     assertEquals(0, task1.getProcessingTriesCount());
     assertNull(task1.getProcessingClientId());

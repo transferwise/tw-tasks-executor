@@ -2,6 +2,7 @@ package com.transferwise.tasks.management.dao;
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -46,8 +47,8 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
       getTasksInStatus = "select id,version,state_time,type,sub_type,status,next_event_time from " + tables.getTaskTableIdentifier()
           + " where status in (?) order by next_event_time desc limit ?";
       getTasks = "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,state_time"
-          + ",next_event_time,processing_client_id,d.data_format,d.data from " + tables.getTaskTableIdentifier() + " t, " + tables
-          .getTaskDataTableIdentifier() + " d"
+          + ",next_event_time,processing_client_id,d.data_format,d.data"
+          + " from " + tables.getTaskTableIdentifier() + " t, " + tables.getTaskDataTableIdentifier() + " d"
           + " where t.id = d.task_id and t.id in (??)";
     }
   }
@@ -187,7 +188,7 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
                 byte[] data;
                 byte[] newData = rs.getBytes(13);
                 if (newData != null) {
-                  data = taskDataSerializer.deserialize(rs.getInt(12), newData);
+                  data = taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(12)).setData(newData));
                 } else {
                   data = rs.getBytes(4);
                 }

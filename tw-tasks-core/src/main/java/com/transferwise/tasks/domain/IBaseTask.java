@@ -14,6 +14,4 @@ public interface IBaseTask {
   String getType();
 
   int getPriority();
-
-  String getKey();
 }
