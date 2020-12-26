@@ -1,5 +1,7 @@
 package com.transferwise.tasks.dao;
 
+import com.github.luben.zstd.ZstdInputStream;
+import com.github.luben.zstd.ZstdOutputStream;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.CompressionAlgorithm;
 import com.transferwise.tasks.ITasksService.AddTaskRequest.CompressionRequest;
@@ -22,6 +24,7 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
   private static final int COMPRESSION_NONE = 0;
   private static final int COMPRESSION_GZIP = 1;
   private static final int COMPRESSION_LZ4 = 2;
+  private static final int COMPRESSION_ZSTD = 3;
 
   @Autowired
   private TasksProperties tasksProperties;
@@ -64,6 +67,9 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
     if (algorithm == CompressionAlgorithm.LZ4) {
       return compressLz4(inputData, compression);
     }
+    if (algorithm == CompressionAlgorithm.ZSTD) {
+      return compressZstd(inputData, compression);
+    }
 
     throw new IllegalStateException("No support for compression algorithm of " + algorithm + ".");
   }
@@ -74,7 +80,8 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
 
   protected SerializedData compressLz4(byte[] inputData, CompressionRequest compression) throws IOException {
     UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
-    try (LZ4BlockOutputStream compressOut = new LZ4BlockOutputStream(bos, compression.getBlockSizeBytes(),
+    try (LZ4BlockOutputStream compressOut = new LZ4BlockOutputStream(bos,
+        compression.getBlockSizeBytes() == null ? 1 << 16 : compression.getBlockSizeBytes(),
         LZ4Factory.fastestJavaInstance().fastCompressor())) {
       compressOut.write(inputData);
     }
@@ -87,6 +94,20 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
       compressOut.write(inputData);
     }
     return new SerializedData().setDataFormat(COMPRESSION_GZIP).setData(bos.toByteArray());
+  }
+
+  protected SerializedData compressZstd(byte[] inputData, CompressionRequest compressionRequest) throws IOException {
+    UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
+    if (compressionRequest.getLevel() != null) {
+      try (ZstdOutputStream compressOut = new ZstdOutputStream(bos, compressionRequest.getLevel())) {
+        compressOut.write(inputData);
+      }
+    } else {
+      try (ZstdOutputStream compressOut = new ZstdOutputStream(bos)) {
+        compressOut.write(inputData);
+      }
+    }
+    return new SerializedData().setDataFormat(COMPRESSION_ZSTD).setData(bos.toByteArray());
   }
 
   @Override
@@ -112,6 +133,13 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
       if (dataFormat == COMPRESSION_LZ4) {
         UnsynchronizedByteArrayInputStream bis = new UnsynchronizedByteArrayInputStream(data);
         try (InputStream is = new LZ4BlockInputStream(bis, LZ4Factory.fastestJavaInstance().fastDecompressor())) {
+          return IOUtils.toByteArray(is);
+        }
+      }
+
+      if (dataFormat == COMPRESSION_ZSTD) {
+        UnsynchronizedByteArrayInputStream bis = new UnsynchronizedByteArrayInputStream(data);
+        try (InputStream is = new ZstdInputStream(bis)) {
           return IOUtils.toByteArray(is);
         }
       }

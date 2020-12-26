@@ -49,8 +49,8 @@ public interface ITasksService {
     public static class CompressionRequest {
 
       private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
-      private int blockSizeBytes = 32 * 1024;
-      private int level = 3;
+      private Integer blockSizeBytes;
+      private Integer level;
     }
   }
 

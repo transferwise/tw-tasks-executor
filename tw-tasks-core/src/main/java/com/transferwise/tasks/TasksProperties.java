@@ -340,7 +340,7 @@ public class TasksProperties {
     /**
      * Can be quite large, even when we have small(er) messages, because we reuse memory buffers.
      */
-    private int blockSizeBytes = 32 * 1024;
+    private Integer blockSizeBytes;
 
     /**
      * Approximate message size is considered.
@@ -350,6 +350,6 @@ public class TasksProperties {
     /**
      * Used when applicable.
      */
-    private int level = 3;
+    private Integer level;
   }
 }

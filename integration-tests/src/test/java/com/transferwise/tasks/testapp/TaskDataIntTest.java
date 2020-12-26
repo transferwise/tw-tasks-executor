@@ -61,7 +61,7 @@ public class TaskDataIntTest extends BaseIntTest {
         Arguments.of(shortData, null, 0, shortData.getBytes(StandardCharsets.UTF_8)),
         Arguments.of(longData, null, 1, new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0, 0}),
         Arguments.of(mediumData, "GZIP", 1, new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0, 0}),
-        Arguments.of(mediumData, "LZ4", 2, new byte[]{76, 90, 52, 66, 108, 111, 99, 107, 37, 22}),
+        Arguments.of(mediumData, "LZ4", 2, new byte[]{76, 90, 52, 66, 108, 111, 99, 107, 38, 22}),
         Arguments.of(shortData, "GZIP", 0, shortData.getBytes(StandardCharsets.UTF_8)),
         Arguments.of(shortData, "LZ4", 0, shortData.getBytes(StandardCharsets.UTF_8)),
         Arguments.of(shortData, "NONE", 0, shortData.getBytes(StandardCharsets.UTF_8)),
@@ -73,7 +73,6 @@ public class TaskDataIntTest extends BaseIntTest {
   @MethodSource("compressionWorksInput")
   void compressionWorks(String originalData, String algorithm, int expectedFormat, byte[] expectedData) {
     testTasksService.stopProcessing();
-    tasksProperties.getCompression().setAlgorithm(CompressionAlgorithm.GZIP);
 
     byte[] originalDataBytes = originalData.getBytes(StandardCharsets.UTF_8);
 

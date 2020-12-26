@@ -13,6 +13,10 @@ public enum CompressionAlgorithm {
    * Best compression rate.
    */
   GZIP,
+  /**
+   * High fixed memory cost, not recommended for small payloads.
+   */
+  ZSTD,
   // For complex tests
   RANDOM;
 
@@ -23,11 +27,13 @@ public enum CompressionAlgorithm {
   }
 
   public static CompressionAlgorithm getRandom() {
-    switch (ThreadLocalRandom.current().nextInt(3)) {
+    switch (ThreadLocalRandom.current().nextInt(4)) {
       case 0:
         return NONE;
       case 1:
         return LZ4;
+      case 2:
+        return ZSTD;
       default:
         return GZIP;
     }
