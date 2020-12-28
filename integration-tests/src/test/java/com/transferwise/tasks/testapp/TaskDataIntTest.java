@@ -102,7 +102,7 @@ public class TaskDataIntTest extends BaseIntTest {
   }
 
   @Test
-  void oldDataFieldIsUsedForOldTasks(){
+  void oldDataFieldIsUsedForOldTasks() {
     testTasksService.stopProcessing();
 
     AddTaskRequest addTaskRequest = new AddTaskRequest().setType("old_tasks");
