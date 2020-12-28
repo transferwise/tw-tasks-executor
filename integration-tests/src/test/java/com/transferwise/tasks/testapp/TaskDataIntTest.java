@@ -11,6 +11,8 @@ import com.transferwise.tasks.ITasksService.AddTaskResponse;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
+import com.transferwise.tasks.dao.ITaskSqlMapper;
+import com.transferwise.tasks.dao.MySqlTaskTypesMapper;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.test.ITestTasksService;
@@ -20,12 +22,16 @@ import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 public class TaskDataIntTest extends BaseIntTest {
+
+  protected ITaskSqlMapper taskSqlMapper = new MySqlTaskTypesMapper();
 
   @Autowired
   private ITestTasksService testTasksService;
@@ -35,6 +41,8 @@ public class TaskDataIntTest extends BaseIntTest {
   private ITaskDao taskDao;
   @Autowired
   private TasksProperties tasksProperties;
+  @Autowired
+  private JdbcTemplate jdbcTemplate;
 
   private CompressionAlgorithm originalAlgorithm;
   private int originalMinSize;
@@ -92,4 +100,23 @@ public class TaskDataIntTest extends BaseIntTest {
     assertThat(taskDao.getTask(taskId, FullTaskRecord.class).getData()).isEqualTo(originalDataBytes);
     assertThat(taskDao.getTask(taskId, Task.class).getData()).isEqualTo(originalDataBytes);
   }
+
+  @Test
+  void oldDataFieldIsUsedForOldTasks(){
+    testTasksService.stopProcessing();
+
+    AddTaskRequest addTaskRequest = new AddTaskRequest().setType("old_tasks");
+    AddTaskResponse addTaskResponse = testTasksService.addTask(addTaskRequest);
+    UUID taskId = addTaskResponse.getTaskId();
+
+    FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(fullTaskRecord.getData()).isNull();
+
+    String oldData = "Holy Moly!";
+    jdbcTemplate.update("update tw_task set data=? where id=?", oldData, taskSqlMapper.uuidToSqlTaskId(taskId));
+
+    fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(fullTaskRecord.getData()).isEqualTo(oldData.getBytes(StandardCharsets.UTF_8));
+  }
+
 }
