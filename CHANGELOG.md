@@ -3,7 +3,10 @@
 Describes notable changes.
 
 #### 1.21.0 - 2020/12/21
-- Task data is binary.
+- Task data is now binary.
+- The payload is kept in the storage in compressed format.
+  By default, gzip is used.
+- Introduced tw-tasks-core-test-spring-boot-starter for simpler test setup in services.
 
 Migration for MySql.
 
