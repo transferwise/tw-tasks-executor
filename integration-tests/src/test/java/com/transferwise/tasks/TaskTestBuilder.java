@@ -6,6 +6,8 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskResponse;
 import com.transferwise.tasks.domain.TaskStatus;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.nio.charset.StandardCharsets;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
@@ -13,7 +15,8 @@ public class TaskTestBuilder {
 
   public static final String DEFAULT_SUBTYPE = "SUBTYPE";
   public static final String DEFAULT_TYPE = "TEST";
-  public static final String DEFAULT_DATA = "DATA";
+  @SuppressFBWarnings("MS_MUTABLE_ARRAY")
+  public static final byte[] DEFAULT_DATA = "DATA".getBytes(StandardCharsets.UTF_8);
   public static final int DEFAULT_PRIORITY = 5;
 
   private ITaskDao.InsertTaskRequest insertTaskRequest;
@@ -56,7 +59,7 @@ public class TaskTestBuilder {
   public static TaskTestBuilder newTask() {
     TaskTestBuilder b = new TaskTestBuilder();
     b.insertTaskRequest = new ITaskDao.InsertTaskRequest();
-    return b.withType("test").withData("Hello World!").withPriority(DEFAULT_PRIORITY);
+    return b.withType("test").withData("Hello World!".getBytes(StandardCharsets.UTF_8)).withPriority(DEFAULT_PRIORITY);
   }
 
   public TaskTestBuilder withPriority(int priority) {
@@ -64,7 +67,7 @@ public class TaskTestBuilder {
     return this;
   }
 
-  public TaskTestBuilder withData(String data) {
+  public TaskTestBuilder withData(byte[] data) {
     insertTaskRequest.setData(data);
     return this;
   }

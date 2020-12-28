@@ -9,7 +9,9 @@ import com.transferwise.common.context.Criticality;
 import com.transferwise.common.context.TwContext;
 import com.transferwise.common.context.UnitOfWork;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.domain.Task;
@@ -25,6 +27,7 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -55,6 +58,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
   protected IManagementTaskDao managementTaskDao;
   @Autowired
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
+  @Autowired
+  protected ITaskDataSerializer taskDataSerializer;
 
   private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer;
 
@@ -86,10 +91,10 @@ public class TaskProcessingIntTest extends BaseIntTest {
         final int key = i;
         executorService.submit(() -> {
           try {
-            tasksService.addTask(new ITasksService.AddTaskRequest()
-                .setDataString("Hello World! " + key)
+            tasksService.addTask(new AddTaskRequest()
+                .setData(taskDataSerializer.serialize("Hello World! " + key))
                 .setType("test")
-                .setKey(String.valueOf(key)));
+                .setUniqueKey(String.valueOf(key)));
           } catch (Throwable t) {
             log.error(t.getMessage(), t);
           }
@@ -151,9 +156,9 @@ public class TaskProcessingIntTest extends BaseIntTest {
     Thread thread = new Thread(() ->  // Just to trigger the task
         taskRef.set(
             tasksService.addTask(new ITasksService.AddTaskRequest()
-                .setDataString("Hello World! 1")
+                .setData(taskDataSerializer.serialize("Hello World! 1"))
                 .setType("test")
-                .setKey("1")
+                .setUniqueKey("1")
             )
         )
     );
@@ -200,14 +205,15 @@ public class TaskProcessingIntTest extends BaseIntTest {
       sb.append("Hello World!");
     }
     String st = sb.toString();
+    byte[] stBytes = st.getBytes(StandardCharsets.UTF_8);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertEquals(st, task.getData());
+      assertThat(task.getData()).isEqualTo(stBytes);
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
 
     log.info("Submitting huge message task.");
     transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString(st))
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize(st)))
     );
     await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
       try {
@@ -223,14 +229,15 @@ public class TaskProcessingIntTest extends BaseIntTest {
   @ValueSource(ints = {-1, 0, 5, 9, 10})
   void taskWithSpecificPriorityCanBeHandled(int priority) {
     String st = "Hello World!";
+    byte[] stBytes = st.getBytes(StandardCharsets.UTF_8);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertEquals(st, task.getData());
+      assertThat(task.getData()).isEqualTo(stBytes);
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
 
     log.info("Submitting huge message task.");
     transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(priority).setDataString(st))
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setPriority(priority).setData(taskDataSerializer.serialize(st)))
     );
     await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
       try {
@@ -275,7 +282,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setProcessingBucket("unknown-bucket"));
 
     transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString("Hello World!"))
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize("Hello World!")))
     );
 
     await().until(() -> {
@@ -315,7 +322,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
         .setOwner("TransferWise"));
 
     transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setSubType("mdc").setDataString("Hello World!"))
+        tasksService
+            .addTask(new ITasksService.AddTaskRequest().setType("test").setSubType("mdc").setData(taskDataSerializer.serialize("Hello World!")))
     );
 
     Task task = await().until(() -> transactionsHelper.withTransaction().asNew().call(

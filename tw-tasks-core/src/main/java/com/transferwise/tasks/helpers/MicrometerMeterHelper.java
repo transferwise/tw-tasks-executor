@@ -201,7 +201,7 @@ public class MicrometerMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data) {
+  public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, byte[] data) {
     meterRegistry.counter(
         METRIC_TASKS_ADDINGS_COUNT,
         TAG_TASK_TYPE, type,
@@ -260,8 +260,8 @@ public class MicrometerMeterHelper implements IMeterHelper {
     return Tags.empty();
   }
 
-  protected String getDataSizeBucket(String data) {
-    int dataSize = data == null ? 0 : data.length();
+  protected String getDataSizeBucket(byte[] data) {
+    int dataSize = data == null ? 0 : data.length;
     for (int i = 0; i < DATA_SIZE_BUCKETS.length; i++) {
       if (dataSize < DATA_SIZE_BUCKETS[i]) {
         return DATA_SIZE_BUCKET_VALUES[i];

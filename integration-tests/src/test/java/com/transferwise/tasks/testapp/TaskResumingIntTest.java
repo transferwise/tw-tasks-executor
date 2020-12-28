@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.test.ITestTasksService;
 import io.micrometer.core.instrument.Counter;
@@ -24,6 +25,8 @@ public class TaskResumingIntTest extends BaseIntTest {
   private ITasksService tasksService;
   @Autowired
   private ITestTasksService testTasksService;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @BeforeEach
   void setup() {
@@ -41,7 +44,7 @@ public class TaskResumingIntTest extends BaseIntTest {
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()
             .setTaskId(taskId)
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(1)))
     );
 
@@ -61,7 +64,7 @@ public class TaskResumingIntTest extends BaseIntTest {
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()
             .setTaskId(taskId)
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(1)))
     );
 

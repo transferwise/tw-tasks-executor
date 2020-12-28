@@ -5,8 +5,10 @@ import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
 import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.IPriorityManager;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.PriorityManager;
+import com.transferwise.tasks.TaskDataSerializer;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.TasksService;
 import com.transferwise.tasks.TwTasks;
@@ -16,8 +18,10 @@ import com.transferwise.tasks.cleaning.ITasksCleaner;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
+import com.transferwise.tasks.dao.TaskDaoDataSerializer;
 import com.transferwise.tasks.entrypoints.EntryPointsService;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
@@ -110,15 +114,15 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
-  public ITaskDao twTasksPostgresTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider) {
-    return new PostgresTaskDao(twTasksDataSourceProvider.getDataSource());
+  public PostgresTaskDao twTasksPostgresTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider, IMeterHelper meterHelper) {
+    return new PostgresTaskDao(twTasksDataSourceProvider.getDataSource(), meterHelper);
   }
 
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public ITaskDao twTasksMysqlTaskDao(TwTasksDataSourceProvider twTasksDataSourceProvider) {
-    return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource());
+  public MySqlTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider, IMeterHelper meterHelper) {
+    return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource(), meterHelper);
   }
 
   @Bean
@@ -232,4 +236,15 @@ public class TwTasksCoreAutoConfiguration {
     return new EntryPointsService();
   }
 
+  @Bean
+  @ConditionalOnMissingBean(ITaskDaoDataSerializer.class)
+  public ITaskDaoDataSerializer twTasksTaskDaoDataSerializer() {
+    return new TaskDaoDataSerializer();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(ITaskDataSerializer.class)
+  public ITaskDataSerializer taskDataSerializer() {
+    return new TaskDataSerializer();
+  }
 }

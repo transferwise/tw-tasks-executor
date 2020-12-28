@@ -66,7 +66,7 @@ public interface IMeterHelper {
 
   void debugTaskTriggeringQueueEmpty(String bucketId, int priority, String taskType);
 
-  void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, String data);
-  
+  void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, byte[] data);
+
   void registerLibrary();
 }

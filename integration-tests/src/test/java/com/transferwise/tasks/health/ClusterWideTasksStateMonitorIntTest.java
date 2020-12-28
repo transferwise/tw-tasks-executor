@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -41,6 +42,8 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor;
   @Autowired
   private TasksProperties tasksProperties;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   private Duration originalStartDelay;
 
@@ -77,6 +80,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     assertThat(meterRegistry.get("twTasks.state.approximateTasks").gauge().value()).isGreaterThan(-1);
     assertThat(meterRegistry.get("twTasks.state.approximateUniqueKeys").gauge().value()).isGreaterThan(-1);
+    assertThat(meterRegistry.get("twTasks.state.approximateTaskDatas").gauge().value()).isGreaterThan(-1);
 
     clusterWideTasksStateMonitor.leaderSelector.stop();
 
@@ -88,6 +92,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     assertEquals(0, meterRegistry.find("twTasks.health.tasksHistoryLengthSeconds").gauges().size());
     assertThat(meterRegistry.find("twTasks.state.approximateTasks").gauges().size()).isEqualTo(0);
     assertThat(meterRegistry.find("twTasks.state.approximateUniqueKeys").gauges().size()).isEqualTo(0);
+    assertThat(meterRegistry.find("twTasks.state.approximateTaskDatas").gauges().size()).isEqualTo(0);
 
     // everything works when the node gets leader back
     tasksProperties.getClusterWideTasksStateMonitor().setStartDelay(Duration.ZERO);
@@ -101,7 +106,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     });
     transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.addTask(new ITasksService.AddTaskRequest()
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test"))
     );
 
@@ -134,7 +139,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.addTask(new ITasksService.AddTaskRequest()
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test"))
     );
 

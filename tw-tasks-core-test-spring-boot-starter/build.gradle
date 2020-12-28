@@ -1,0 +1,11 @@
+ext.projectName = "TwTasks Core Test - Spring Boot Starter"
+ext.projectDescription = "Autoconfigures core test helpers for spring boot application"
+ext.projectArtifactName = "tw-tasks-core-test-spring-boot-starter"
+
+apply from: '../build.starter.gradle'
+
+dependencies {
+    api project(":tw-tasks-core-test")
+
+    implementation project(":tw-tasks-core-spring-boot-starter")
+}

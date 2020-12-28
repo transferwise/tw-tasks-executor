@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.TaskTestBuilder;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -38,6 +39,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @Test
   void erroneousTasksWillBeCorrectlyFound() {
@@ -135,7 +138,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .inStatus(status)
-            .withData("the payload")
+            .withData(taskDataSerializer.serialize("the payload"))
             .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
             .save()
             .getTaskId()

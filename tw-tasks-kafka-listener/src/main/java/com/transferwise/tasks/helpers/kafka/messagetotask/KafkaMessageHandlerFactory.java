@@ -45,7 +45,7 @@ public class KafkaMessageHandlerFactory {
       IKafkaMessageHandler.Topic... topics
   ) {
     return createResilientHandler(
-        new CreateTaskForCorruptedMessageRecoveryStrategy(tasksService),
+        new CreateTaskForCorruptedMessageRecoveryStrategy(tasksService, objectMapper),
         dataObjClass,
         consumer,
         topics

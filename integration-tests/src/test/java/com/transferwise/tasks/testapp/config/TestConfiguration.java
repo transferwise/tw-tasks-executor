@@ -5,6 +5,7 @@ import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
@@ -65,14 +66,14 @@ public class TestConfiguration {
 
   @Bean
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
-  public ITestTaskDao postgresTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
-    return new PostgresTestTaskDao(dataSource, tasksProperties);
+  public ITestTaskDao postgresTestTaskDao(DataSource dataSource, TasksProperties tasksProperties, ITaskDaoDataSerializer taskDataSerializer) {
+    return new PostgresTestTaskDao(dataSource, tasksProperties, taskDataSerializer);
   }
 
   @Bean
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public ITestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties) {
-    return new MySqlTestTaskDao(dataSource, tasksProperties);
+  public ITestTaskDao mysqlTestTaskDao(DataSource dataSource, TasksProperties tasksProperties, ITaskDaoDataSerializer taskDataSerializer) {
+    return new MySqlTestTaskDao(dataSource, tasksProperties, taskDataSerializer);
   }
 
   @Bean

@@ -1,6 +1,7 @@
 package com.transferwise.tasks.testapp.helpers.kafka.messagetotask;
 
 import static com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -72,7 +73,7 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
     // the corrupted message is properly wrapped and saved
     CorruptedKafkaMessage message = objectMapper.readValue(corruptedTasks.get(0).getData(), CorruptedKafkaMessage.class);
     assertEquals(CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES, message.getTopic());
-    assertEquals("{\"corrupted json.", message.getCorruptedData());
+    assertThat(message.getCorruptedData()).isEqualTo("{\"corrupted json.");
 
     // the further messages in the topic are processed
     Awaitility.await().until(

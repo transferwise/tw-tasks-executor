@@ -9,6 +9,7 @@ import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.ITask;
@@ -44,6 +45,8 @@ class RetriesIntTest extends BaseIntTest {
   private ITestTasksService testTasksService;
   @Autowired
   private ITransactionsHelper transactionsHelper;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @Test
   void after5RetriesTasksGoToErrorState() {
@@ -65,7 +68,7 @@ class RetriesIntTest extends BaseIntTest {
 
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test"))
     );
 
@@ -142,7 +145,7 @@ class RetriesIntTest extends BaseIntTest {
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(
             new ITasksService.AddTaskRequest()
-                .setDataString("Hello World!")
+                .setData(taskDataSerializer.serialize("Hello World!"))
                 .setType("test")
         )
     );
@@ -154,7 +157,7 @@ class RetriesIntTest extends BaseIntTest {
   void exponentialRetriesWorkEachRetryShouldTakeLonger() {
     TestClock clock = new TestClock();
     TwContextClockHolder.setClock(clock);
-    
+
     AtomicInteger processingCount = new AtomicInteger();
     int n = 5;
 
@@ -173,7 +176,7 @@ class RetriesIntTest extends BaseIntTest {
 
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()
-            .setDataString("Hello World!")
+            .setData(taskDataSerializer.serialize("Hello World!"))
             .setType("test"))
     );
 

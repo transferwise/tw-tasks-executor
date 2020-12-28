@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.demoapp.payout.PayoutInstruction;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
@@ -39,6 +40,8 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   private ExecutorService executorService;
 
@@ -68,7 +71,7 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
               log.debug("Received payout.succeeded message from Kafka for payout #" + poi.getId());
               tasksService.addTask(new ITasksService.AddTaskRequest()
                   .setPriority(poi.getPriority())
-                  .setDataString(record.value())
+                  .setData(taskDataSerializer.serialize(record.value()))
                   .setType(SucceededPayoutsTaskHandlerConfiguration.TASK_TYPE_PAYOUT_SUCCEEDED)
               );
             });

@@ -8,4 +8,6 @@ public interface ITwTaskTables {
   String getTaskTableIdentifier();
 
   String getUniqueTaskKeyTableIdentifier();
+
+  String getTaskDataTableIdentifier();
 }

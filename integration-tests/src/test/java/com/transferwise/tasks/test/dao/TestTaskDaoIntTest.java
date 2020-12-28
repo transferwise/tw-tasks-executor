@@ -5,6 +5,7 @@ import static com.transferwise.tasks.TaskTestBuilder.DEFAULT_SUBTYPE;
 import static com.transferwise.tasks.TaskTestBuilder.DEFAULT_TYPE;
 import static com.transferwise.tasks.TaskTestBuilder.randomDoneTask;
 import static com.transferwise.tasks.TaskTestBuilder.randomProcessingTask;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -14,6 +15,7 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
@@ -55,7 +57,7 @@ abstract class TestTaskDaoIntTest extends BaseIntTest {
     assertEquals(taskId, task.getId());
     assertEquals(type, task.getType());
     assertEquals(DEFAULT_SUBTYPE, task.getSubType());
-    assertEquals(DEFAULT_DATA, task.getData());
+    assertThat(task.getData()).isEqualTo(DEFAULT_DATA);
     assertEquals("PROCESSING", task.getStatus());
     assertEquals(0, task.getVersion());
     assertEquals(0, task.getProcessingTriesCount());

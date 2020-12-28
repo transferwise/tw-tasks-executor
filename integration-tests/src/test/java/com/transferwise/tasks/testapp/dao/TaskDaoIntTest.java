@@ -17,17 +17,21 @@ import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.TaskTestBuilder;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.DeleteFinishedOldTasksResult;
 import com.transferwise.tasks.dao.ITaskDao.GetStuckTasksResponse;
+import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskResponse;
 import com.transferwise.tasks.dao.ITaskDao.StuckTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.test.dao.ITestTaskDao;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -50,12 +54,14 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
-
   @Autowired
   private JdbcTemplate jdbcTemplate;
-
   @Autowired
   private TasksProperties tasksProperties;
+  @Autowired
+  private ITestTaskDao testTaskDao;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @BeforeEach
   void taskDaoIntTestSetup() {
@@ -90,7 +96,6 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     InsertTaskResponse response = TaskTestBuilder.newTask()
         .withStatus(TaskStatus.NEW)
         .withKey(key)
-        .withData("")
         .withPriority(5)
         .withMaxStuckTime(ZonedDateTime.now().plusMinutes(30))
         .withType("Test")
@@ -101,7 +106,6 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     response = taskDao.insertTask(new ITaskDao.InsertTaskRequest()
         .setStatus(TaskStatus.NEW)
         .setKey(key)
-        .setData("")
         .setMaxStuckTime(ZonedDateTime.now().plusMinutes(30))
         .setType("Test")
         .setPriority(5));
@@ -136,7 +140,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertEquals("TEST", task.getType());
     assertEquals(5, task.getPriority());
     assertEquals(0, task.getVersion());
-    assertEquals("DATA", task.getData());
+    assertThat(task.getData()).isEqualTo(taskDataSerializer.serialize("DATA"));
     assertEquals("SUBTYPE", task.getSubType());
     assertEquals(0, task.getProcessingTriesCount());
     assertNull(task.getProcessingClientId());
@@ -391,12 +395,15 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
     assertEquals(1, taskDao.getTasksCountInStatus(10, TaskStatus.DONE));
     assertEquals(1, result.getDeletedTasksCount());
+    assertEquals(0, result.getDeletedUniqueKeysCount());
+    assertEquals(1, result.getDeletedTaskDatasCount());
     assertNotNull(result.getFirstDeletedTaskNextEventTime());
 
     result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 1);
 
     assertEquals(0, taskDao.getTasksCountInStatus(10, TaskStatus.DONE));
     assertEquals(1, result.getDeletedTasksCount());
+    assertEquals(1, result.getDeletedTaskDatasCount());
     assertNotNull(result.getFirstDeletedTaskNextEventTime());
   }
 
@@ -409,8 +416,8 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     TwContextClockHolder.setClock(testClock);
 
     for (int i = 0; i < 117; i++) {
-      taskDao.insertTask(new ITaskDao.InsertTaskRequest()
-          .setType("Test").setData("Test").setPriority(5)
+      taskDao.insertTask(new InsertTaskRequest()
+          .setType("Test").setData(taskDataSerializer.serialize("Test")).setPriority(5)
           .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
           .setKey(UuidUtils.generatePrefixCombUuid().toString())
           .setStatus(TaskStatus.DONE)
@@ -418,49 +425,57 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     }
 
     testClock.tick(Duration.ofMinutes(11));
-    DeleteFinishedOldTasksResult result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
+    final DeleteFinishedOldTasksResult result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
 
     assertEquals(117 - 60, taskDao.getTasksCountInStatus(1000, TaskStatus.DONE));
     assertEquals(117 - 60, getUniqueTaskKeysCount());
+    assertEquals(117 - 60, getTaskDatasCount());
     assertEquals(60, result.getDeletedTasksCount());
     assertEquals(60, result.getDeletedUniqueKeysCount());
+    assertEquals(60, result.getDeletedTaskDatasCount());
     assertNotNull(result.getFirstDeletedTaskNextEventTime());
 
-    result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
+    final DeleteFinishedOldTasksResult result1 = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
 
     assertEquals(0, taskDao.getTasksCountInStatus(1000, TaskStatus.DONE));
     assertEquals(0, getUniqueTaskKeysCount());
-    assertEquals(117 - 60, result.getDeletedTasksCount());
-    assertEquals(117 - 60, result.getDeletedUniqueKeysCount());
-    assertNotNull(result.getFirstDeletedTaskNextEventTime());
+    assertEquals(0, getTaskDatasCount());
+    assertEquals(117 - 60, result1.getDeletedTasksCount());
+    assertEquals(117 - 60, result1.getDeletedUniqueKeysCount());
+    assertEquals(117 - 60, result1.getDeletedTaskDatasCount());
+    assertNotNull(result1.getFirstDeletedTaskNextEventTime());
   }
 
   @Test
   void deletingTaskByIdDeletedTheCorrectTask() {
-    String type = "MY_TYPE";
-    UUID taskId1 = randomProcessingTask().withType(type).save().getTaskId();
-    UUID taskId2 = randomProcessingTask().withType(type).save().getTaskId();
+    final String type = "MY_TYPE";
+    final UUID taskId1 = randomProcessingTask().withType(type).save().getTaskId();
+    final UUID taskId2 = randomProcessingTask().withType(type).save().getTaskId();
 
     taskDao.deleteTask(taskId1, 0);
 
     FullTaskRecord task1 = taskDao.getTask(taskId1, FullTaskRecord.class);
     assertNull(task1);
+    assertThat(testTaskDao.getSerializedData(taskId1)).isNull();
 
     FullTaskRecord task2 = taskDao.getTask(taskId2, FullTaskRecord.class);
     assertEquals(taskId2, task2.getId());
+    assertThat(testTaskDao.getSerializedData(taskId2)).isNotNull();
   }
 
   @Test
   void clearingPayloadAndMarkingDoneUpdateTheTaskCorrectly() {
     UUID taskId = randomDoneTask().save().getTaskId();
+    FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(task.getData()).isNotNull();
 
     boolean result = taskDao.clearPayloadAndMarkDone(taskId, 0);
 
     assertTrue(result);
-    FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+    task = taskDao.getTask(taskId, FullTaskRecord.class);
     assertEquals(taskId, task.getId());
     assertEquals("DONE", task.getStatus());
-    assertEquals("", task.getData());
+    assertThat(task.getData()).isNull();
   }
 
   @Test
@@ -480,17 +495,18 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     String taskType = "UUID_TEST";
     try {
       for (int i = 0; i < 117; i++) {
-        taskDao.insertTask(new ITaskDao.InsertTaskRequest()
-            .setType(taskType).setData(String.valueOf(i)).setPriority(5)
+        taskDao.insertTask(new InsertTaskRequest()
+            .setType(taskType).setData(taskDataSerializer.serialize(String.valueOf(i))).setPriority(5)
             .setMaxStuckTime(ZonedDateTime.now(TwContextClockHolder.getClock()))
             .setTaskId(UuidUtils.generatePrefixCombUuid())
             .setStatus(TaskStatus.DONE)
         );
         clock.tick(Duration.ofMillis(2));
       }
+      List<Task> tasks = testTaskDao.findTasksByTypeSubTypeAndStatus(taskType, null, TaskStatus.DONE);
 
-      List<String> result = jdbcTemplate.queryForList("select data from tw_task where type=? order by id", String.class, taskType);
-      List<Integer> resultInts = result.stream().map(Integer::parseInt).collect(Collectors.toList());
+      List<Integer> resultInts = tasks.stream().map(t -> Integer.parseInt(new String(t.getData(), StandardCharsets.UTF_8)))
+          .collect(Collectors.toList());
       assertThat(resultInts).isSorted();
     } finally {
       TestClock.reset();
@@ -509,6 +525,12 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
   private int getUniqueTaskKeysCount() {
     Integer cnt = jdbcTemplate.queryForObject("select count(*) from unique_tw_task_key", Integer.class);
+    // Just keep the spotbugs happy.
+    return cnt == null ? 0 : cnt;
+  }
+
+  private int getTaskDatasCount() {
+    Integer cnt = jdbcTemplate.queryForObject("select count(*) from tw_task_data", Integer.class);
     // Just keep the spotbugs happy.
     return cnt == null ? 0 : cnt;
   }

@@ -25,10 +25,14 @@ tw-tasks:
     generic-medium-delay: 100ms
     taskTablesSchemaName: "tw-tasks-test"
     assertionsEnabled: true
+    compression:
+      algorithm: random
+      minSize: 0 # Pretty much forcing compression to always happen, so it will be tested through
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN
 logging.level.org.apache.zookeeper: WARN
+logging.level.com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer: INFO
 
 tw-graceful-shutdown:
   shutdown-timeout-ms: 1000

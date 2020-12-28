@@ -1,5 +1,6 @@
 package com.transferwise.tasks;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.UUID;
@@ -33,14 +34,24 @@ public interface ITasksService {
 
     private String type;
     private String subType;
-    private Object data;
-    private String dataString;
+    @SuppressFBWarnings("EI_EXPOSE_REP")
+    private byte[] data;
     private UUID taskId;
-    private String key;
+    private String uniqueKey;
     private ZonedDateTime runAfterTime;
     private Integer priority;
     private boolean warnWhenTaskExists;
     private Duration expectedQueueTime;
+    private CompressionRequest compression;
+
+    @Data
+    @Accessors(chain = true)
+    public static class CompressionRequest {
+
+      private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
+      private Integer blockSizeBytes;
+      private Integer level;
+    }
   }
 
   @Data

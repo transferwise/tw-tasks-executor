@@ -60,6 +60,7 @@ public class ArgumentPreparedStatementSetter implements PreparedStatementSetter 
       } else if (argValue instanceof Enum<?>) {
         argValue = ((Enum<?>) argValue).name();
       }
+
       StatementCreatorUtils.setParameterValue(ps, parameterPosition, SqlTypeValue.TYPE_UNKNOWN, argValue);
     }
   }

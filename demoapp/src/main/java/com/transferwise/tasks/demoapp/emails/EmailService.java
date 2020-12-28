@@ -1,5 +1,6 @@
 package com.transferwise.tasks.demoapp.emails;
 
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.demoapp.NoiseGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,14 +13,15 @@ public class EmailService {
 
   @Autowired
   private ITasksService tasksService;
-
   @Autowired
   private NoiseGenerator noiseGenerator;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   public void sendEmail(Email email) {
     email.setNoise(noiseGenerator.generateNoise());
     tasksService.addTask(new ITasksService.AddTaskRequest()
-        .setData(email)
+        .setData(taskDataSerializer.serializeToJson(email))
         .setType(EmailsTaskHandlerConfiguration.TASK_TYPE_SEND_EMAILS));
   }
 }

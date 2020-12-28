@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testapp;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -7,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
+import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.TasksProcessingState;
 import com.transferwise.tasks.buckets.IBucketsManager;
@@ -17,6 +19,7 @@ import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.Future;
@@ -35,6 +38,8 @@ class ManualStartIntTest extends BaseIntTest {
 
   @Autowired
   private ITaskDao taskDao;
+  @Autowired
+  private ITaskDataSerializer taskDataSerializer;
 
   @BeforeEach
   void setup() {
@@ -45,7 +50,7 @@ class ManualStartIntTest extends BaseIntTest {
   void taskProcessingInASpecificBucketIsNotAutomaticallyStarted() throws Exception {
     String st = "Hello World!";
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertEquals(st, task.getData());
+      assertThat(task.getData()).isEqualTo(st.getBytes(StandardCharsets.UTF_8));
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy().setProcessingBucket(BUCKET_ID));
@@ -55,7 +60,7 @@ class ManualStartIntTest extends BaseIntTest {
 
     log.info("Submitting a task.");
     UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
-        testTasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setDataString(st))
+        testTasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize(st)))
     ).getTaskId();
 
     assertEquals(TasksProcessingState.STOPPED, testTasksService.getTasksProcessingState(BUCKET_ID));

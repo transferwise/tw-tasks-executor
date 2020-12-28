@@ -7,6 +7,7 @@ import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.TaskHandlerAdapter;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
@@ -21,9 +22,10 @@ public class SlowTasksHandlerConfiguration {
   @Bean
   public ITaskHandler slowTaskTaskHandler() {
     return new TaskHandlerAdapter(task -> task.getType().startsWith(TASK_TYPE_SLOW), (ISyncTaskProcessor) task -> ExceptionUtils.doUnchecked(() -> {
-      log.info("Starting to execute slow task '" + task.getData() + "'.");
+      String dataString = new String(task.getData(), StandardCharsets.UTF_8);
+      log.info("Starting to execute slow task '{}'.", dataString);
       Thread.sleep(60_000);
-      log.info("Finished executing slow task '" + task.getData() + "'.");
+      log.info("Finished executing slow task '{}'.", dataString);
       return null;
     }))
         .setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(5))
