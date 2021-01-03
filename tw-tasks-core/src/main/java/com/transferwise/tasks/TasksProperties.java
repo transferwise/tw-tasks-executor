@@ -1,13 +1,11 @@
 package com.transferwise.tasks;
 
-import io.micrometer.core.instrument.Tag;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.springframework.validation.Errors;
@@ -268,6 +266,8 @@ public class TasksProperties {
 
   private Compression compression = new Compression();
 
+  private Migration migration = new Migration();
+
   public static class Validator implements org.springframework.validation.Validator {
 
     @Override
@@ -351,5 +351,25 @@ public class TasksProperties {
      * Used when applicable.
      */
     private Integer level;
+  }
+
+  @Data
+  @Accessors(chain = true)
+  public static class Migration {
+
+    /**
+     * Version deployed (e.g. to production).
+     *
+     * <p>Allows tw-tasks to decide when it should fail fast, instead of risking with incompatibilities or/and processing pauses.
+     */
+    private String previousVersion;
+
+    /**
+     * Copies data to old data field as well.
+     *
+     * <p>When we are rolling out a new version, nodes with old version need to be able to process new tasks.
+     * For that, we are copying the binary data into the old tw_task.data field as a string.
+     */
+    private boolean copyDataToTwTaskField = true;
   }
 }

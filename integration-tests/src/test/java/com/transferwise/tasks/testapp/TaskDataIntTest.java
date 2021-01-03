@@ -46,6 +46,7 @@ public class TaskDataIntTest extends BaseIntTest {
 
   private CompressionAlgorithm originalAlgorithm;
   private int originalMinSize;
+  private boolean originalCopyDataToTwTaskField;
 
   @BeforeEach
   public void setup() {
@@ -53,12 +54,14 @@ public class TaskDataIntTest extends BaseIntTest {
     originalMinSize = tasksProperties.getCompression().getMinSize();
     tasksProperties.getCompression().setAlgorithm(CompressionAlgorithm.GZIP);
     tasksProperties.getCompression().setMinSize(100);
+    originalCopyDataToTwTaskField = tasksProperties.getMigration().isCopyDataToTwTaskField();
   }
 
   @AfterEach
   public void cleanup() {
     tasksProperties.getCompression().setAlgorithm(originalAlgorithm);
     tasksProperties.getCompression().setMinSize(originalMinSize);
+    tasksProperties.getMigration().setCopyDataToTwTaskField(originalCopyDataToTwTaskField);
   }
 
   private static Stream<Arguments> compressionWorksInput() {
@@ -119,4 +122,40 @@ public class TaskDataIntTest extends BaseIntTest {
     assertThat(fullTaskRecord.getData()).isEqualTo(oldData.getBytes(StandardCharsets.UTF_8));
   }
 
+  @Test
+  void oldDataFieldIsSetForNewTasks() {
+    testTasksService.stopProcessing();
+
+    String data = "Hello World!";
+    AddTaskRequest addTaskRequest = new AddTaskRequest().setType("test_data").setData(data.getBytes(StandardCharsets.UTF_8));
+    AddTaskResponse addTaskResponse = testTasksService.addTask(addTaskRequest);
+    UUID taskId = addTaskResponse.getTaskId();
+
+    FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(fullTaskRecord.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
+
+    String oldData = jdbcTemplate
+        .queryForObject("select data from tw_task where id=?", new Object[]{taskSqlMapper.uuidToSqlTaskId(taskId)}, String.class);
+
+    assertThat(oldData).isEqualTo(data);
+  }
+
+  @Test
+  void oldDataFieldIsNotSetForNewTasks() {
+    testTasksService.stopProcessing();
+    tasksProperties.getMigration().setCopyDataToTwTaskField(false);
+
+    String data = "Hello World!";
+    AddTaskRequest addTaskRequest = new AddTaskRequest().setType("test_data").setData(data.getBytes(StandardCharsets.UTF_8));
+    AddTaskResponse addTaskResponse = testTasksService.addTask(addTaskRequest);
+    UUID taskId = addTaskResponse.getTaskId();
+
+    FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(fullTaskRecord.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
+
+    String oldData = jdbcTemplate
+        .queryForObject("select data from tw_task where id=?", new Object[]{taskSqlMapper.uuidToSqlTaskId(taskId)}, String.class);
+
+    assertThat(oldData).isEqualTo("");
+  }
 }

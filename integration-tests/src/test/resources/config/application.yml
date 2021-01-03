@@ -28,6 +28,8 @@ tw-tasks:
     compression:
       algorithm: random
       minSize: 0 # Pretty much forcing compression to always happen, so it will be tested through
+    migration:
+      previousVersion: "1.20.0"
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN

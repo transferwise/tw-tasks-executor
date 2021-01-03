@@ -70,6 +70,8 @@ tw-tasks:
     max-node-count: 1
     additional-processing-buckets:
       - emails
+    migration:
+      previousVersion: "1.20.0"
     #trigger-same-task-in-all-nodes: true
     #tasksHistoryDeletingBatchSize: 500
     #tasksCleaningInterval: PT0.5s
