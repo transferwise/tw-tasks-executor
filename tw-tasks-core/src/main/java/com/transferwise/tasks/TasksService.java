@@ -56,6 +56,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private UnitOfWorkManager unitOfWorkManager;
   @Autowired
   private IEntryPointsService entryPointsHelper;
+  @Autowired
+  private IEnvironmentValidator environmentValidator;
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -65,6 +67,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
   @PostConstruct
   public void init() {
+    environmentValidator.validate();
+
     if (tasksProperties.isAsyncTaskTriggering()) {
       afterCommitExecutorService = executorsHelper.newScheduledExecutorService("tsac", tasksProperties.getAsyncTaskTriggeringsConcurrency());
       txSyncAdapterFactory = AsynchronouslyTriggerTaskTxSyncAdapter::new;

@@ -4,6 +4,8 @@ import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProv
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
 import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
+import com.transferwise.tasks.EnvironmentValidator;
+import com.transferwise.tasks.IEnvironmentValidator;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
@@ -163,7 +165,7 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ITopicPartitionsManager.class)
-  public ITopicPartitionsManager twTasksTopicPartitionsManager() {
+  public NoOpTopicPartitionsManager twTasksTopicPartitionsManager() {
     return new NoOpTopicPartitionsManager();
   }
 
@@ -226,25 +228,31 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(IMdcService.class)
-  public IMdcService twTasksMdcService() {
+  public MdcService twTasksMdcService() {
     return new MdcService();
   }
 
   @Bean
   @ConditionalOnMissingBean(IEntryPointsService.class)
-  public IEntryPointsService twTasksEntryPointsService() {
+  public EntryPointsService twTasksEntryPointsService() {
     return new EntryPointsService();
   }
 
   @Bean
   @ConditionalOnMissingBean(ITaskDaoDataSerializer.class)
-  public ITaskDaoDataSerializer twTasksTaskDaoDataSerializer() {
+  public TaskDaoDataSerializer twTasksTaskDaoDataSerializer() {
     return new TaskDaoDataSerializer();
   }
 
   @Bean
   @ConditionalOnMissingBean(ITaskDataSerializer.class)
-  public ITaskDataSerializer taskDataSerializer() {
+  public TaskDataSerializer twTasksTaskDataSerializer() {
     return new TaskDataSerializer();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(IEnvironmentValidator.class)
+  public EnvironmentValidator twTasksEnvironmentValidator() {
+    return new EnvironmentValidator();
   }
 }

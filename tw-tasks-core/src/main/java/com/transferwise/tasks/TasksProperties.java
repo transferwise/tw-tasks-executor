@@ -1,13 +1,11 @@
 package com.transferwise.tasks;
 
-import io.micrometer.core.instrument.Tag;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ThreadLocalRandom;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.springframework.validation.Errors;
@@ -256,6 +254,20 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
+   * Copies data to old data field as well.
+   *
+   * <p>Temporary property helping to roll out 1.21.+ version from older minor versions.
+   *
+   * <p>When we are rolling out a new version, nodes with old version need to be able to process new tasks created by nodes with the new version.
+   * For that, if this property is `true`, we are copying the binary data into the old tw_task.data field as a string.
+   *
+   * <p>Once all the nodes have 1.21.+ version and there is no risk of needing a rollback, the property should be set as false.
+   *
+   * <p>Will be removed in 1.22.0.
+   */
+  private boolean copyDataToTwTaskField = true;
+
+  /**
    * Cluster wide tasks state monitoring options.
    */
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
@@ -267,6 +279,8 @@ public class TasksProperties {
   private TasksManagement tasksManagement = new TasksManagement();
 
   private Compression compression = new Compression();
+
+  private Environment environment = new Environment();
 
   public static class Validator implements org.springframework.validation.Validator {
 
@@ -351,5 +365,18 @@ public class TasksProperties {
      * Used when applicable.
      */
     private Integer level;
+  }
+
+  @Data
+  @Accessors(chain = true)
+  public static class Environment {
+
+    /**
+     * Version deployed (e.g. to production).
+     *
+     * <p>Allows tw-tasks to decide when it should fail fast, instead of risking with incompatibilities or/and processing pauses.
+     */
+    private String previousVersion;
+
   }
 }
