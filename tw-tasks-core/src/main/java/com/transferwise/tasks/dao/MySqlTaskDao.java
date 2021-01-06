@@ -222,12 +222,8 @@ public class MySqlTaskDao implements ITaskDao {
       Connection con = DataSourceUtils.getConnection(dataSource);
       try {
         try (PreparedStatement ps = con.prepareStatement(insertTaskSql)) {
-          String data = "";
-          if (tasksProperties.isCopyDataToTwTaskField() && request.getData() != null) {
-            data = new String(request.getData(), StandardCharsets.UTF_8);
-          }
           args(taskId, request.getType(), request.getSubType(),
-              request.getStatus(), data, nextEventTime, now, now, now, 0, 0, request.getPriority())
+              request.getStatus(), "", nextEventTime, now, now, now, 0, 0, request.getPriority())
               .setValues(ps);
 
           int insertedCount = ps.executeUpdate();
