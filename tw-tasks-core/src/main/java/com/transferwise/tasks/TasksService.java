@@ -57,7 +57,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   @Autowired
   private IEntryPointsService entryPointsHelper;
   @Autowired
-  private IEnvironmentValidator migrationHandler;
+  private IEnvironmentValidator environmentValidator;
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -67,7 +67,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
   @PostConstruct
   public void init() {
-    migrationHandler.validate();
+    environmentValidator.validate();
 
     if (tasksProperties.isAsyncTaskTriggering()) {
       afterCommitExecutorService = executorsHelper.newScheduledExecutorService("tsac", tasksProperties.getAsyncTaskTriggeringsConcurrency());
