@@ -223,7 +223,7 @@ public class MySqlTaskDao implements ITaskDao {
       try {
         try (PreparedStatement ps = con.prepareStatement(insertTaskSql)) {
           String data = "";
-          if (tasksProperties.getMigration().isCopyDataToTwTaskField() && request.getData() != null) {
+          if (tasksProperties.isCopyDataToTwTaskField() && request.getData() != null) {
             data = new String(request.getData(), StandardCharsets.UTF_8);
           }
           args(taskId, request.getType(), request.getSubType(),

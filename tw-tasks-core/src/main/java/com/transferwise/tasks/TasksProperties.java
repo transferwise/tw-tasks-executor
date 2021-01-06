@@ -254,6 +254,14 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
+   * Copies data to old data field as well.
+   *
+   * <p>When we are rolling out a new version, nodes with old version need to be able to process new tasks.
+   * For that, we are copying the binary data into the old tw_task.data field as a string.
+   */
+  private boolean copyDataToTwTaskField = true;
+
+  /**
    * Cluster wide tasks state monitoring options.
    */
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
@@ -266,7 +274,7 @@ public class TasksProperties {
 
   private Compression compression = new Compression();
 
-  private Migration migration = new Migration();
+  private Environment environment = new Environment();
 
   public static class Validator implements org.springframework.validation.Validator {
 
@@ -355,7 +363,7 @@ public class TasksProperties {
 
   @Data
   @Accessors(chain = true)
-  public static class Migration {
+  public static class Environment {
 
     /**
      * Version deployed (e.g. to production).
@@ -364,12 +372,5 @@ public class TasksProperties {
      */
     private String previousVersion;
 
-    /**
-     * Copies data to old data field as well.
-     *
-     * <p>When we are rolling out a new version, nodes with old version need to be able to process new tasks.
-     * For that, we are copying the binary data into the old tw_task.data field as a string.
-     */
-    private boolean copyDataToTwTaskField = true;
   }
 }

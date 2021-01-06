@@ -19,6 +19,7 @@ dependencies {
     implementation libraries.micrometerCore
     implementation libraries.newRelic
     implementation libraries.jacksonDatabind
+    implementation 'com.vdurmont:semver4j:3.1.0'
 
     // TODO: avoid ioc related code or spring boot code in core
     implementation libraries.springTx

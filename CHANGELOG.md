@@ -5,8 +5,8 @@ Describes notable changes.
 #### 1.21.1 - 2020/01/03
 - Task data is still saved into old data field, to allow seamless upgrade process.
 When upgrade from versions before 1.21.0 is finished, i.e. all cluster nodes have the new version;
-  `TasksProperties.Migration.copyDataToTwTaskField` can be set to `false`, stopping writing into the old data field.
-- `TasksProperties.Migration.previousVersion` is mandatory.
+  `TasksProperties.copyDataToTwTaskField` can be set to `false`, stopping writing into the old data field.
+- `TasksProperties.Environment.previousVersion` is mandatory.
 
 #### 1.21.0 - 2020/12/21
 - Task data is now binary.

@@ -54,14 +54,14 @@ public class TaskDataIntTest extends BaseIntTest {
     originalMinSize = tasksProperties.getCompression().getMinSize();
     tasksProperties.getCompression().setAlgorithm(CompressionAlgorithm.GZIP);
     tasksProperties.getCompression().setMinSize(100);
-    originalCopyDataToTwTaskField = tasksProperties.getMigration().isCopyDataToTwTaskField();
+    originalCopyDataToTwTaskField = tasksProperties.isCopyDataToTwTaskField();
   }
 
   @AfterEach
   public void cleanup() {
     tasksProperties.getCompression().setAlgorithm(originalAlgorithm);
     tasksProperties.getCompression().setMinSize(originalMinSize);
-    tasksProperties.getMigration().setCopyDataToTwTaskField(originalCopyDataToTwTaskField);
+    tasksProperties.setCopyDataToTwTaskField(originalCopyDataToTwTaskField);
   }
 
   private static Stream<Arguments> compressionWorksInput() {
@@ -143,7 +143,7 @@ public class TaskDataIntTest extends BaseIntTest {
   @Test
   void oldDataFieldIsNotSetForNewTasks() {
     testTasksService.stopProcessing();
-    tasksProperties.getMigration().setCopyDataToTwTaskField(false);
+    tasksProperties.setCopyDataToTwTaskField(false);
 
     String data = "Hello World!";
     AddTaskRequest addTaskRequest = new AddTaskRequest().setType("test_data").setData(data.getBytes(StandardCharsets.UTF_8));

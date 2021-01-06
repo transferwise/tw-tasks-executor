@@ -4,11 +4,11 @@ import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProv
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
 import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
-import com.transferwise.tasks.IMigrationHandler;
+import com.transferwise.tasks.EnvironmentValidator;
+import com.transferwise.tasks.IEnvironmentValidator;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
-import com.transferwise.tasks.MigrationHandler;
 import com.transferwise.tasks.PriorityManager;
 import com.transferwise.tasks.TaskDataSerializer;
 import com.transferwise.tasks.TasksProperties;
@@ -246,13 +246,13 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(ITaskDataSerializer.class)
-  public TaskDataSerializer taskDataSerializer() {
+  public TaskDataSerializer twTasksTaskDataSerializer() {
     return new TaskDataSerializer();
   }
 
   @Bean
-  @ConditionalOnMissingBean(IMigrationHandler.class)
-  public MigrationHandler migrationHandler() {
-    return new MigrationHandler();
+  @ConditionalOnMissingBean(IEnvironmentValidator.class)
+  public EnvironmentValidator twTasksEnvironmentValidator() {
+    return new EnvironmentValidator();
   }
 }
