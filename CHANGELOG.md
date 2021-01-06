@@ -4,7 +4,7 @@ Describes notable changes.
 
 #### 1.21.1 - 2020/01/03
 - Task data is still saved into old data field, to allow seamless upgrade process.
-When upgrade from versions before 1.21.0 is finished, i.e. all cluster nodes have the new version;
+When upgrade from versions before 1.21.1 is finished, i.e. all cluster nodes have the new version;
   `TasksProperties.copyDataToTwTaskField` can be set to `false`, stopping writing into the old data field.
 - `TasksProperties.Environment.previousVersion` is mandatory.
 
