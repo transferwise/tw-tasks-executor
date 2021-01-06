@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.22.0 - 2020/01/06
+- Removes `copyDataToTwTaskField` property and sets `1.21.1` as minimum upgradable version.
+We don't write into old `data` field anymore.
+
 #### 1.21.1 - 2020/01/03
 - Task data is still saved into old data field, to allow seamless upgrade process.
 When upgrade from versions before 1.21.1 is finished, i.e. all cluster nodes have the new version;

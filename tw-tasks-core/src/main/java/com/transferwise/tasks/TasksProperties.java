@@ -254,20 +254,6 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
-   * Copies data to old data field as well.
-   *
-   * <p>Temporary property helping to roll out 1.21.+ version from older minor versions.
-   *
-   * <p>When we are rolling out a new version, nodes with old version need to be able to process new tasks created by nodes with the new version.
-   * For that, if this property is `true`, we are copying the binary data into the old tw_task.data field as a string.
-   *
-   * <p>Once all the nodes have 1.21.+ version and there is no risk of needing a rollback, the property should be set as false.
-   *
-   * <p>Will be removed in 1.22.0.
-   */
-  private boolean copyDataToTwTaskField = true;
-
-  /**
    * Cluster wide tasks state monitoring options.
    */
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
