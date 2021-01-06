@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.22.1 - 2020/01/06
+- Fixes approximate tables rows counts queries.
+
 #### 1.22.0 - 2020/01/06
 - Removes `copyDataToTwTaskField` property and sets `1.21.1` as minimum upgradable version.
 We don't write into old `data` field anymore.

@@ -734,7 +734,7 @@ public class MySqlTaskDao implements ITaskDao {
 
   protected String getApproximateTableCountSql(boolean withSchema, String table) {
     String schema = "DATABASE()";
-    if (!withSchema) {
+    if (withSchema) {
       schema = "'" + tasksProperties.getTaskTablesSchemaName() + "'";
     }
     return "select table_rows from information_schema.tables where table_schema=" + schema + " and table_name = '" + table + "'";
