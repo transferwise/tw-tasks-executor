@@ -141,16 +141,3 @@ spring:
   profiles: mariadb
   datasource:
     url: jdbc:mariadb://localhost:13307/demoapp?rewriteBatchedStatements=false&useSSL=false&useServerPrepStmts=true&useCompression=false
-
-
----
-spring:
-  profiles: rds
-  datasource:
-  #url: jdbc:mariadb://tw-staging-bank-statements.cw9mlsbpgbuj.eu-central-1.rds.amazonaws.com/bank_statements?rewriteBatchedStatements=false&useSSL=false&useServerPrepStmts=true&useCompression=true
-  #username: bank_statements
-  #password: hTpIitdHnoyxoYOFhhTEtgvvKgUSmw
-
-tw-task:
-  task-table-name: "demoapp_tw_task"
-  unique-task-key-table-name: "demoapp_unique_tw_task_key"
