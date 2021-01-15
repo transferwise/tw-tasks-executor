@@ -1,5 +1,6 @@
 package com.transferwise.tasks;
 
+import com.transferwise.tasks.utils.ClientIdUtils;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,7 +22,7 @@ public class TasksProperties {
   /**
    * Unique node id in the service cluster. It helps to make crash recovery for a node very fast, but also is good for logging and tracking reasons.
    */
-  private String clientId;
+  private String clientId = ClientIdUtils.clientIdFromHostname();
   /**
    * How often do we check if any task is stuck.
    */
