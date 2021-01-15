@@ -316,7 +316,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     try {
       bucket.getTasksGrabbingLock().lock();
       try {
-        while (bucket.getInProgressTasksGrabbingCount().incrementAndGet() > bucketProperties.getTaskGrabbingConcurrency()) {
+        while (bucket.getInProgressTasksGrabbingCount().incrementAndGet() > bucketProperties.getTaskGrabbingMaxConcurrency()) {
           bucket.getInProgressTasksGrabbingCount().decrementAndGet();
           boolean ignored = bucket.getTasksGrabbingCondition().await(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS);
         }

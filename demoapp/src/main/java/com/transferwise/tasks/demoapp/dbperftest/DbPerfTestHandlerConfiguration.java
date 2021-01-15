@@ -27,7 +27,7 @@ public class DbPerfTestHandlerConfiguration {
     return new TaskHandlerAdapter(task -> task.getType().startsWith(TASK_TYPE), (ISyncTaskProcessor) task -> ExceptionUtils.doUnchecked(() -> {
       int depth = Integer.parseInt(task.getSubType());
 
-      // Sleep should be added on less powerful machines to not let the load average going too high. 
+      // Sleep should be added on less powerful machines to not let the load average going too high.
       // Otherwise the results are completely skewed.
       // Thread.sleep(10);
 
@@ -37,7 +37,7 @@ public class DbPerfTestHandlerConfiguration {
 
       return null;
     }))
-        .setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(20))
+        .setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(100))
         .setProcessingPolicy(new SimpleTaskProcessingPolicy().setMaxProcessingDuration(Duration.ofMinutes(2)))
         .setRetryPolicy(
             new ExponentialTaskRetryPolicy().setDelay(Duration.ofSeconds(5)).setMultiplier(2).setMaxCount(20).setMaxDelay(Duration.ofMinutes(120)));

@@ -1,6 +1,5 @@
 package com.transferwise.tasks.management;
 
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -21,6 +20,7 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
 import com.transferwise.tasks.utils.LogUtils;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -246,7 +246,7 @@ public class TasksManagementService implements ITasksManagementService {
             response.setResultCode(ResultCode.SUCCESS);
             if (task.getData() != null) {
               if (request.getContentFormat() == ContentFormat.BASE64) {
-                response.setData(Base64.encode(task.getData()));
+                response.setData(Base64.getEncoder().encodeToString(task.getData()));
               } else {
                 response.setData(new String(task.getData(), StandardCharsets.UTF_8));
               }

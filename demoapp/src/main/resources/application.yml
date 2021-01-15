@@ -12,7 +12,7 @@ spring:
     username: postgres
     password: example-password-change-me
     tomcat:
-      max-active: 30
+      max-active: 100
       max-idle: 30
       min-idle: 0
       initial-size: 1
@@ -71,7 +71,7 @@ tw-tasks:
     additional-processing-buckets:
       - emails
     environment:
-      previousVersion: "1.20.0"
+      previousVersion: "1.21.1"
     #trigger-same-task-in-all-nodes: true
     #tasksHistoryDeletingBatchSize: 500
     #tasksCleaningInterval: PT0.5s

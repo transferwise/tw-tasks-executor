@@ -40,7 +40,9 @@ public class BucketsManager implements IBucketsManager {
           .setTriggersFetchSize(tasksProperties.getTriggerFetchSize())
           .setAutoResetOffsetTo(tasksProperties.getAutoResetOffsetTo())
           .setTriggerInSameProcess(tasksProperties.isTriggerInSameProcess())
-          .setAutoStartProcessing(tasksProperties.isAutoStartProcessing()));
+          .setAutoStartProcessing(tasksProperties.isAutoStartProcessing())
+          .setTaskGrabbingMaxConcurrency(tasksProperties.getTaskGrabbingMaxConcurrency())
+      );
 
       registerUniqueBucketIds();
     });
