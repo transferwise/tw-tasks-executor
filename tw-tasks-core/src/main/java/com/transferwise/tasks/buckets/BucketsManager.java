@@ -113,6 +113,9 @@ public class BucketsManager implements IBucketsManager {
       if (bucketProperties.getAutoStartProcessing() == null) {
         bucketProperties.setAutoStartProcessing(defaultProperties.getAutoStartProcessing());
       }
+      if (bucketProperties.getTaskGrabbingMaxConcurrency() == null) {
+        bucketProperties.setTaskGrabbingMaxConcurrency(defaultProperties.getTaskGrabbingMaxConcurrency());
+      }
       bucketsProperties.put(bucketId, bucketProperties);
     });
   }
