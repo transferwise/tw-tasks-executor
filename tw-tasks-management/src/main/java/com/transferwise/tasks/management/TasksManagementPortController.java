@@ -3,6 +3,8 @@ package com.transferwise.tasks.management;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
+import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest;
+import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest.ContentFormat;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -99,10 +101,11 @@ public class TasksManagementPortController implements ITasksManagementPort {
   }
 
   @Override
-  public ResponseEntity<GetTaskDataResponse> getTaskData(UUID taskId) {
+  public ResponseEntity<GetTaskDataResponse> getTaskData(UUID taskId, String format) {
     return callWithAuthentication(tasksProperties.getTasksManagement().getViewTaskDataRoles(),
         (auth) -> {
-          GetTaskDataResponse response = tasksManagementService.getTaskData(taskId);
+          GetTaskDataRequest request = new GetTaskDataRequest().setTaskId(taskId).setContentFormat(ContentFormat.of(format));
+          GetTaskDataResponse response = tasksManagementService.getTaskData(request);
 
           if (response.getResultCode() == ResultCode.NOT_FOUND) {
             log.info("User '{}' tried to fetch payload for task '{}', but it was not found.", auth.getName(), taskId);

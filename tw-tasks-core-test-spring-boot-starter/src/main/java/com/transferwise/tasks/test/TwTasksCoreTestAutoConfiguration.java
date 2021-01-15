@@ -6,12 +6,14 @@ import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.test.dao.ITestTaskDao;
 import com.transferwise.tasks.test.dao.MySqlTestTaskDao;
 import com.transferwise.tasks.test.dao.PostgresTestTaskDao;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@AutoConfigureBefore(name = "com.transferwise.tasks.core.autoconfigure.TwTasksCoreAutoConfiguration")
 public class TwTasksCoreTestAutoConfiguration {
 
   @Bean

@@ -2,14 +2,18 @@
 
 Describes notable changes.
 
-#### 1.22.1 - 2020/01/06
+#### 1.22.2 - 2021/01/15
+- Fixes of fetching task info and data via management endpoints for tasks with empty data.
+- Allows fetching task data as Base64.
+
+#### 1.22.1 - 2021/01/06
 - Fixes approximate tables rows counts queries.
 
-#### 1.22.0 - 2020/01/06
+#### 1.22.0 - 2021/01/06
 - Removes `copyDataToTwTaskField` property and sets `1.21.1` as minimum upgradable version.
 We don't write into old `data` field anymore.
 
-#### 1.21.1 - 2020/01/03
+#### 1.21.1 - 2021/01/03
 - Task data is still saved into old data field, to allow seamless upgrade process.
 When upgrade from versions before 1.21.1 is finished, i.e. all cluster nodes have the new version;
   `TasksProperties.copyDataToTwTaskField` can be set to `false`, stopping writing into the old data field.

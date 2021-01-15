@@ -48,8 +48,8 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
           + " where status in (?) order by next_event_time desc limit ?";
       getTasks = "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,state_time"
           + ",next_event_time,processing_client_id,d.data_format,d.data"
-          + " from " + tables.getTaskTableIdentifier() + " t, " + tables.getTaskDataTableIdentifier() + " d"
-          + " where t.id = d.task_id and t.id in (??)";
+          + " from " + tables.getTaskTableIdentifier() + " t left join " + tables.getTaskDataTableIdentifier() + " d on t.id = d.task_id"
+          + " where t.id in (??)";
     }
   }
 

@@ -1,5 +1,6 @@
 package com.transferwise.tasks.management;
 
+import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
@@ -12,6 +13,7 @@ import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutDataResponse;
+import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest.ContentFormat;
 import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
@@ -226,9 +228,10 @@ public class TasksManagementService implements ITasksManagementService {
 
   @Override
   @EntryPoint(usesExisting = true)
-  public GetTaskDataResponse getTaskData(UUID taskId) {
+  public GetTaskDataResponse getTaskData(GetTaskDataRequest request) {
     return entryPointsHelper.continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASK_DATA,
         () -> {
+          UUID taskId = request.getTaskId();
           mdcService.put(taskId);
           GetTaskDataResponse response = new GetTaskDataResponse();
 
@@ -239,8 +242,15 @@ public class TasksManagementService implements ITasksManagementService {
           } else {
             response.setVersion(task.getVersion());
             response.setType(task.getType());
-            // TODO: Allow a toggle which will provide HEX.
-            response.setResultCode(ResultCode.SUCCESS).setData(new String(task.getData(), StandardCharsets.UTF_8));
+
+            response.setResultCode(ResultCode.SUCCESS);
+            if (task.getData() != null) {
+              if (request.getContentFormat() == ContentFormat.BASE64) {
+                response.setData(Base64.encode(task.getData()));
+              } else {
+                response.setData(new String(task.getData(), StandardCharsets.UTF_8));
+              }
+            }
           }
           return response;
         });

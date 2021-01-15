@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.EnumSource.Mode;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
@@ -159,6 +160,61 @@ public class TasksManagementPortIntTest extends BaseIntTest {
         .getForEntity("/v1/twTasks/task/" + taskId + "/data", GetTaskDataResponse.class);
     assertThat(dataResponse.getBody()).isNotNull();
     assertThat(dataResponse.getBody().getData()).isEqualTo("the payload");
+    assertThat(dataResponse.getBody().getResultCode()).isEqualTo(ResultCode.SUCCESS);
+  }
+
+  @SneakyThrows
+  @ParameterizedTest(name = "find a task with {0} payload")
+  @ValueSource(strings = {"Hello World!", "", "<null>"})
+  void findATaskWithOrWithoutData(String payload) {
+    if ("<null>".equals(payload)) {
+      payload = null;
+    }
+    testTasksService.stopProcessing();
+
+    String finalPayload = payload;
+    final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .inStatus(TaskStatus.DONE)
+            .withData(taskDataSerializer.serialize(finalPayload))
+            .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
+            .save()
+            .getTaskId()
+    );
+
+    ResponseEntity<GetTaskWithoutDataResponse> response = goodEngineerTemplate().getForEntity(
+        "/v1/twTasks/task/" + taskId + "/noData",
+        GetTaskWithoutDataResponse.class
+    );
+
+    assertEquals(200, response.getStatusCodeValue());
+    assertNotNull(response.getBody());
+
+    ResponseEntity<GetTaskDataResponse> dataResponse = piiOfficerTemplate()
+        .getForEntity("/v1/twTasks/task/" + taskId + "/data", GetTaskDataResponse.class);
+    assertThat(dataResponse.getBody()).isNotNull();
+    assertThat(dataResponse.getBody().getData()).isEqualTo(payload);
+    assertThat(dataResponse.getBody().getResultCode()).isEqualTo(ResultCode.SUCCESS);
+  }
+
+  @SneakyThrows
+  @Test
+  void getTaskDataInBase64() {
+    testTasksService.stopProcessing();
+
+    final UUID taskId = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .inStatus(TaskStatus.DONE)
+            .withData(taskDataSerializer.serialize("Hello World!"))
+            .withMaxStuckTime(ZonedDateTime.now().minusDays(2))
+            .save()
+            .getTaskId()
+    );
+
+    ResponseEntity<GetTaskDataResponse> dataResponse = piiOfficerTemplate()
+        .getForEntity("/v1/twTasks/task/" + taskId + "/data?format=BaSe64", GetTaskDataResponse.class);
+    assertThat(dataResponse.getBody()).isNotNull();
+    assertThat(dataResponse.getBody().getData()).isEqualTo("SGVsbG8gV29ybGQh");
     assertThat(dataResponse.getBody().getResultCode()).isEqualTo(ResultCode.SUCCESS);
   }
 

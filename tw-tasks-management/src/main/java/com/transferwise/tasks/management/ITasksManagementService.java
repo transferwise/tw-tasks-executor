@@ -7,10 +7,12 @@ import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutData
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -21,7 +23,29 @@ public interface ITasksManagementService {
   @EntryPoint(usesExisting = true)
   GetTaskWithoutDataResponse getTaskWithoutData(UUID taskId);
 
-  GetTaskDataResponse getTaskData(UUID taskId);
+  GetTaskDataResponse getTaskData(GetTaskDataRequest taskDataRequest);
+
+  @Data
+  @Accessors(chain = true)
+  class GetTaskDataRequest {
+
+    private UUID taskId;
+    private ContentFormat contentFormat = ContentFormat.UTF8_STRING;
+
+    public enum ContentFormat {
+      UTF8_STRING,
+      BASE64;
+
+      private static final Map<String, ContentFormat> index = Arrays.stream(values()).collect(Collectors.toMap(e -> e.name().toLowerCase(), e -> e));
+
+      public static ContentFormat of(String value) {
+        if (value == null) {
+          return null;
+        }
+        return index.get(value.toLowerCase());
+      }
+    }
+  }
 
   @Data
   @Accessors(chain = true)
