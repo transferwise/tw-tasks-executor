@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.22.3 - 2021/01/15
+- Increases tasks grabbing maximum concurrency from 10 to 25 and makes it configurable by a property.
+- Fixes Base64 encoder package.
+
 #### 1.22.2 - 2021/01/15
 - Fixes of fetching task info and data via management endpoints for tasks with empty data.
 - Allows fetching task data as Base64.

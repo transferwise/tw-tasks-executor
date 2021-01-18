@@ -255,6 +255,20 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
+   * How many tasks per bucket we are trying to grab at the same time.
+   *
+   * <p>Mainly meant as a soft safety measure in cases where concurrency policies are lacking good quality.
+   *
+   * <p>The amount of tasks grabbings happening at the same time, is also limited by the concurrency policies.
+   *
+   * <p>The higher the latency between application and the database, the more useful a larger number can be.
+   *
+   * <p>The default 25 is somewhat optimized for RDS Multi A/Z databases with high commit latency, where we have 6 nodes application cluster,
+   * relatively close to the database.
+   */
+  private Integer taskGrabbingMaxConcurrency = 25;
+
+  /**
    * Cluster wide tasks state monitoring options.
    */
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();

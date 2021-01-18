@@ -23,16 +23,8 @@ public class BucketProperties {
   private String autoResetOffsetTo;
   private Integer triggersFetchSize;
   private Boolean triggerInSameProcess;
-  /**
-   * The more buckets or cluster nodes you have, the lower you probably want to have this.
-   *
-   * <p>Having more threads will lower the individual node task processing latency in situations where processing slots are mostly full (heavy load).
-   * But if you have more nodes or lower load, this starts mattering less and less.
-   */
-  private int taskGrabbingConcurrency = 10;
-
+  private Integer taskGrabbingMaxConcurrency;
   private Boolean autoStartProcessing;
-
   private Duration autoResetOffsetToDuration;
 
   public BucketProperties setAutoResetOffsetTo(String autoResetOffsetTo) {

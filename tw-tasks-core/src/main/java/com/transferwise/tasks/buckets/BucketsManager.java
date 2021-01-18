@@ -40,7 +40,9 @@ public class BucketsManager implements IBucketsManager {
           .setTriggersFetchSize(tasksProperties.getTriggerFetchSize())
           .setAutoResetOffsetTo(tasksProperties.getAutoResetOffsetTo())
           .setTriggerInSameProcess(tasksProperties.isTriggerInSameProcess())
-          .setAutoStartProcessing(tasksProperties.isAutoStartProcessing()));
+          .setAutoStartProcessing(tasksProperties.isAutoStartProcessing())
+          .setTaskGrabbingMaxConcurrency(tasksProperties.getTaskGrabbingMaxConcurrency())
+      );
 
       registerUniqueBucketIds();
     });
@@ -110,6 +112,9 @@ public class BucketsManager implements IBucketsManager {
       }
       if (bucketProperties.getAutoStartProcessing() == null) {
         bucketProperties.setAutoStartProcessing(defaultProperties.getAutoStartProcessing());
+      }
+      if (bucketProperties.getTaskGrabbingMaxConcurrency() == null) {
+        bucketProperties.setTaskGrabbingMaxConcurrency(defaultProperties.getTaskGrabbingMaxConcurrency());
       }
       bucketsProperties.put(bucketId, bucketProperties);
     });
