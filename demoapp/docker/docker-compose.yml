@@ -79,8 +79,10 @@ services:
     --innodb_log_file_size=10g
     --query_cache_type=0
     --innodb_adaptive_hash_index=0
-    --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED"
+    --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED
+    "
 
+#    --innodb_page_size=8k
 #    --log_bin_compress=1
 
 
@@ -103,19 +105,19 @@ services:
       POSTGRES_PASSWORD: example-password-change-me
     volumes:
       - ./postgres/postgre-initdb.d:/docker-entrypoint-initdb.d
-# Those are restricted settings for a server with about total of 512MB memory.
-# Use higher values for unhindered throughput testing.
-    command: "-c 'max_connections=200' -c 'shared_buffers=128MB' -c 'effective_cache_size=384MB' -c 'maintenance_work_mem=32MB'
-    -c 'wal_buffers=3932kB'
-    -c 'work_mem=327kB' -c 'max_worker_processes=4'
-    -c 'max_parallel_workers_per_gather=2' -c 'max_parallel_workers=4' -c 'max_parallel_maintenance_workers=2'
-    -c 'shared_preload_libraries=pg_stat_statements'"
-
-# -c 'effective_io_concurrency=200'
-# -c 'random_page_cost=1.1'
-# -c 'min_wal_size=2GB' -c 'max_wal_size=8GB'
-# -c 'checkpoint_completion_target=0.9'
-# -c 'default_statistics_target=100'
+    command: "-c 'max_connections=200' -c 'shared_buffers=1GB' -c 'effective_cache_size=3GB' -c 'maintenance_work_mem=256MB'
+    -c 'wal_buffers=16MB'
+    -c 'work_mem=327kB' -c 'max_worker_processes=8'
+    -c 'max_parallel_workers_per_gather=4' -c 'max_parallel_workers=8' -c 'max_parallel_maintenance_workers=4'
+    -c 'shared_preload_libraries=pg_stat_statements'
+    -c 'effective_io_concurrency=200'
+    -c 'random_page_cost=1.1'
+    -c 'min_wal_size=2GB' -c 'max_wal_size=8GB'
+    -c 'checkpoint_completion_target=0.9'
+    -c 'default_statistics_target=100'
+    -c 'archive_command='
+    -c 'archive_mode=on'
+    "
 
 networks:
   default:
