@@ -23,7 +23,9 @@ import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy.StuckDetector;
 import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.DomainUtils;
 import com.transferwise.tasks.utils.LogUtils;
@@ -65,6 +67,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   private IMdcService mdcService;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private ITasksProcessingService tasksProcessingService;
 
   private LeaderSelectorV2 leaderSelector;
 
@@ -167,7 +171,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
                   }
 
                   mdcService.put(task);
-                  handleStuckTask(task, resumedCount, errorCount, failedCount);
+                  handleStuckTask(task, StuckDetector.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, resumedCount, errorCount, failedCount);
                 }
                 log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
 
@@ -221,7 +225,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     }
   }
 
-  protected void handleStuckTask(ITaskDao.StuckTask task, AtomicInteger resumedCount, AtomicInteger errorCount, AtomicInteger failedCount) {
+  protected void handleStuckTask(ITaskDao.StuckTask task, StuckDetector stuckDetector, AtomicInteger resumedCount, AtomicInteger errorCount,
+      AtomicInteger failedCount) {
     ITaskProcessingPolicy.StuckTaskResolutionStrategy taskResolutionStrategy = null;
 
     ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
@@ -235,7 +240,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
       if (taskProcessingPolicy == null) {
         log.error("No processing policy found for task " + LogUtils.asParameter(task.getVersionId()) + ".");
       } else {
-        taskResolutionStrategy = taskProcessingPolicy.getStuckTaskResolutionStrategy(task);
+        taskResolutionStrategy = taskProcessingPolicy.getStuckTaskResolutionStrategy(task, stuckDetector);
         bucketId = taskProcessingPolicy.getProcessingBucket(task);
       }
     }
@@ -326,21 +331,34 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     try {
       unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_TASKS_FOR_CLIENT).toContext()
           .execute(() -> {
+            AtomicInteger resumedCount = new AtomicInteger();
+            AtomicInteger errorCount = new AtomicInteger();
+            AtomicInteger failedCount = new AtomicInteger();
+
             log.info("Checking if we can immediately resume this client's stuck tasks.");
+            // We don't split to batches here, because the amount of `PROCESSING` tasks is usually limited by concurrency policies.
             List<ITaskDao.StuckTask> clientTasks = taskDao
                 .prepareStuckOnProcessingTasksForResuming(tasksProperties.getClientId(), getMaxStuckTime(null, null));
+
+            if (!shuttingDown) {
+              // We can only start processing here. If we start processing earlier, the query above can find tasks just marked as PROCESSING
+              // by the same node we are running on.
+              tasksProcessingService.startProcessing();
+            }
+
             for (ITaskDao.StuckTask task : clientTasks) {
               if (shuttingDown) {
                 break;
               }
               mdcService.put(task);
-              log.info("Resuming client '" + tasksProperties.getClientId() + "' task " + LogUtils.asParameter(task.getVersionId())
-                  + " of type '" + task.getType() + "' in status '" + task.getStatus() + "'.");
+              log.info("Found client '" + tasksProperties.getClientId() + "' task " + LogUtils.asParameter(task.getVersionId())
+                  + " of type '" + task.getType() + "' stuck in status '" + task.getStatus() + "'.");
 
-              tasksExecutionTriggerer.trigger(DomainUtils.convert(task, BaseTask.class));
+              handleStuckTask(task, StuckDetector.SAME_NODE_STARTUP, resumedCount, errorCount, failedCount);
+            }
 
-              meterHelper.registerStuckClientTaskResuming(task.getType());
-              meterHelper.registerTaskResuming(null, task.getType());
+            if (log.isDebugEnabled() && (resumedCount.get() > 0 || errorCount.get() > 0 || failedCount.get() > 0)) {
+              log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
             }
           });
     } catch (Throwable t) {

@@ -113,6 +113,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   private Instant shutdownStartTime;
   private final Set<Thread> tasksProcessingThreads = new HashSet<>();
   private final Lock tasksProcessingThreadsLock = new ReentrantLock();
+  private final Lock lifecycleLock = new ReentrantLock();
+  private volatile boolean processingStarted;
 
   @PostConstruct
   public void init() {
@@ -672,48 +674,57 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   }
 
   @Override
-  public void applicationStarted() {
-    for (String bucketId : bucketsManager.getBucketIds()) {
-      if (!bucketsManager.getBucketProperties(bucketId).getTriggerSameTaskInAllNodes() && tasksProperties.isCheckVersionBeforeGrabbing()) {
-        log.warn(
-            "Suboptimal configuration for bucket '" + bucketId + "' found. triggerSameTaskInAllNodes=false and checkVersionBeforeGrabbing=true.");
+  public void startProcessing() {
+    lifecycleLock.lock();
+    try {
+      if (processingStarted) {
+        return;
       }
-
-      GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
-
-      Map<String, String> tags = ImmutableMap.of("bucketId", bucketId);
-      meterHelper.registerGauge(METRIC_PREFIX + "processing.runningTasksCount", tags, () -> bucket.getRunningTasksCount().get());
-      meterHelper
-          .registerGauge(METRIC_PREFIX + "processing.inProgressTasksGrabbingCount", tags, () -> bucket.getInProgressTasksGrabbingCount().get());
-      meterHelper.registerGauge(METRIC_PREFIX + "processing.triggersCount", tags, () -> bucket.getSize().get());
-      meterHelper.registerGauge(METRIC_PREFIX + "processing.stateVersion", tags, () -> bucket.getVersion().get());
-
-      tasksProcessingExecutor.submit(() -> {
-        while (!shuttingDown) {
-          try {
-            long stateVersion = bucket.getVersion().get();
-
-            processTasks(bucket);
-
-            Lock versionLock = bucket.getVersionLock();
-            versionLock.lock();
-            try {
-              while (bucket.getVersion().get() == stateVersion && !shuttingDown) {
-                try {
-                  bucket.getVersionCondition().await(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS);
-                } catch (InterruptedException e) {
-                  log.error(e.getMessage(), e);
-                }
-              }
-            } finally {
-              versionLock.unlock();
-            }
-          } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-            WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
-          }
+      for (String bucketId : bucketsManager.getBucketIds()) {
+        if (!bucketsManager.getBucketProperties(bucketId).getTriggerSameTaskInAllNodes() && tasksProperties.isCheckVersionBeforeGrabbing()) {
+          log.warn(
+              "Suboptimal configuration for bucket '" + bucketId + "' found. triggerSameTaskInAllNodes=false and checkVersionBeforeGrabbing=true.");
         }
-      });
+
+        GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
+
+        Map<String, String> tags = ImmutableMap.of("bucketId", bucketId);
+        meterHelper.registerGauge(METRIC_PREFIX + "processing.runningTasksCount", tags, () -> bucket.getRunningTasksCount().get());
+        meterHelper
+            .registerGauge(METRIC_PREFIX + "processing.inProgressTasksGrabbingCount", tags, () -> bucket.getInProgressTasksGrabbingCount().get());
+        meterHelper.registerGauge(METRIC_PREFIX + "processing.triggersCount", tags, () -> bucket.getSize().get());
+        meterHelper.registerGauge(METRIC_PREFIX + "processing.stateVersion", tags, () -> bucket.getVersion().get());
+
+        tasksProcessingExecutor.submit(() -> {
+          while (!shuttingDown) {
+            try {
+              long stateVersion = bucket.getVersion().get();
+
+              processTasks(bucket);
+
+              Lock versionLock = bucket.getVersionLock();
+              versionLock.lock();
+              try {
+                while (bucket.getVersion().get() == stateVersion && !shuttingDown) {
+                  try {
+                    bucket.getVersionCondition().await(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS);
+                  } catch (InterruptedException e) {
+                    log.error(e.getMessage(), e);
+                  }
+                }
+              } finally {
+                versionLock.unlock();
+              }
+            } catch (Throwable t) {
+              log.error(t.getMessage(), t);
+              WaitUtils.sleepQuietly(tasksProperties.getGenericMediumDelay());
+            }
+          }
+        });
+      }
+      processingStarted = true;
+    } finally {
+      lifecycleLock.unlock();
     }
   }
 

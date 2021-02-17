@@ -20,6 +20,7 @@ import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy.StuckDetector;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy.StuckTaskResolutionStrategy;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
@@ -85,7 +86,7 @@ class TasksResumerTest {
         .setVersionId(new TaskVersionId(UuidUtils.generatePrefixCombUuid(), 0));
     AtomicInteger numResumed = new AtomicInteger();
 
-    service.handleStuckTask(task, numResumed, null, null);
+    service.handleStuckTask(task, StuckDetector.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, numResumed, null, null);
 
     verify(tasksExecutionTriggerer).trigger(argThat(
         baseTask -> 1 == baseTask.getVersion() && task.getVersionId().getId().equals(baseTask.getId())
@@ -109,7 +110,7 @@ class TasksResumerTest {
     lenient().when(taskDao.setStatus(any(), any(), anyLong())).thenReturn(true);
 
     ITaskProcessingPolicy processingPolicy = Mockito.mock(ITaskProcessingPolicy.class);
-    when(processingPolicy.getStuckTaskResolutionStrategy(any())).thenReturn(resolutionStrategy);
+    when(processingPolicy.getStuckTaskResolutionStrategy(any(), any())).thenReturn(resolutionStrategy);
     lenient().when(processingPolicy.getProcessingDeadline(any())).thenReturn(null);
 
     when(taskHandlerRegistry.getTaskHandler(any())).thenReturn(Mockito.mock(ITaskHandler.class));
@@ -123,7 +124,7 @@ class TasksResumerTest {
         .setType("TEST")
         .setStatus(TaskStatus.PROCESSING.name())
         .setVersionId(new TaskVersionId(UuidUtils.generatePrefixCombUuid(), 0));
-    service.handleStuckTask(task, numResumed, numError, numFailed);
+    service.handleStuckTask(task, StuckDetector.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, numResumed, numError, numFailed);
 
     verify(tasksExecutionTriggerer, times(resumed)).trigger(argThat(
         baseTask -> baseTask.getVersion() == 1 && baseTask.getId().equals(task.getVersionId().getId())

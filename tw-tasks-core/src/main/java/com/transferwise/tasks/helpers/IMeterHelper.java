@@ -54,8 +54,6 @@ public interface IMeterHelper {
 
   void registerStuckTaskMarkedAsError(String taskType);
 
-  void registerStuckClientTaskResuming(String taskType);
-
   void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
 
   void registerTaskGrabbingResponse(String bucketId, String type, int priority, ProcessTaskResponse processTaskResponse);

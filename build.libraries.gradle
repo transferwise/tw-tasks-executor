@@ -1,7 +1,7 @@
 ext {
     twContextVersion = "0.7.0"
-    twLeaderSelectorVersion = "1.4.0"
-    springBootVersion = "2.3.7.RELEASE"
+    twLeaderSelectorVersion = "1.5.0"
+    springBootVersion = "2.3.8.RELEASE"
 
 
     libraries = [
@@ -10,9 +10,9 @@ ext {
             apacheCuratorRecipies       : "org.apache.curator:curator-recipes:5.1.0",
             apacheCommonsCollections    : "org.apache.commons:commons-collections4:4.4",
             commonsIo                   : "commons-io:commons-io:2.8.0",
-            guava                       : "com.google.guava:guava:30.0-jre",
+            guava                       : "com.google.guava:guava:30.1-jre",
             semver4j                    : "com.vdurmont:semver4j:3.1.0",
-            twGracefulShutdown          : "com.transferwise.common:tw-graceful-shutdown:1.2.9",
+            twGracefulShutdown          : "com.transferwise.common:tw-graceful-shutdown:2.1.0",
             twGracefulShutdownIntefaces : "com.transferwise.common:tw-graceful-shutdown-interfaces:1.3.2",
             twContext                   : "com.transferwise.common:tw-context:${twContextVersion}",
             twContextStarter            : "com.transferwise.common:tw-context-starter:${twContextVersion}",
@@ -20,11 +20,11 @@ ext {
             twLeaderSelector            : "com.transferwise.common:tw-leader-selector:${twLeaderSelectorVersion}",
             twLeaderSelectorStarter     : "com.transferwise.common:tw-leader-selector-starter:${twLeaderSelectorVersion}",
             twBaseUtils                 : "com.transferwise.common:tw-base-utils:1.3.2",
-            spotbugsAnnotations         : "com.github.spotbugs:spotbugs-annotations:4.1.4",
-            newRelic                    : "com.newrelic.agent.java:newrelic-api:6.1.0",
+            spotbugsAnnotations         : "com.github.spotbugs:spotbugs-annotations:4.2.1",
+            newRelic                    : "com.newrelic.agent.java:newrelic-api:6.4.1",
             awaitility                  : 'org.awaitility:awaitility:4.0.3',
             gafferJta                   : 'com.transferwise.common:tw-gaffer-jta:1.3.1',
-            twEntryPointsStarter        : 'com.transferwise.common:tw-entrypoints-starter:2.2.1',
+            twEntryPointsStarter        : 'com.transferwise.common:tw-entrypoints-starter:2.3.0',
 
             // versions managed by spring-boot-dependencies platform
             springKafka                 : "org.springframework.kafka:spring-kafka",

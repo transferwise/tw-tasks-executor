@@ -18,7 +18,7 @@ import org.springframework.jdbc.datasource.IsolationLevelDataSourceAdapter;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.jta.JtaTransactionManager;
 
-@Configuration
+//@Configuration
 @EnableTransactionManagement
 public class TransactionManagerConfigurationTomcat {
 

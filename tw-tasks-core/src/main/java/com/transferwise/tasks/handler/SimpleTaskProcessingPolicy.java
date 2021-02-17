@@ -42,7 +42,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   }
 
   @Override
-  public StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task) {
+  public StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task, StuckDetector stuckDetector) {
     return stuckTaskResolutionStrategy;
   }
 

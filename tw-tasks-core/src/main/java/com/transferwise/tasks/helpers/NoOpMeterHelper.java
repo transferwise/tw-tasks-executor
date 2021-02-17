@@ -99,11 +99,6 @@ public class NoOpMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerStuckClientTaskResuming(String taskType) {
-
-  }
-
-  @Override
   public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus) {
 
   }

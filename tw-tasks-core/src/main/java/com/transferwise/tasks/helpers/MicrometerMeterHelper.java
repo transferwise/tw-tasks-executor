@@ -43,7 +43,6 @@ public class MicrometerMeterHelper implements IMeterHelper {
   private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_IGNORED_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.ignoredCount";
   private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_RESUMED_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.resumedCount";
   private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_ERROR_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.markErrorCount";
-  private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_CLIENT_RESUMED_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.clientResumedCount";
   private static final String METRIC_TASKS_FAILED_GRABBINGS_COUNT = METRIC_PREFIX + "tasks.failedGrabbingsCount";
   private static final String METRIC_TASKS_RETRIES_COUNT = METRIC_PREFIX + "tasks.retriesCount";
   private static final String METRIC_TASKS_RESUMINGS_COUNT = METRIC_PREFIX + "tasks.resumingsCount";
@@ -165,11 +164,6 @@ public class MicrometerMeterHelper implements IMeterHelper {
   @Override
   public void registerStuckTaskMarkedAsError(String taskType) {
     meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_ERROR_COUNT, TAG_TASK_TYPE, taskType).increment();
-  }
-
-  @Override
-  public void registerStuckClientTaskResuming(String taskType) {
-    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_CLIENT_RESUMED_COUNT, TAG_TASK_TYPE, taskType).increment();
   }
 
   @Override
