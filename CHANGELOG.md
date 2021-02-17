@@ -4,11 +4,15 @@ Describes notable changes.
 
 #### 1.23.0 - 2021/02/17
 - Node's tasks are resumed on startup by the same logic we resume other stuck tasks.
-  By default same node tasks in `PROCESSING` state, will be marked to `ERROR` now.
-  This is a safer default option, where nodeId is wrongly configured and not unique around the whole service cluster.
+  On the startup, the current node tasks in `PROCESSING` state will be marked to `ERROR` now.
+  This is a safer default option. For example, when `nodeId` is wrongly configured and not unique around the whole service cluster,
+  we can easily have already executing task getting wrongly resumed and having it being executed twice at the same time.
+- Fixed also start-up race conditions around same-node `PROCESSING` tasks resuming.
+  It was possible to start processing a task and this same task getting immediately resumed by the start-up login in
+  the `TasksResumer` component.
 
 #### 1.22.3 - 2021/01/15
-- Increases tasks grabbing maximum concurrency from 10 to 25 and makes it configurable by a property.
+- Increases the tasks grabbing maximum concurrency from 10 to 25 and makes it configurable by a property.
 - Fixes Base64 encoder package.
 
 #### 1.22.2 - 2021/01/15

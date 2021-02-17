@@ -37,6 +37,7 @@ ext {
             springSecurityWeb           : "org.springframework.security:spring-security-web",
             springBoot                  : "org.springframework.boot:spring-boot",
             springBootStarterActuator   : "org.springframework.boot:spring-boot-starter-actuator",
+            springBootStarterValidator  : 'org.springframework.boot:spring-boot-starter-validation',
             springBootStarter           : "org.springframework.boot:spring-boot-starter",
             springBootAutoconfigure     : "org.springframework.boot:spring-boot-autoconfigure",
             springBootStarterTest       : 'org.springframework.boot:spring-boot-starter-test',
