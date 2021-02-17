@@ -1,10 +1,12 @@
 package com.transferwise.tasks.helpers;
 
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 public class NoOpMeterHelper implements IMeterHelper {
 
@@ -79,22 +81,22 @@ public class NoOpMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerStuckTaskMarkedAsFailed(String taskType) {
+  public void registerStuckTaskMarkedAsFailed(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
 
   }
 
   @Override
-  public void registerStuckTaskAsIgnored(String taskType) {
+  public void registerStuckTaskAsIgnored(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
 
   }
 
   @Override
-  public void registerStuckTaskResuming(String taskType) {
+  public void registerStuckTaskResuming(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
 
   }
 
   @Override
-  public void registerStuckTaskMarkedAsError(String taskType) {
+  public void registerStuckTaskMarkedAsError(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
 
   }
 

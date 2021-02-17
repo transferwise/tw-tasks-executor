@@ -21,18 +21,7 @@ public interface ITaskProcessingPolicy {
     IGNORE
   }
 
-  enum StuckDetector {
-    /**
-     * We found `PROCESSING` tasks with the same `processing_client_id` as our `node-id` configuration.
-     */
-    SAME_NODE_STARTUP,
-    /**
-     * The normal cluster wide stuck tasks detector.
-     */
-    CLUSTER_WIDE_STUCK_TASKS_DETECTOR
-  }
-
-  default StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task, StuckDetector stuckDetector) {
+  default StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task, StuckDetectionSource stuckDetectionSource) {
     return StuckTaskResolutionStrategy.MARK_AS_ERROR;
   }
 

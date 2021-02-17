@@ -5,6 +5,7 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.Getter;
@@ -42,7 +43,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   }
 
   @Override
-  public StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task, StuckDetector stuckDetector) {
+  public StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task, StuckDetectionSource stuckDetectionSource) {
     return stuckTaskResolutionStrategy;
   }
 

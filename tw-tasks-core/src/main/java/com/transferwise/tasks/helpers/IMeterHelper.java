@@ -1,10 +1,12 @@
 package com.transferwise.tasks.helpers;
 
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import java.time.ZonedDateTime;
 import java.util.Map;
 import java.util.function.Supplier;
+import javax.annotation.Nonnull;
 
 public interface IMeterHelper {
 
@@ -46,13 +48,13 @@ public interface IMeterHelper {
 
   void registerScheduledTaskResuming(String taskType);
 
-  void registerStuckTaskMarkedAsFailed(String taskType);
+  void registerStuckTaskMarkedAsFailed(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource);
 
-  void registerStuckTaskAsIgnored(String taskType);
+  void registerStuckTaskAsIgnored(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource);
 
-  void registerStuckTaskResuming(String taskType);
+  void registerStuckTaskResuming(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource);
 
-  void registerStuckTaskMarkedAsError(String taskType);
+  void registerStuckTaskMarkedAsError(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource);
 
   void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
 

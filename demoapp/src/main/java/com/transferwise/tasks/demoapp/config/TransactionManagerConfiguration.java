@@ -21,7 +21,7 @@ import org.springframework.transaction.jta.JtaTransactionManager;
 @Configuration
 @EnableTransactionManagement
 @Slf4j
-public class TransactionManagerConfigurationHikari {
+public class TransactionManagerConfiguration {
 
   @Autowired
   private Environment env;

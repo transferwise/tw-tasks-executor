@@ -8,8 +8,8 @@ Describes notable changes.
   This is a safer default option. For example, when `nodeId` is wrongly configured and not unique around the whole service cluster,
   we can easily have already executing task getting wrongly resumed and having it being executed twice at the same time.
 - Fixed also start-up race conditions around same-node `PROCESSING` tasks resuming.
-  It was possible to start processing a task and this same task getting immediately resumed by the start-up login in
-  the `TasksResumer` component.
+  It was possible to start processing a task and this same task getting immediately resumed by the start-up logic
+  in the `TasksResumer` component.
 
 #### 1.22.3 - 2021/01/15
 - Increases the tasks grabbing maximum concurrency from 10 to 25 and makes it configurable by a property.

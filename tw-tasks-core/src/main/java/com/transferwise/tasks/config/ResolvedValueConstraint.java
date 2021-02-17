@@ -17,7 +17,7 @@ import javax.validation.Payload;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ResolvedValueConstraint {
 
-  String message() default "Unresolved value";
+  String message() default "Unresolved value.";
 
   Class<?>[] groups() default {};
 
@@ -30,8 +30,8 @@ public @interface ResolvedValueConstraint {
     }
 
     @Override
-    public boolean isValid(String contactField, ConstraintValidatorContext cxt) {
-      return contactField == null || !contactField.contains("${");
+    public boolean isValid(String field, ConstraintValidatorContext ctx) {
+      return field == null || !field.contains("${");
     }
   }
 }
