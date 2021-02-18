@@ -40,7 +40,7 @@ public class TwTasksExtKafkaListenerAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean
-  public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
-    return new TwTasksKafkaConfiguration(kafkaProperties, kafkaTemplate);
+  public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties) {
+    return new TwTasksKafkaConfiguration(kafkaProperties);
   }
 }
