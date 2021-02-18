@@ -38,6 +38,7 @@ dependencies {
     compileOnly platform(libraries.springBootDependencies)
 
     annotationProcessor libraries.lombok
+    annotationProcessor libraries.springBootConfigurationProcessor
 
     compileOnly libraries.lombok
     compileOnly libraries.spotbugsAnnotations
