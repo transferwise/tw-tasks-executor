@@ -21,4 +21,6 @@ public interface ITasksProcessingService {
   }
 
   void addTaskTriggeringFinishedListener(Consumer<TaskTriggering> consumer);
+
+  void startProcessing();
 }

@@ -63,6 +63,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.validation.annotation.Validated;
 
 @Configuration
 @Slf4j
@@ -75,11 +76,7 @@ public class TwTasksCoreAutoConfiguration {
   private GracefulShutdowner gracefulShutdowner;
 
   @Bean
-  public static TasksProperties.Validator twTasksTasksPropertiesValidator() {
-    return new TasksProperties.Validator();
-  }
-
-  @Bean
+  @Validated
   @ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)
   public TasksProperties twTasksProperties() {
     return new TasksProperties();

@@ -23,7 +23,9 @@ import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
+import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.DomainUtils;
 import com.transferwise.tasks.utils.LogUtils;
@@ -33,9 +35,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.PostConstruct;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.curator.framework.CuratorFramework;
@@ -65,6 +68,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   private IMdcService mdcService;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private ITasksProcessingService tasksProcessingService;
 
   private LeaderSelectorV2 leaderSelector;
 
@@ -157,9 +162,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
             while (statusesToCheck.size() > 0) {
               for (int i = statusesToCheck.size() - 1; i >= 0; i--) {
                 ITaskDao.GetStuckTasksResponse result = taskDao.getStuckTasks(batchSize, statusesToCheck.get(i));
-                AtomicInteger resumedCount = new AtomicInteger();
-                AtomicInteger errorCount = new AtomicInteger();
-                AtomicInteger failedCount = new AtomicInteger();
+                StuckTaskResolutionStats stuckTaskResolutionStats = new StuckTaskResolutionStats();
 
                 for (ITaskDao.StuckTask task : result.getStuckTasks()) {
                   if (control.shouldStop() || paused) {
@@ -167,9 +170,9 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
                   }
 
                   mdcService.put(task);
-                  handleStuckTask(task, resumedCount, errorCount, failedCount);
+                  handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, stuckTaskResolutionStats);
                 }
-                log.debug("Resumed " + resumedCount + ", marked as error/failed " + errorCount + " / " + failedCount + " stuck tasks.");
+                stuckTaskResolutionStats.logStats();
 
                 if (!result.isHasMore()) {
                   statusesToCheck.remove(i);
@@ -221,7 +224,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     }
   }
 
-  protected void handleStuckTask(ITaskDao.StuckTask task, AtomicInteger resumedCount, AtomicInteger errorCount, AtomicInteger failedCount) {
+  protected void handleStuckTask(ITaskDao.StuckTask task, StuckDetectionSource stuckDetectionSource,
+      StuckTaskResolutionStats stuckTaskResolutionStats) {
     ITaskProcessingPolicy.StuckTaskResolutionStrategy taskResolutionStrategy = null;
 
     ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
@@ -235,47 +239,48 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
       if (taskProcessingPolicy == null) {
         log.error("No processing policy found for task " + LogUtils.asParameter(task.getVersionId()) + ".");
       } else {
-        taskResolutionStrategy = taskProcessingPolicy.getStuckTaskResolutionStrategy(task);
+        taskResolutionStrategy = taskProcessingPolicy.getStuckTaskResolutionStrategy(task, stuckDetectionSource);
         bucketId = taskProcessingPolicy.getProcessingBucket(task);
       }
     }
     if (!TaskStatus.PROCESSING.name().equals(task.getStatus())) {
-      retryTask(taskProcessingPolicy, bucketId, task, resumedCount);
+      retryTask(taskProcessingPolicy, bucketId, task, stuckDetectionSource, stuckTaskResolutionStats);
       return;
     }
 
     if (taskResolutionStrategy == null) {
       log.error("No processing policy found for task " + LogUtils.asParameter(task.getVersionId()) + ".");
-      markTaskAsError(bucketId, task, errorCount);
+      markTaskAsError(bucketId, task, stuckDetectionSource, stuckTaskResolutionStats);
       return;
     }
 
     switch (taskResolutionStrategy) {
       case RETRY:
-        retryTask(taskProcessingPolicy, bucketId, task, resumedCount);
+        retryTask(taskProcessingPolicy, bucketId, task, stuckDetectionSource, stuckTaskResolutionStats);
         break;
       case MARK_AS_ERROR:
-        markTaskAsError(bucketId, task, errorCount);
+        markTaskAsError(bucketId, task, stuckDetectionSource, stuckTaskResolutionStats);
         break;
       case MARK_AS_FAILED:
         if (!taskDao.setStatus(task.getVersionId().getId(), TaskStatus.FAILED, task.getVersionId().getVersion())) {
           meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
         } else {
-          failedCount.getAndIncrement();
+          stuckTaskResolutionStats.countFailed();
           String taskType = task.getType();
-          meterHelper.registerStuckTaskMarkedAsFailed(taskType);
+          meterHelper.registerStuckTaskMarkedAsFailed(taskType, stuckDetectionSource);
           meterHelper.registerTaskMarkedAsFailed(bucketId, taskType);
         }
         break;
       case IGNORE:
-        meterHelper.registerStuckTaskAsIgnored(task.getType());
+        meterHelper.registerStuckTaskAsIgnored(task.getType(), stuckDetectionSource);
         break;
       default:
         throw new UnsupportedOperationException("Resolution strategy " + taskResolutionStrategy + " is not supported.");
     }
   }
 
-  protected void retryTask(ITaskProcessingPolicy taskProcessingPolicy, String bucketId, ITaskDao.StuckTask task, AtomicInteger resumedCount) {
+  protected void retryTask(ITaskProcessingPolicy taskProcessingPolicy, String bucketId, ITaskDao.StuckTask task,
+      StuckDetectionSource stuckDetectionSource, StuckTaskResolutionStats stuckTaskResolutionStats) {
     if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), getMaxStuckTime(taskProcessingPolicy, task))) {
       meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
       return;
@@ -283,18 +288,19 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     BaseTask baseTask = DomainUtils.convert(task, BaseTask.class);
     baseTask.setVersion(baseTask.getVersion() + 1); // markAsSubmittedAndSetNextEventTime is bumping task version, so we will as well.
     tasksExecutionTriggerer.trigger(baseTask);
-    resumedCount.getAndIncrement();
-    meterHelper.registerStuckTaskResuming(task.getType());
+    stuckTaskResolutionStats.countResumed();
+    meterHelper.registerStuckTaskResuming(task.getType(), stuckDetectionSource);
     meterHelper.registerTaskResuming(bucketId, task.getType());
   }
 
-  protected void markTaskAsError(String bucketId, IBaseTask task, AtomicInteger errorCount) {
+  protected void markTaskAsError(String bucketId, IBaseTask task, StuckDetectionSource stuckDetectionSource,
+      StuckTaskResolutionStats stuckTaskResolutionStats) {
     log.error("Marking task " + LogUtils.asParameter(task.getVersionId()) + " as ERROR, because we don't know if it still processing somewhere.");
     if (!taskDao.setStatus(task.getVersionId().getId(), TaskStatus.ERROR, task.getVersionId().getVersion())) {
       meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
     } else {
-      errorCount.getAndIncrement();
-      meterHelper.registerStuckTaskMarkedAsError(task.getType());
+      stuckTaskResolutionStats.countError();
+      meterHelper.registerStuckTaskMarkedAsError(task.getType(), stuckDetectionSource);
       meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
     }
   }
@@ -326,21 +332,37 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
     try {
       unitOfWorkManager.createEntryPoint(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESUME_TASKS_FOR_CLIENT).toContext()
           .execute(() -> {
-            log.info("Checking if we can immediately resume this client's stuck tasks.");
-            List<ITaskDao.StuckTask> clientTasks = taskDao
-                .prepareStuckOnProcessingTasksForResuming(tasksProperties.getClientId(), getMaxStuckTime(null, null));
-            for (ITaskDao.StuckTask task : clientTasks) {
-              if (shuttingDown) {
-                break;
+            try {
+              final StuckTaskResolutionStats stuckTaskResolutionStats = new StuckTaskResolutionStats();
+
+              log.info("Checking if we can immediately resume this client's stuck tasks.");
+              // We don't split to batches here, because the amount of `PROCESSING` tasks is usually limited by concurrency policies.
+              List<ITaskDao.StuckTask> clientTasks = taskDao
+                  .prepareStuckOnProcessingTasksForResuming(tasksProperties.getClientId(), getMaxStuckTime(null, null));
+
+              if (!shuttingDown) {
+                // We can only start processing here. If we start processing earlier, the query above can find tasks just marked as PROCESSING
+                // by the same node we are running on.
+                tasksProcessingService.startProcessing();
               }
-              mdcService.put(task);
-              log.info("Resuming client '" + tasksProperties.getClientId() + "' task " + LogUtils.asParameter(task.getVersionId())
-                  + " of type '" + task.getType() + "' in status '" + task.getStatus() + "'.");
 
-              tasksExecutionTriggerer.trigger(DomainUtils.convert(task, BaseTask.class));
+              for (ITaskDao.StuckTask task : clientTasks) {
+                if (shuttingDown) {
+                  break;
+                }
+                mdcService.put(task);
+                log.info("Found client '" + tasksProperties.getClientId() + "' task " + LogUtils.asParameter(task.getVersionId())
+                    + " of type '" + task.getType() + "' stuck in status '" + task.getStatus() + "'.");
 
-              meterHelper.registerStuckClientTaskResuming(task.getType());
-              meterHelper.registerTaskResuming(null, task.getType());
+                handleStuckTask(task, StuckDetectionSource.SAME_NODE_STARTUP, stuckTaskResolutionStats);
+              }
+            } catch (Throwable t) {
+              log.error(t.getMessage(), t);
+            } finally {
+              if (!shuttingDown) {
+                // If just this resume operation fails, we are still willing to start the engine.
+                tasksProcessingService.startProcessing();
+              }
             }
           });
     } catch (Throwable t) {
@@ -357,5 +379,36 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   @Override
   public boolean canShutdown() {
     return leaderSelector.hasStopped();
+  }
+
+  @Data
+  @Accessors(chain = true)
+  public static class StuckTaskResolutionStats {
+
+    private int failed;
+    private int resumed;
+    private int error;
+
+    private void countFailed() {
+      failed++;
+    }
+
+    private void countResumed() {
+      resumed++;
+    }
+
+    private void countError() {
+      error++;
+    }
+
+    private boolean hasStats() {
+      return failed > 0 || resumed > 0 || error > 0;
+    }
+
+    private void logStats() {
+      if (log.isDebugEnabled() && hasStats()) {
+        log.debug("Resumed " + resumed + ", marked as error/failed " + error + " / " + failed + " stuck tasks.");
+      }
+    }
   }
 }

@@ -50,6 +50,6 @@ dockerCompose {
     // waitForTcpPorts = false
 
     // Set to true if you have anomalies
-    stopContainers = true
+    stopContainers = false
     removeContainers = true
 }

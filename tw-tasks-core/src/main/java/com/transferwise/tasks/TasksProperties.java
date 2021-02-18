@@ -1,5 +1,6 @@
 package com.transferwise.tasks;
 
+import com.transferwise.tasks.config.ResolvedValueConstraint;
 import com.transferwise.tasks.utils.ClientIdUtils;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -7,21 +8,27 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.springframework.validation.Errors;
-import org.springframework.validation.ValidationUtils;
+import org.springframework.validation.annotation.Validated;
 
 @Data
+@Validated
 public class TasksProperties {
 
   /**
    * Unique id for service in the whole Company infrastructure.
    */
+  @NotBlank
+  @ResolvedValueConstraint
   private String groupId;
   /**
    * Unique node id in the service cluster. It helps to make crash recovery for a node very fast, but also is good for logging and tracking reasons.
    */
+  @NotBlank
+  @ResolvedValueConstraint
   private String clientId = ClientIdUtils.clientIdFromHostname();
   /**
    * How often do we check if any task is stuck.
@@ -74,6 +81,8 @@ public class TasksProperties {
   /**
    * Connection string to Zookeeper. Used to set partition sizes for different topics.
    */
+  @NotBlank
+  @ResolvedValueConstraint
   private String zookeeperConnectString;
   /**
    * Topic replication factor for listened topics and task triggering topics.
@@ -82,6 +91,7 @@ public class TasksProperties {
   /**
    * MySQL or Postgres.
    */
+  @NotNull
   private DbType dbType;
   /**
    * MDC keys config.
@@ -282,22 +292,6 @@ public class TasksProperties {
   private Compression compression = new Compression();
 
   private Environment environment = new Environment();
-
-  public static class Validator implements org.springframework.validation.Validator {
-
-    @Override
-    public boolean supports(Class<?> clazz) {
-      return TasksProperties.class == clazz;
-    }
-
-    @Override
-    public void validate(Object target, Errors errors) {
-      ValidationUtils.rejectIfEmpty(errors, "groupId", "groupId.empty");
-      ValidationUtils.rejectIfEmpty(errors, "clientId", "clientId.empty");
-      ValidationUtils.rejectIfEmpty(errors, "zookeeperConnectString", "zookeeperConnectString.empty");
-      ValidationUtils.rejectIfEmpty(errors, "dbType", "dbType.empty");
-    }
-  }
 
   @Data
   public static class TasksManagement {

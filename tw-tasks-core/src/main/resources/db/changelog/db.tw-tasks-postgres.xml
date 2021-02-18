@@ -12,7 +12,7 @@
             sub_type TEXT NULL,
             status TEXT NOT NULL,
             data TEXT NOT NULL,
-            next_event_time TIMESTAMPTZ(3) NOT NULL,
+            next_event_time TIMESTAMPTZ(6) NOT NULL,
             state_time TIMESTAMPTZ(3) NOT NULL,
             processing_client_id TEXT NULL,
             processing_start_time TIMESTAMPTZ(3) NULL,

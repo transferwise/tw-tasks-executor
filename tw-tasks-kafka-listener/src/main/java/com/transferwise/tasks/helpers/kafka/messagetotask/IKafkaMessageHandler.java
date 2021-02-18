@@ -22,9 +22,9 @@ public interface IKafkaMessageHandler<T> {
 
     /**
      * Topics in the same shard will be listened by only one Kafka Consumer.
-     * 
+     *
      * <p>So the performance of one topic will be heavily dependent how other topics are performing or how many messages are spammed into those.
-     * 
+     *
      * <p>Putting every topic into a separate shard has a downside of having many kafka consumers, which can put more load on the Kafka server.
      */
     private int shard = 0;

@@ -2,6 +2,7 @@ package com.transferwise.tasks.helpers;
 
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.Meter;
@@ -15,6 +16,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.Nonnull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
@@ -43,7 +45,6 @@ public class MicrometerMeterHelper implements IMeterHelper {
   private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_IGNORED_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.ignoredCount";
   private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_RESUMED_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.resumedCount";
   private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_ERROR_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.markErrorCount";
-  private static final String METRIC_TASKS_RESUMER_STUCK_TASKS_CLIENT_RESUMED_COUNT = METRIC_PREFIX + "tasksResumer.stuckTasks.clientResumedCount";
   private static final String METRIC_TASKS_FAILED_GRABBINGS_COUNT = METRIC_PREFIX + "tasks.failedGrabbingsCount";
   private static final String METRIC_TASKS_RETRIES_COUNT = METRIC_PREFIX + "tasks.retriesCount";
   private static final String METRIC_TASKS_RESUMINGS_COUNT = METRIC_PREFIX + "tasks.resumingsCount";
@@ -55,6 +56,7 @@ public class MicrometerMeterHelper implements IMeterHelper {
   private static final String TAG_TO_STATUS = "toStatus";
   private static final String TAG_BUCKET_ID = "bucketId";
   private static final String TAG_TASK_TYPE = "taskType";
+  private static final String TAG_SOURCE = "source";
   private static final String TAG_REASON = "reason";
   private static final String TAG_PRIORITY = "priority";
   private static final String TAG_GRABBING_RESPONSE = "grabbingResponse";
@@ -148,28 +150,27 @@ public class MicrometerMeterHelper implements IMeterHelper {
   }
 
   @Override
-  public void registerStuckTaskMarkedAsFailed(String taskType) {
-    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_FAILED_COUNT, TAG_TASK_TYPE, taskType).increment();
+  public void registerStuckTaskMarkedAsFailed(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
+    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_FAILED_COUNT, TAG_TASK_TYPE, taskType, TAG_SOURCE, stuckDetectionSource.name())
+        .increment();
   }
 
   @Override
-  public void registerStuckTaskAsIgnored(String taskType) {
-    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_IGNORED_COUNT, TAG_TASK_TYPE, taskType).increment();
+  public void registerStuckTaskAsIgnored(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
+    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_IGNORED_COUNT, TAG_TASK_TYPE, taskType, TAG_SOURCE, stuckDetectionSource.name())
+        .increment();
   }
 
   @Override
-  public void registerStuckTaskResuming(String taskType) {
-    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_RESUMED_COUNT, TAG_TASK_TYPE, taskType).increment();
+  public void registerStuckTaskResuming(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
+    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_RESUMED_COUNT, TAG_TASK_TYPE, taskType, TAG_SOURCE, stuckDetectionSource.name())
+        .increment();
   }
 
   @Override
-  public void registerStuckTaskMarkedAsError(String taskType) {
-    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_ERROR_COUNT, TAG_TASK_TYPE, taskType).increment();
-  }
-
-  @Override
-  public void registerStuckClientTaskResuming(String taskType) {
-    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_CLIENT_RESUMED_COUNT, TAG_TASK_TYPE, taskType).increment();
+  public void registerStuckTaskMarkedAsError(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource) {
+    meterRegistry.counter(METRIC_TASKS_RESUMER_STUCK_TASKS_MARK_ERROR_COUNT, TAG_TASK_TYPE, taskType, TAG_SOURCE, stuckDetectionSource.name())
+        .increment();
   }
 
   @Override

@@ -21,7 +21,7 @@ public interface ITaskProcessingPolicy {
     IGNORE
   }
 
-  default StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task) {
+  default StuckTaskResolutionStrategy getStuckTaskResolutionStrategy(IBaseTask task, StuckDetectionSource stuckDetectionSource) {
     return StuckTaskResolutionStrategy.MARK_AS_ERROR;
   }
 
