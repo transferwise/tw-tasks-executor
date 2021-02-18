@@ -1,4 +1,4 @@
-package com.transferwise.tasks.config;
+package com.transferwise.tasks.helpers.kafka.configuration;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

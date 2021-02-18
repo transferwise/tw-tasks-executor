@@ -37,11 +37,13 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import org.assertj.core.data.TemporalUnitWithinOffset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -163,7 +165,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertEquals(1, task.getVersion());
     assertEquals(0, task.getProcessingTriesCount());
     assertNotNull(task.getStateTime());
-    assertEquals(retryTime.toInstant(), task.getNextEventTime().toInstant());
+    assertThat(retryTime).isCloseTo(task.getNextEventTime(), new TemporalUnitWithinOffset(1, ChronoUnit.MICROS));
   }
 
   @Test
@@ -181,7 +183,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertEquals(1, returnedTask.getProcessingTriesCount());
 
     FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
-    assertEquals(processingDeadline, fullTaskRecord.getNextEventTime().toInstant());
+    assertThat(processingDeadline).isCloseTo(fullTaskRecord.getNextEventTime().toInstant(), new TemporalUnitWithinOffset(1, ChronoUnit.MICROS));
     assertEquals(nodeId, fullTaskRecord.getProcessingClientId());
   }
 
@@ -202,7 +204,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertEquals(2, finalTask.getVersion());
     assertEquals(0, finalTask.getProcessingTriesCount());
     assertNotNull(finalTask.getStateTime());
-    assertEquals(retryTime.toInstant(), finalTask.getNextEventTime().toInstant());
+    assertThat(finalTask.getNextEventTime()).isCloseTo(retryTime.toString(), new TemporalUnitWithinOffset(1, ChronoUnit.MICROS));
   }
 
   @Test
@@ -271,7 +273,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
     assertEquals("SUBMITTED", fullTaskRecord.getStatus());
     assertEquals(1, fullTaskRecord.getVersion());
-    assertEquals(maxStuckTime.toInstant(), fullTaskRecord.getNextEventTime().toInstant());
+    assertThat(maxStuckTime).isCloseTo(fullTaskRecord.getNextEventTime(), new TemporalUnitWithinOffset(1, ChronoUnit.MICROS));
   }
 
   @Test
@@ -291,7 +293,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
     FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
     assertEquals("SUBMITTED", fullTaskRecord.getStatus());
-    assertEquals(processingDeadline, fullTaskRecord.getNextEventTime().toInstant());
+    assertThat(processingDeadline).isCloseTo(fullTaskRecord.getNextEventTime().toInstant(), new TemporalUnitWithinOffset(1, ChronoUnit.MICROS));
   }
 
   @Test
@@ -304,7 +306,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     assertTrue(result);
     FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
     assertEquals("SUBMITTED", fullTaskRecord.getStatus());
-    assertEquals(maxStuckTime.toInstant(), fullTaskRecord.getNextEventTime().toInstant());
+    assertThat(maxStuckTime.toInstant()).isCloseTo(fullTaskRecord.getNextEventTime().toInstant(), new TemporalUnitWithinOffset(1, ChronoUnit.MICROS));
   }
 
   @Test
@@ -504,6 +506,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
         clock.tick(Duration.ofMillis(2));
       }
       List<Task> tasks = testTaskDao.findTasksByTypeSubTypeAndStatus(taskType, null, TaskStatus.DONE);
+      tasks.sort(Comparator.comparing(Task::getId));
 
       List<Integer> resultInts = tasks.stream().map(t -> Integer.parseInt(new String(t.getData(), StandardCharsets.UTF_8)))
           .collect(Collectors.toList());

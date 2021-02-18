@@ -4,7 +4,7 @@ import static org.awaitility.Awaitility.await;
 
 import com.google.common.collect.ImmutableSet;
 import com.transferwise.tasks.BaseIntTest;
-import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Collections;

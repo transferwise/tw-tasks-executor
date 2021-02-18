@@ -52,6 +52,7 @@ ext {
             jacksonDatabind             : "com.fasterxml.jackson.core:jackson-databind",
             javaxAnnotationApi          : "javax.annotation:javax.annotation-api",
             jakartaValidationApi        : "jakarta.validation:jakarta.validation-api",
+            kafkaClients                : "org.apache.kafka:kafka-clients",
             lombok                      : "org.projectlombok:lombok",
             slf4j                       : "org.slf4j:slf4j-api",
             junitApi                    : 'org.junit.jupiter:junit-jupiter-api',

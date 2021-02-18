@@ -2,6 +2,11 @@
 
 Describes notable changes.
 
+#### 1.24.0 - 2021/02/18
+- Core and tasks triggering system does not depend on Spring Kafka, nor it's configuration.
+  Services have to now specify `tw-tasks.core.triggering.kafka.bootstrap-servers` parameter.
+- Tasks triggering system has its own ObjectMapper instance.
+
 #### 1.23.0 - 2021/02/17
 - Node's tasks are resumed on startup by the same logic we resume other stuck tasks.
   On the startup, the current node tasks in `PROCESSING` state will be marked to `ERROR` now.

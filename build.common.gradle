@@ -92,16 +92,16 @@ compileJava {
 }
 
 compileTestJava {
-    sourceCompatibility = JavaVersion.VERSION_13
-    targetCompatibility = JavaVersion.VERSION_13
+    sourceCompatibility = JavaVersion.VERSION_15
+    targetCompatibility = JavaVersion.VERSION_15
     javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(13)
+        languageVersion = JavaLanguageVersion.of(15)
     }
 }
 
 test {
     javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(13)
+        languageVersion = JavaLanguageVersion.of(15)
     }
 
     testLogging {

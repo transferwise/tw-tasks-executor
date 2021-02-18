@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.tasks.BaseIntTest;
-import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.CorruptedKafkaMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;

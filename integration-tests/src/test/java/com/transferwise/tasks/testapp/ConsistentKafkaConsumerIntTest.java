@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.BaseIntTest;
-import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
+import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
