@@ -63,10 +63,16 @@ public class SeekToDurationOnRebalanceIntTest extends BaseIntTest {
 
   @AfterEach
   void cleanup() {
-    kafkaConsumer.close();
-    adminClient.deleteTopics(Collections.singletonList(TOPIC));
-    adminClient.close();
-    kafkaProducer.close();
+    cleanWithoutException(() -> {
+      kafkaConsumer.close();
+    });
+    cleanWithoutException(() -> {
+      adminClient.deleteTopics(Collections.singletonList(TOPIC));
+      adminClient.close();
+    });
+    cleanWithoutException(() -> {
+      kafkaProducer.close();
+    });
   }
 
   @Test
