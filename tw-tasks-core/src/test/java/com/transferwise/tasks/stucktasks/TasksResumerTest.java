@@ -1,5 +1,6 @@
 package com.transferwise.tasks.stucktasks;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -23,11 +24,11 @@ import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy.StuckTaskResolutionStrategy;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.stucktasks.TasksResumer.StuckTaskResolutionStats;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZonedDateTime;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import org.apache.curator.framework.CuratorFramework;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,9 +85,8 @@ class TasksResumerTest {
         .setType("TEST")
         .setStatus(TaskStatus.SUBMITTED.name())
         .setVersionId(new TaskVersionId(UuidUtils.generatePrefixCombUuid(), 0));
-    AtomicInteger numResumed = new AtomicInteger();
-
-    service.handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, numResumed, null, null);
+    var stats = new StuckTaskResolutionStats();
+    service.handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, stats);
 
     verify(tasksExecutionTriggerer).trigger(argThat(
         baseTask -> 1 == baseTask.getVersion() && task.getVersionId().getId().equals(baseTask.getId())
@@ -96,6 +96,8 @@ class TasksResumerTest {
         task.getVersionId().getVersion(),
         now.plusMinutes(10)
     );
+
+    assertThat(stats.getResumed()).isEqualTo(1);
   }
 
   @ParameterizedTest(name = "handleStuckTask respects StuckTaskResolutionStrategy {3}")
@@ -117,14 +119,12 @@ class TasksResumerTest {
     when(taskHandlerRegistry.getTaskHandler(null).getProcessingPolicy(any())).thenReturn(processingPolicy);
 
     // triggering tasks handling
-    AtomicInteger numResumed = new AtomicInteger();
-    AtomicInteger numError = new AtomicInteger();
-    AtomicInteger numFailed = new AtomicInteger();
+    StuckTaskResolutionStats stats = new StuckTaskResolutionStats();
     StuckTask task = new ITaskDao.StuckTask()
         .setType("TEST")
         .setStatus(TaskStatus.PROCESSING.name())
         .setVersionId(new TaskVersionId(UuidUtils.generatePrefixCombUuid(), 0));
-    service.handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, numResumed, numError, numFailed);
+    service.handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, stats);
 
     verify(tasksExecutionTriggerer, times(resumed)).trigger(argThat(
         baseTask -> baseTask.getVersion() == 1 && baseTask.getId().equals(task.getVersionId().getId())
@@ -144,9 +144,9 @@ class TasksResumerTest {
         TaskStatus.FAILED,
         task.getVersionId().getVersion()
     );
-    assertEquals(resumed, numResumed.get());
-    assertEquals(error, numError.get());
-    assertEquals(failed, numFailed.get());
+    assertEquals(resumed, stats.getResumed());
+    assertEquals(error, stats.getError());
+    assertEquals(failed, stats.getFailed());
   }
 
   private static Stream<Arguments> resolutionCasesForHandleStuckTransfers() {

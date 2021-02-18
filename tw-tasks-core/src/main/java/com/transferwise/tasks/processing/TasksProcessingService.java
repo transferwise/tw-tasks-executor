@@ -58,6 +58,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
+import javax.annotation.concurrent.GuardedBy;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -114,7 +115,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   private final Set<Thread> tasksProcessingThreads = new HashSet<>();
   private final Lock tasksProcessingThreadsLock = new ReentrantLock();
   private final Lock lifecycleLock = new ReentrantLock();
-  private volatile boolean processingStarted;
+
+  @GuardedBy("lifecycleLock")
+  private boolean processingStarted;
 
   @PostConstruct
   public void init() {
