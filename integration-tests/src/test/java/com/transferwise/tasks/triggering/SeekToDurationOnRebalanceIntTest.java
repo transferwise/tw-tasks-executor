@@ -42,7 +42,7 @@ public class SeekToDurationOnRebalanceIntTest extends BaseIntTest {
   @BeforeEach
   void setup() throws Exception {
     Map<String, Object> configs = new HashMap<>();
-    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootStrapServers());
+    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
 
     adminClient = AdminClient.create(configs);
     NewTopic topic = new NewTopic(TOPIC, 3, (short) 1);

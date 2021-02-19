@@ -27,7 +27,7 @@ public class NoOpTopicPartitionsManager implements ITopicPartitionsManager {
   @Override
   public AdminClient createKafkaAdminClient() {
     Map<String, Object> config = new HashMap<>();
-    config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootStrapServers());
+    config.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
     //we are passing empty client-id, this will generate auto increment id with format: "adminclient-" + ADMIN_CLIENT_ID_SEQUENCE.getAndIncrement()
     //see https://github.com/apache/kafka/blob/trunk/clients/src/main/java/org/apache/kafka/clients/admin/KafkaAdminClient.java#generateClientId
     config.put(AdminClientConfig.CLIENT_ID_CONFIG, "");

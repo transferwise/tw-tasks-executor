@@ -312,8 +312,11 @@ public class TasksProperties {
 
       @NotBlank
       @ResolvedValueConstraint
-      private String bootStrapServers;
+      private String bootstrapServers;
 
+      /**
+       * Allows to override configuration properties for both Kafka Consumers. and Producers.
+       */
       private Map<String, String> properties = new HashMap<>();
     }
 

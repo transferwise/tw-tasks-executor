@@ -406,7 +406,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
   private KafkaProducer<String, String> createKafkaProducer() {
     Map<String, Object> configs = new HashMap<>();
-    configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootStrapServers());
+    configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
 
     configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -434,11 +434,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     Map<String, Object> configs = new HashMap<>();
-    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootStrapServers());
+    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
     configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, bucketProperties.getTriggersFetchSize());
     configs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    configs.put(ConsumerConfig.CLIENT_ID_CONFIG, tasksProperties.getClientId());
+    configs.put(ConsumerConfig.CLIENT_ID_CONFIG, tasksProperties.getClientId() + ".tw-tasks.bucket." + bucketId);
     configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
