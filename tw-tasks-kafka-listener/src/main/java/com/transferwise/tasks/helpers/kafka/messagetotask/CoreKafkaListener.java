@@ -5,11 +5,11 @@ import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorService
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
+import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.util.ArrayList;
 import java.util.Arrays;

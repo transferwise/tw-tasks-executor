@@ -78,5 +78,13 @@ public abstract class BaseIntTest {
         log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)
     );
   }
+
+  protected void cleanWithoutException(Runnable runnable) {
+    try {
+      runnable.run();
+    } catch (Throwable t) {
+      log.error(t.getMessage(), t);
+    }
+  }
 }
 

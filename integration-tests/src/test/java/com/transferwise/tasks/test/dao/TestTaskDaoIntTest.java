@@ -15,7 +15,6 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;

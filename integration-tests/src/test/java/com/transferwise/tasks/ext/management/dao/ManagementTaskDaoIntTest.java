@@ -26,7 +26,6 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;

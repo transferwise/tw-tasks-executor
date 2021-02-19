@@ -2,6 +2,7 @@ package com.transferwise.tasks.triggering;
 
 import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.ExceptionUtils;
@@ -12,7 +13,6 @@ import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
-import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -54,9 +54,14 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.WakeupException;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -66,15 +71,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy {
 
   @Autowired
-  private TwTasksKafkaConfiguration kafkaConfiguration;
-  @Autowired
   private ITasksProcessingService tasksProcessingService;
   @Autowired
   private ITaskDao taskDao;
   @Autowired
   private TasksProperties tasksProperties;
-  @Autowired
-  private ObjectMapper objectMapper;
   @Autowired
   private ITaskHandlerRegistry taskHandlerRegistry;
   @Autowired
@@ -92,10 +93,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   @Autowired
   private IMdcService mdcService;
 
+  private ObjectMapper objectMapper;
+  private KafkaProducer<String, String> kafkaProducer;
   private ExecutorService executorService;
   private volatile boolean shuttingDown;
   private String triggerTopic;
-  private Map<String, Object> kafkaConsumerProps;
   private final Map<String, ConsumerBucket> consumerBuckets = new ConcurrentHashMap<>();
   private final Map<String, ProcessingBucket> processingBuckets = new ConcurrentHashMap<>();
   private final AtomicInteger pollingBucketsCount = new AtomicInteger();
@@ -105,8 +107,6 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   public void init() {
     executorService = executorsHelper.newCachedExecutor("ktet");
     triggerTopic = "twTasks." + tasksProperties.getGroupId() + ".executeTask";
-
-    kafkaConsumerProps = kafkaConfiguration.getKafkaProperties().buildConsumerProperties();
 
     tasksProcessingService.addTaskTriggeringFinishedListener(taskTriggering -> {
       if (taskTriggering.isSameProcessTrigger()) {
@@ -122,6 +122,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     });
 
     meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.pollingBucketsCount", pollingBucketsCount::get);
+
+    objectMapper = new ObjectMapper();
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    kafkaProducer = createKafkaProducer();
   }
 
   @Override
@@ -165,21 +170,22 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     // TODO: Future improvement: try to also trigger in the same node, if there is room or more specifically if it is idle (for min latency)
     // TODO: Maybe needs another concurrency control for that. E.g. only trigger in node, when conc < 5, even max conc is 10.
 
-    kafkaConfiguration.getKafkaTemplate().send(getTopic(processingBucketId), UuidUtils.generatePrefixCombUuid().toString(), taskSt).addCallback(
-        result -> {
-          if (log.isDebugEnabled()) {
-            mdcService.with(() -> {
-              mdcService.put(task);
-              log.debug("Task '{}' triggering acknowledged by Kafka.", task.getVersionId());
-            });
-          }
-        },
-        exception -> {
-          if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {
-            mdcService.with(() -> {
-              mdcService.put(task);
-              log.error("Task {} triggering failed through Kafka.", LogUtils.asParameter(task.getVersionId()), exception);
-            });
+    kafkaProducer
+        .send(new ProducerRecord<>(getTopic(processingBucketId), UuidUtils.generatePrefixCombUuid().toString(), taskSt), (metadata, exception) -> {
+          if (exception != null) {
+            if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {
+              mdcService.with(() -> {
+                mdcService.put(task);
+                log.error("Task {} triggering failed through Kafka.", LogUtils.asParameter(task.getVersionId()), exception);
+              });
+            }
+          } else {
+            if (log.isDebugEnabled()) {
+              mdcService.with(() -> {
+                mdcService.put(task);
+                log.debug("Task '{}' triggering acknowledged by Kafka.", task.getVersionId());
+              });
+            }
           }
         });
   }
@@ -209,7 +215,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       }
 
       if (consumerBucket.getKafkaConsumer() == null) {
-        consumerBucket.setKafkaConsumer(initKafkaConsumer(bucketId, bucketProperties));
+        consumerBucket.setKafkaConsumer(createKafkaConsumer(bucketId, bucketProperties));
       }
       return consumerBucket;
     });
@@ -398,22 +404,45 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
   }
 
-  private KafkaConsumer<String, String> initKafkaConsumer(String bucketId, BucketProperties bucketProperties) {
-    String groupId = (String) kafkaConsumerProps.get(ConsumerConfig.GROUP_ID_CONFIG);
-    if (groupId == null) {
-      throw new IllegalStateException("Kafka consumer group id is not set.");
-    }
+  private KafkaProducer<String, String> createKafkaProducer() {
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
+
+    configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+    configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+    configs.put(ProducerConfig.ACKS_CONFIG, "all");
+    configs.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+    configs.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "10000");
+    configs.put(ProducerConfig.LINGER_MS_CONFIG, "5");
+
+    configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
+
+    KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(configs);
+
+    return kafkaProducer;
+  }
+
+  private KafkaConsumer<String, String> createKafkaConsumer(String bucketId, BucketProperties bucketProperties) {
+    String groupId = tasksProperties.getGroupId();
 
     if (bucketProperties.getTriggerSameTaskInAllNodes()) {
       log.info("Using same task triggering on all nodes strategy for bucket '{}'.", bucketId);
       groupId += "." + tasksProperties.getClientId();
     }
 
-    Map<String, Object> configs = new HashMap<>(kafkaConsumerProps);
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
     configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, bucketProperties.getTriggersFetchSize());
     configs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
     configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    configs.put(ConsumerConfig.CLIENT_ID_CONFIG, configs.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.bucket." + bucketId);
+    configs.put(ConsumerConfig.CLIENT_ID_CONFIG, tasksProperties.getClientId() + ".tw-tasks.bucket." + bucketId);
+    configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+
+    configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
     if (bucketProperties.getAutoResetOffsetToDuration() != null) {
       configs.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
@@ -422,6 +451,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(configs);
+
     List<String> topics = getTopics(bucketId);
     log.info("Subscribing to Kafka topics '{}'", topics);
     if (bucketProperties.getAutoResetOffsetToDuration() == null) {

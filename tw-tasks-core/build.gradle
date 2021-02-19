@@ -15,12 +15,12 @@ dependencies {
     implementation libraries.commonsIo
     implementation libraries.twLeaderSelector
     implementation libraries.twContext
-    implementation libraries.springKafka
     implementation libraries.micrometerCore
     implementation libraries.newRelic
     implementation libraries.jacksonDatabind
     implementation libraries.semver4j
     implementation libraries.jakartaValidationApi
+    implementation libraries.kafkaClients
 
     // TODO: avoid ioc related code or spring boot code in core
     implementation libraries.springTx

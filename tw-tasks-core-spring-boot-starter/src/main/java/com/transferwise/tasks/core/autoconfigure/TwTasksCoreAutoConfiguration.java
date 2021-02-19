@@ -18,7 +18,6 @@ import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.cleaning.ITasksCleaner;
 import com.transferwise.tasks.cleaning.TasksCleaner;
-import com.transferwise.tasks.config.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.MySqlTaskDao;
@@ -56,13 +55,11 @@ import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.validation.annotation.Validated;
 
 @Configuration
@@ -215,12 +212,6 @@ public class TwTasksCoreAutoConfiguration {
   @ConditionalOnMissingBean(ITasksStateMonitor.class)
   public ClusterWideTasksStateMonitor twTasksEngineMonitor() {
     return new ClusterWideTasksStateMonitor();
-  }
-
-  @Bean
-  @ConditionalOnMissingBean
-  public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties, KafkaTemplate<String, String> kafkaTemplate) {
-    return new TwTasksKafkaConfiguration(kafkaProperties, kafkaTemplate);
   }
 
   @Bean

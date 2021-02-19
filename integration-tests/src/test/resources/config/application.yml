@@ -30,6 +30,9 @@ tw-tasks:
       minSize: 0 # Pretty much forcing compression to always happen, so it will be tested through
     environment:
       previousVersion: "1.21.1"
+    triggering:
+      kafka:
+        bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN

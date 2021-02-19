@@ -72,6 +72,9 @@ tw-tasks:
       - emails
     environment:
       previousVersion: "1.21.1"
+    triggering:
+      kafka:
+        bootstrap-servers: localhost:9092
     #trigger-same-task-in-all-nodes: true
     #tasksHistoryDeletingBatchSize: 500
     #tasksCleaningInterval: PT0.5s

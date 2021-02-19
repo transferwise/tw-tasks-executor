@@ -5,9 +5,12 @@ import com.transferwise.tasks.utils.ClientIdUtils;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
@@ -292,6 +295,32 @@ public class TasksProperties {
   private Compression compression = new Compression();
 
   private Environment environment = new Environment();
+
+  @Valid
+  private Triggering triggering = new Triggering();
+
+  @Data
+  @Validated
+  public static class Triggering {
+
+    @Valid
+    private Kafka kafka = new Kafka();
+
+    @Data
+    @Validated
+    public static class Kafka {
+
+      @NotBlank
+      @ResolvedValueConstraint
+      private String bootstrapServers;
+
+      /**
+       * Allows to override configuration properties for both Kafka Consumers. and Producers.
+       */
+      private Map<String, String> properties = new HashMap<>();
+    }
+
+  }
 
   @Data
   public static class TasksManagement {
