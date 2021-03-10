@@ -33,6 +33,13 @@ tw-tasks:
     triggering:
       kafka:
         bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}
+    tasks-management:
+      custom:
+        -
+          taskType: "customType"
+          viewTaskDataRoles:
+            - ROLE_DEVEL
+
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN

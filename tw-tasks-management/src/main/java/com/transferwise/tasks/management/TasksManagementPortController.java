@@ -1,6 +1,7 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.TasksProperties.TasksManagement.CustomTaskManagement;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
 import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest;
@@ -102,10 +103,12 @@ public class TasksManagementPortController implements ITasksManagementPort {
 
   @Override
   public ResponseEntity<GetTaskDataResponse> getTaskData(UUID taskId, String format) {
-    return callWithAuthentication(tasksProperties.getTasksManagement().getViewTaskDataRoles(),
+    GetTaskDataRequest request = new GetTaskDataRequest().setTaskId(taskId).setContentFormat(ContentFormat.of(format));
+    GetTaskDataResponse response = tasksManagementService.getTaskData(request);
+    Set<String> allowedRoles = getAllowedRoles(response);
+
+    return callWithAuthentication(allowedRoles,
         (auth) -> {
-          GetTaskDataRequest request = new GetTaskDataRequest().setTaskId(taskId).setContentFormat(ContentFormat.of(format));
-          GetTaskDataResponse response = tasksManagementService.getTaskData(request);
 
           if (response.getResultCode() == ResultCode.NOT_FOUND) {
             log.info("User '{}' tried to fetch payload for task '{}', but it was not found.", auth.getName(), taskId);
@@ -208,5 +211,16 @@ public class TasksManagementPortController implements ITasksManagementPort {
     }
 
     return null;
+  }
+
+  private Set<String> getAllowedRoles(GetTaskDataResponse taskData) {
+    String taskType = taskData.getType();
+    return tasksProperties.getTasksManagement()
+        .getCustom()
+        .stream()
+        .filter(custom -> custom.getTaskType().equals(taskType))
+        .map(CustomTaskManagement::getViewTaskDataRoles)
+        .findFirst()
+        .orElse(tasksProperties.getTasksManagement().getViewTaskDataRoles());
   }
 }

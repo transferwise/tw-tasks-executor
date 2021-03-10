@@ -333,6 +333,14 @@ public class TasksProperties {
      * Roles for all other task management endpoints.
      */
     private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_DEVEL"));
+
+    private List<CustomTaskManagement> custom = Collections.emptyList();
+
+    @Data
+    public static class CustomTaskManagement {
+      private String taskType;
+      private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
+    }
   }
 
   /**

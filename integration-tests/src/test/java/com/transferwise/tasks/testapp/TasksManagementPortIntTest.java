@@ -221,15 +221,59 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   @SneakyThrows
   @Test
   void wrongRoleCannotViewTaskData() {
+    final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .inStatus(TaskStatus.ERROR)
+            .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
+            .save()
+            .getTaskId()
+    );
+
     ResponseEntity<GetTaskDataResponse> dataResponse = goodEngineerTemplate()
-        .getForEntity("/v1/twTasks/task/99e30d10-a085-4708-9591-d5159ff1056c/data", GetTaskDataResponse.class);
+        .getForEntity("/v1/twTasks/task/" + task0Id + "/data", GetTaskDataResponse.class);
 
     assertThat(dataResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
     dataResponse = badEngineerTemplate()
-        .getForEntity("/v1/twTasks/task/99e30d10-a085-4708-9591-d5159ff1056c/data", GetTaskDataResponse.class);
+        .getForEntity("/v1/twTasks/task/" + task0Id + "/data", GetTaskDataResponse.class);
 
     assertThat(dataResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @SneakyThrows
+  @Test
+  void wrongRoleCannotViewTaskDataForCustomConfiguration() {
+    final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .withType("customType")
+            .inStatus(TaskStatus.ERROR)
+            .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
+            .save()
+            .getTaskId()
+    );
+
+    ResponseEntity<GetTaskDataResponse> dataResponse = badEngineerTemplate()
+        .getForEntity("/v1/twTasks/task/" + task0Id + "/data", GetTaskDataResponse.class);
+
+    assertThat(dataResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @SneakyThrows
+  @Test
+  void rightRoleCanViewTaskDataForCustomConfiguration() {
+    final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
+        TaskTestBuilder.newTask()
+            .withType("customType")
+            .inStatus(TaskStatus.ERROR)
+            .withMaxStuckTime(ZonedDateTime.now().plusDays(1))
+            .save()
+            .getTaskId()
+    );
+
+    ResponseEntity<GetTaskDataResponse> dataResponse = goodEngineerTemplate()
+        .getForEntity("/v1/twTasks/task/" + task0Id + "/data", GetTaskDataResponse.class);
+
+    assertThat(dataResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
   }
 
   @Test
