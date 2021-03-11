@@ -1,6 +1,7 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.TasksProperties.TasksManagement.TypeSpecificTaskManagement;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
 import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -36,6 +38,19 @@ public class TasksManagementPortController implements ITasksManagementPort {
 
   @Autowired
   private TasksProperties tasksProperties;
+
+  private Map<String, Set<String>> allowedRolesByTaskType;
+
+  @PostConstruct
+  protected void init() {
+    allowedRolesByTaskType = tasksProperties.getTasksManagement()
+        .getTypeSpecific()
+        .stream()
+        .collect(
+            Collectors.toMap(
+                TypeSpecificTaskManagement::getTaskType,
+                TypeSpecificTaskManagement::getViewTaskDataRoles));
+  }
 
   @Override
   public ResponseEntity<MarkTasksAsFailedResponse> markTasksAsFailed(@RequestBody MarkTasksAsFailedRequest request) {
@@ -102,10 +117,12 @@ public class TasksManagementPortController implements ITasksManagementPort {
 
   @Override
   public ResponseEntity<GetTaskDataResponse> getTaskData(UUID taskId, String format) {
-    return callWithAuthentication(tasksProperties.getTasksManagement().getViewTaskDataRoles(),
+    GetTaskDataRequest request = new GetTaskDataRequest().setTaskId(taskId).setContentFormat(ContentFormat.of(format));
+    GetTaskDataResponse response = tasksManagementService.getTaskData(request);
+    Set<String> allowedRoles = getAllowedRoles(response);
+
+    return callWithAuthentication(allowedRoles,
         (auth) -> {
-          GetTaskDataRequest request = new GetTaskDataRequest().setTaskId(taskId).setContentFormat(ContentFormat.of(format));
-          GetTaskDataResponse response = tasksManagementService.getTaskData(request);
 
           if (response.getResultCode() == ResultCode.NOT_FOUND) {
             log.info("User '{}' tried to fetch payload for task '{}', but it was not found.", auth.getName(), taskId);
@@ -208,5 +225,11 @@ public class TasksManagementPortController implements ITasksManagementPort {
     }
 
     return null;
+  }
+
+  private Set<String> getAllowedRoles(GetTaskDataResponse taskData) {
+    return allowedRolesByTaskType.getOrDefault(
+        taskData.getType(),
+        tasksProperties.getTasksManagement().getViewTaskDataRoles());
   }
 }

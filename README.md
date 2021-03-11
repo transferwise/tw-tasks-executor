@@ -468,6 +468,20 @@ tw-tasks:
         - ROLE_TW_TASK_VIEW
 ```
 
+You can also set type-level configuration for roles allowed. These will override the global configuration above.
+- `tw-tasks.core.tasks-management.type-specific`
+
+```yaml
+tw-tasks:
+  core:
+    tasks-management:
+      type-specific:
+        -
+          task-type: "myTaskType"
+          view-task-data-roles:
+            - ROLE_PAYIN_DEVEL
+```
+
 ### Custom Kafka Configuration
 `tw-tasks` library can be configured with custom Kafka config by defining `TwTasksKafkaConfiguration` bean in your application:
 ```java

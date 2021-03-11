@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -323,16 +324,31 @@ public class TasksProperties {
   }
 
   @Data
+  @Validated
   public static class TasksManagement {
 
     /**
      * A role for viewing PII data.
      */
+    @NotNull
     private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
     /**
      * Roles for all other task management endpoints.
      */
+    @NotNull
     private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_DEVEL"));
+
+    @NotNull
+    private List<TypeSpecificTaskManagement> typeSpecific = Collections.emptyList();
+
+    @Data
+    @Validated
+    public static class TypeSpecificTaskManagement {
+      @NotBlank
+      private String taskType;
+      @NotEmpty
+      private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
+    }
   }
 
   /**

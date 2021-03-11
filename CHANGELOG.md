@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.25.0 - 2021/03/10
+- Support type-level task management configuration `tw-tasks.core.tasks-management.type-specific`
+
 #### 1.24.0 - 2021/02/18
 - Core and tasks triggering system does not depend on Spring Kafka, nor it's configuration.
   Services have to now specify `tw-tasks.core.triggering.kafka.bootstrap-servers` parameter.
