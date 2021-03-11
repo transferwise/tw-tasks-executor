@@ -469,15 +469,15 @@ tw-tasks:
 ```
 
 You can also set type-level configuration for roles allowed. These will override the global configuration above.
-- `tw-tasks.core.tasks-management.custom`
+- `tw-tasks.core.tasks-management.type-specific`
 
 ```yaml
 tw-tasks:
   core:
     tasks-management:
-      custom:
+      type-specific:
         -
-          taskType: "myTaskType"
+          task-type: "myTaskType"
           view-task-data-roles:
             - ROLE_PAYIN_DEVEL
 ```

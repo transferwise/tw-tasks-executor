@@ -11,6 +11,7 @@ dependencies {
     implementation libraries.springTx
     implementation libraries.springContext
     implementation libraries.twContext
+    implementation libraries.javaxAnnotationApi
 
     compileOnly libraries.springWeb
     compileOnly libraries.jakartaValidationApi

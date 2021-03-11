@@ -242,7 +242,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
   @SneakyThrows
   @Test
-  void wrongRoleCannotViewTaskDataForCustomConfiguration() {
+  void wrongRoleCannotViewTaskDataForTypeSpecificConfiguration() {
     final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .withType("customType")
@@ -260,7 +260,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
   @SneakyThrows
   @Test
-  void rightRoleCanViewTaskDataForCustomConfiguration() {
+  void rightRoleCanViewTaskDataForTypeSpecificConfiguration() {
     final UUID task0Id = transactionsHelper.withTransaction().asNew().call(() ->
         TaskTestBuilder.newTask()
             .withType("customType")

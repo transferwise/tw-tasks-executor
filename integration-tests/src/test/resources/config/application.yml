@@ -34,10 +34,10 @@ tw-tasks:
       kafka:
         bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}
     tasks-management:
-      custom:
+      type-specific:
         -
-          taskType: "customType"
-          viewTaskDataRoles:
+          task-type: "customType"
+          view-task-data-roles:
             - ROLE_DEVEL
 
 

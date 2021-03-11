@@ -1,7 +1,7 @@
 package com.transferwise.tasks.management;
 
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.TasksProperties.TasksManagement.CustomTaskManagement;
+import com.transferwise.tasks.TasksProperties.TasksManagement.TypeSpecificTaskManagement;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
 import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest;
@@ -12,6 +12,7 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -37,6 +38,19 @@ public class TasksManagementPortController implements ITasksManagementPort {
 
   @Autowired
   private TasksProperties tasksProperties;
+
+  private Map<String, Set<String>> allowedRolesByTaskType;
+
+  @PostConstruct
+  protected void init() {
+    allowedRolesByTaskType = tasksProperties.getTasksManagement()
+        .getTypeSpecific()
+        .stream()
+        .collect(
+            Collectors.toMap(
+                TypeSpecificTaskManagement::getTaskType,
+                TypeSpecificTaskManagement::getViewTaskDataRoles));
+  }
 
   @Override
   public ResponseEntity<MarkTasksAsFailedResponse> markTasksAsFailed(@RequestBody MarkTasksAsFailedRequest request) {
@@ -214,13 +228,8 @@ public class TasksManagementPortController implements ITasksManagementPort {
   }
 
   private Set<String> getAllowedRoles(GetTaskDataResponse taskData) {
-    String taskType = taskData.getType();
-    return tasksProperties.getTasksManagement()
-        .getCustom()
-        .stream()
-        .filter(custom -> custom.getTaskType().equals(taskType))
-        .map(CustomTaskManagement::getViewTaskDataRoles)
-        .findFirst()
-        .orElse(tasksProperties.getTasksManagement().getViewTaskDataRoles());
+    return allowedRolesByTaskType.getOrDefault(
+        taskData.getType(),
+        tasksProperties.getTasksManagement().getViewTaskDataRoles());
   }
 }
