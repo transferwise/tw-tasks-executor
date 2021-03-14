@@ -31,11 +31,10 @@ import com.transferwise.tasks.handler.TaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
 import com.transferwise.tasks.health.ITasksStateMonitor;
+import com.transferwise.tasks.helpers.CoreMetricsTemplate;
 import com.transferwise.tasks.helpers.ErrorLoggingThrottler;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
-import com.transferwise.tasks.helpers.IMeterHelper;
-import com.transferwise.tasks.helpers.MicrometerMeterHelper;
-import com.transferwise.tasks.helpers.NoOpMeterHelper;
 import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
@@ -47,7 +46,6 @@ import com.transferwise.tasks.stucktasks.ITasksResumer;
 import com.transferwise.tasks.stucktasks.TasksResumer;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
-import io.micrometer.core.instrument.MeterRegistry;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -110,15 +108,15 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "POSTGRES")
-  public PostgresTaskDao twTasksPostgresTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider, IMeterHelper meterHelper) {
-    return new PostgresTaskDao(twTasksDataSourceProvider.getDataSource(), meterHelper);
+  public PostgresTaskDao twTasksPostgresTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider) {
+    return new PostgresTaskDao(twTasksDataSourceProvider.getDataSource());
   }
 
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public MySqlTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider, IMeterHelper meterHelper) {
-    return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource(), meterHelper);
+  public MySqlTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider) {
+    return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource());
   }
 
   @Bean
@@ -199,13 +197,9 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
-  @ConditionalOnMissingBean(IMeterHelper.class)
-  public IMeterHelper twTasksMeterHelper(@Autowired(required = false) MeterRegistry meterRegistry) {
-    if (meterRegistry == null) {
-      log.warn("Micrometer registry was not found. Falling back to NoOpMeterHelper.");
-      return new NoOpMeterHelper();
-    }
-    return new MicrometerMeterHelper(meterRegistry);
+  @ConditionalOnMissingBean(ICoreMetricsTemplate.class)
+  public ICoreMetricsTemplate twTasksCoreMetricsTemplate() {
+    return new CoreMetricsTemplate();
   }
 
   @Bean

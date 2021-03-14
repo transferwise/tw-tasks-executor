@@ -1,8 +1,5 @@
 package com.transferwise.tasks.health;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
-import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
@@ -18,7 +15,7 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.EntryPointsGroups;
 import com.transferwise.tasks.entrypoints.EntryPointsNames;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -49,11 +46,11 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   @Autowired
   private TasksProperties tasksProperties;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private SharedReentrantLockBuilderFactory lockBuilderFactory;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   LeaderSelectorV2 leaderSelector;
 
@@ -115,7 +112,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
    * Here we are fine with every node registering it's own library version.
    */
   protected void registerLibrary() {
-    meterHelper.registerLibrary();
+    coreMetricsTemplate.registerLibrary();
   }
 
   @EntryPoint
@@ -131,7 +128,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
             */
             if (registeredMetricHandles != null) {
               for (Object metricHandle : registeredMetricHandles) {
-                meterHelper.unregisterMetric(metricHandle);
+                coreMetricsTemplate.unregisterMetric(metricHandle);
               }
             }
 
@@ -196,8 +193,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     if (counter == null) {
       tasksHistoryLengthSeconds.put(status, counter = new AtomicLong(historyLengthSeconds));
       registeredMetricHandles
-          .add(meterHelper.registerGauge(METRIC_PREFIX + "health.tasksHistoryLengthSeconds", ImmutableMap.of("taskStatus", status.name()),
-              counter::get));
+          .add(coreMetricsTemplate.registerTaskHistoryLength(status, counter));
     } else {
       counter.set(historyLengthSeconds);
     }
@@ -213,7 +209,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
     if (erroneousTasksCount == null) {
       erroneousTasksCount = new AtomicInteger(tasksCountInError);
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.tasksInErrorCount", erroneousTasksCount::get));
+      registeredMetricHandles.add(coreMetricsTemplate.registerTasksInErrorCount(erroneousTasksCount));
     } else {
       erroneousTasksCount.set(tasksCountInError);
     }
@@ -223,8 +219,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       erroneousTaskTypes.add(type);
       AtomicInteger typeCounter = erroneousTasksCounts.computeIfAbsent(type, k -> {
         AtomicInteger cnt = new AtomicInteger();
-        Object handle = meterHelper
-            .registerGauge(METRIC_PREFIX + "health.tasksInErrorCountPerType", ImmutableMap.of("taskType", type), cnt::get);
+        Object handle = coreMetricsTemplate.registerTasksInErrorCount(type, cnt);
         registeredMetricHandles.add(handle);
         taskInErrorStateHandles.put(type, handle);
         return cnt;
@@ -238,7 +233,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       if (!erroneousTaskTypes.contains(taskType)) {
         Object handle = taskInErrorStateHandles.remove(taskType);
         registeredMetricHandles.remove(handle);
-        meterHelper.unregisterMetric(handle);
+        coreMetricsTemplate.unregisterMetric(handle);
         it.remove();
       }
     }
@@ -256,7 +251,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
     if (stuckTasksCount == null) {
       stuckTasksCount = new AtomicInteger(stuckTasksCountValue);
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "health.stuckTasksCount", stuckTasksCount::get));
+      registeredMetricHandles.add(coreMetricsTemplate.registerStuckTasksCount(stuckTasksCount));
     } else {
       stuckTasksCount.set(stuckTasksCountValue);
     }
@@ -266,8 +261,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       stuckTaskTypes.add(type);
       AtomicInteger typeCounter = stuckTasksCounts.computeIfAbsent(type, k -> {
         AtomicInteger cnt = new AtomicInteger();
-        Object handle = meterHelper
-            .registerGauge(METRIC_PREFIX + "health.stuckTasksCountPerType", ImmutableMap.of("taskType", type), cnt::get);
+        Object handle = coreMetricsTemplate.registerStuckTasksCount(type, cnt);
         registeredMetricHandles.add(handle);
         stuckTasksStateHandles.put(type, handle);
         return cnt;
@@ -281,7 +275,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       if (!stuckTaskTypes.contains(taskType)) {
         Object handle = stuckTasksStateHandles.remove(taskType);
         registeredMetricHandles.remove(handle);
-        meterHelper.unregisterMetric(handle);
+        coreMetricsTemplate.unregisterMetric(handle);
         it.remove();
       }
     }
@@ -292,7 +286,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
     if (approximateTasksCount == null) {
       approximateTasksCount = new AtomicLong(approximateTasksCountValue);
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateTasks", approximateTasksCount::get));
+      registeredMetricHandles.add(coreMetricsTemplate.registerApproximateTasksCount(approximateTasksCount));
     } else {
       approximateTasksCount.set(approximateTasksCountValue);
     }
@@ -303,7 +297,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
     if (approximateUniqueKeysCount == null) {
       approximateUniqueKeysCount = new AtomicLong(approximateUniqueKeysCountValue);
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateUniqueKeys", approximateUniqueKeysCount::get));
+      registeredMetricHandles.add(coreMetricsTemplate.registerApproximateUniqueKeysCount(approximateUniqueKeysCount));
     } else {
       approximateUniqueKeysCount.set(approximateUniqueKeysCountValue);
     }
@@ -314,7 +308,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
     if (approximateTaskDatasCount == null) {
       approximateTaskDatasCount = new AtomicLong(approximateTaskDatasCountValue);
-      registeredMetricHandles.add(meterHelper.registerGauge(METRIC_PREFIX + "state.approximateTaskDatas", approximateTaskDatasCount::get));
+      registeredMetricHandles.add(coreMetricsTemplate.registerApproximateTaskDatasCount(approximateTaskDatasCount));
     } else {
       approximateTaskDatasCount.set(approximateTaskDatasCountValue);
     }

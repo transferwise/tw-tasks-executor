@@ -125,22 +125,28 @@ public class TaskDaoDataSerializer implements ITaskDaoDataSerializer {
 
       if (dataFormat == COMPRESSION_GZIP) {
         UnsynchronizedByteArrayInputStream bis = new UnsynchronizedByteArrayInputStream(data);
+        UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
         try (InputStream is = new GZIPInputStream(bis)) {
-          return IOUtils.toByteArray(is);
+          IOUtils.copy(is, bos);
+          return bos.toByteArray();
         }
       }
 
       if (dataFormat == COMPRESSION_LZ4) {
         UnsynchronizedByteArrayInputStream bis = new UnsynchronizedByteArrayInputStream(data);
+        UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
         try (InputStream is = new LZ4BlockInputStream(bis, LZ4Factory.fastestJavaInstance().fastDecompressor())) {
-          return IOUtils.toByteArray(is);
+          IOUtils.copy(is, bos);
+          return bos.toByteArray();
         }
       }
 
       if (dataFormat == COMPRESSION_ZSTD) {
         UnsynchronizedByteArrayInputStream bis = new UnsynchronizedByteArrayInputStream(data);
+        UnsynchronizedByteArrayOutputStream bos = new UnsynchronizedByteArrayOutputStream();
         try (InputStream is = new ZstdInputStream(bis)) {
-          return IOUtils.toByteArray(is);
+          IOUtils.copy(is, bos);
+          return bos.toByteArray();
         }
       }
 

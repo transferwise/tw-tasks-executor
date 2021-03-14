@@ -1,15 +1,14 @@
 package com.transferwise.tasks.dao;
 
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.helpers.IMeterHelper;
 import java.sql.SQLWarning;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
 public class PostgresTaskDao extends MySqlTaskDao {
 
-  public PostgresTaskDao(DataSource dataSource, IMeterHelper meterHelper) {
-    super(dataSource, new PostgresTaskSqlMapper(), meterHelper);
+  public PostgresTaskDao(DataSource dataSource) {
+    super(dataSource, new PostgresTaskSqlMapper());
   }
 
   @Override

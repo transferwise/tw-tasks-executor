@@ -2,6 +2,11 @@
 
 Describes notable changes.
 
+#### 1.26.0 - 2021/03/14
+- Refactoring and optimizing code around metrics.
+- Fixed high CPU usage around `TasksProperties`, due to `@Validated` annotations.
+- Various small optimizations and library upgrades.
+
 #### 1.25.0 - 2021/03/10
 - Support type-level task management configuration `tw-tasks.core.tasks-management.type-specific`
 

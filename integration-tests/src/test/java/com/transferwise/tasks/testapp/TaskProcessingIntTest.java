@@ -44,7 +44,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.MDC;
-import org.springframework.aop.framework.Advised;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
@@ -64,8 +63,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
   private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer;
 
   @BeforeEach
-  void setup() throws Exception {
-    kafkaTasksExecutionTriggerer = (KafkaTasksExecutionTriggerer) ((Advised) tasksExecutionTriggerer).getTargetSource().getTarget();
+  void setup() {
+    kafkaTasksExecutionTriggerer = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
   }
 
   @Test

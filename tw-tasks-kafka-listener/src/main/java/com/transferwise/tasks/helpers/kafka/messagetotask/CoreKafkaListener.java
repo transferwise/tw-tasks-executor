@@ -6,10 +6,10 @@ import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
-import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,9 +42,9 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   @Autowired
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private IKafkaListenerMetricsTemplate kafkaListenerMetricsTemplate;
 
   private ExecutorService executorService;
   private boolean shuttingDown;
@@ -101,10 +101,10 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
             String nakedTopic = removeTopicPrefixes(record.topic());
             List<IKafkaMessageHandler<T>> kafkaMessageHandlers = kafkaMessageHandlerRegistry.getForTopicOrFail(nakedTopic);
             kafkaMessageHandlers.forEach(kafkaMessageHandler -> kafkaMessageHandler.handle(record));
-            meterHelper.registerKafkaCoreMessageProcessing(shard, record.topic());
+            kafkaListenerMetricsTemplate.registerKafkaCoreMessageProcessing(shard, record.topic());
           })
+          .setKafkaListenerMetricsTemplate(kafkaListenerMetricsTemplate)
           .setErrorLoggingThrottler(errorLoggingThrottler)
-          .setMeterHelper(meterHelper)
           .setUnitOfWorkManager(unitOfWorkManager)
           .consume();
     } finally {

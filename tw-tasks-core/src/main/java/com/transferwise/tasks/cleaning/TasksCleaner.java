@@ -1,8 +1,5 @@
 package com.transferwise.tasks.cleaning;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
-import com.google.common.collect.ImmutableMap;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.ScheduledTaskExecutor;
 import com.transferwise.common.baseutils.concurrency.ThreadNamingExecutorServiceWrapper;
@@ -17,11 +14,10 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.EntryPointsGroups;
 import com.transferwise.tasks.entrypoints.EntryPointsNames;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.annotation.PostConstruct;
@@ -41,9 +37,9 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
   @Autowired
   private SharedReentrantLockBuilderFactory lockBuilderFactory;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private UnitOfWorkManager unitOfWorkManager;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   private LeaderSelectorV2 leaderSelector;
 
@@ -84,7 +80,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
             for (DeletableStatus deletableStatus : deletableStatuses) {
               // We don't want old values, 0-s or -1s to be shown in Grafana when we are not even doing any work.
               if (deletableStatus.metricHandle != null) {
-                meterHelper.unregisterMetric(deletableStatus.metricHandle);
+                coreMetricsTemplate.unregisterMetric(deletableStatus.metricHandle);
                 deletableStatus.metricHandle = null;
               }
             }
@@ -103,11 +99,8 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
               ITaskDao.DeleteFinishedOldTasksResult result = taskDao
                   .deleteOldTasks(status, tasksProperties.getFinishedTasksHistoryToKeep(), tasksProperties.getTasksHistoryDeletingBatchSize());
 
-              Map<String, String> tags = ImmutableMap.of("taskStatus", status.name());
-              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletableTasksCount", tags, result.getFoundTasksCount());
-              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedTasksCount", tags, result.getDeletedTasksCount());
-              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedUniqueKeysCount", tags, result.getDeletedUniqueKeysCount());
-              meterHelper.incrementCounter(METRIC_PREFIX + "tasksCleaner.deletedTaskDatasCount", tags, result.getDeletedTaskDatasCount());
+              coreMetricsTemplate.registerTasksCleanerTasksDeletion(status, result.getFoundTasksCount(), result.getDeletedTasksCount(),
+                  result.getDeletedUniqueKeysCount(), result.getDeletedTaskDatasCount());
 
               long lagSeconds = result.getFirstDeletedTaskNextEventTime() == null ? 0 :
                   Duration.between(result.getFirstDeletedTaskNextEventTime(), result.getDeletedBeforeTime()).getSeconds();
@@ -120,8 +113,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
               }
               if (lagNotRegistered) {
                 AtomicLong lagSecondsCopy = deletableStatus.lagSeconds;
-                deletableStatus.metricHandle = meterHelper.registerGauge(METRIC_PREFIX + "tasksCleaner.deleteLagSeconds",
-                    ImmutableMap.of("taskStatus", deletableStatus.status.name()), lagSecondsCopy::get);
+                deletableStatus.metricHandle = coreMetricsTemplate.registerTasksCleanerDeleteLagSeconds(deletableStatus.status, lagSecondsCopy);
               }
 
               if (log.isDebugEnabled()) {

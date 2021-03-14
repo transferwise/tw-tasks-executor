@@ -1,6 +1,6 @@
 package com.transferwise.tasks;
 
-import com.transferwise.tasks.config.ResolvedValueConstraint;
+import com.transferwise.tasks.config.ResolvedValue;
 import com.transferwise.tasks.utils.ClientIdUtils;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -11,59 +11,65 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
-import org.springframework.validation.annotation.Validated;
 
 @Data
-@Validated
 public class TasksProperties {
 
   /**
    * Unique id for service in the whole Company infrastructure.
    */
   @NotBlank
-  @ResolvedValueConstraint
+  @ResolvedValue
   private String groupId;
   /**
    * Unique node id in the service cluster. It helps to make crash recovery for a node very fast, but also is good for logging and tracking reasons.
    */
   @NotBlank
-  @ResolvedValueConstraint
+  @ResolvedValue
   private String clientId = ClientIdUtils.clientIdFromHostname();
   /**
    * How often do we check if any task is stuck.
    */
+  @NotNull
   private Duration stuckTasksPollingInterval = Duration.ofMinutes(1);
   /**
    * How often do we try to clean very old tasks from the database.
    */
+  @NotNull
   private Duration tasksCleaningInterval = Duration.ofSeconds(15);
   /**
    * How often do we check if any scheduled task should be executed now.
    */
+  @NotNull
   private Duration waitingTasksPollingInterval = Duration.ofSeconds(5);
   /**
    * Generic maximum time to wait for any lock, event or polling. It helps to make the system more robust and better debuggable. Usually you will
    * never want to change this.
    */
+  @NotNull
   private Duration genericMediumDelay = Duration.ofSeconds(5);
   /**
    * By default, how long should we expect a task to remain in any state, before we consider it as stuck.
    *
    * <p>Notice, that it is not used for PROCESSING state, where the maximum time is asked from task handler itself.
    */
+  @NotNull
   private Duration taskStuckTimeout = Duration.ofMinutes(30);
   /**
    * How much do we load triggers from triggering topic into memory, aka look-ahead amount.
    */
+  @Min(1L)
   private int maxTriggersInMemory = 100000;
   /**
    * How many triggers maximum do we retrieve from Kafka with one polling loop.
    */
+  @Min(1L)
   private int triggerFetchSize = 100;
   /**
    * How many nodes do we expect to be in the cluster.
@@ -86,7 +92,7 @@ public class TasksProperties {
    * Connection string to Zookeeper. Used to set partition sizes for different topics.
    */
   @NotBlank
-  @ResolvedValueConstraint
+  @ResolvedValue
   private String zookeeperConnectString;
   /**
    * Topic replication factor for listened topics and task triggering topics.
@@ -100,6 +106,8 @@ public class TasksProperties {
   /**
    * MDC keys config.
    */
+  @Valid
+  @NotNull
   private Mdc mdc = new Mdc();
   /**
    * We support Transferwise Kafka failover, where for every topic, we additionally listen to 2 other topics, one starting with "fra." and other with
@@ -107,11 +115,13 @@ public class TasksProperties {
    *
    * <p>e.g. kafkaDataCenterPrefixes = "fra.,aws.";
    */
+  @ResolvedValue
   private String kafkaDataCenterPrefixes = "";
   /**
    * Sometimes environments and engineers are forced to use same Kafka server, but still want to deal with only their own messages. In that case we
    * can configure a so called namespace string, which is prepended to every topics name.
    */
+  @ResolvedValue
   private String kafkaTopicsNamespace;
   /**
    * When listening Kafka Topics, it is possible to specify the topics replication factor and partitions count, which is applied on application
@@ -135,10 +145,12 @@ public class TasksProperties {
    * Tied to the previous option. If asyncTaskTriggering is enabled, how many triggerings to we keep in memory, before starting to throttle new tasks
    * added.
    */
+  @Min(1L)
   private int maxAsyncTaskTriggerings = 100000;
   /**
    * In how many threads to we try to trigger tasks when using crappy Spring own transaction manager.
    */
+  @Min(1L)
   private int asyncTaskTriggeringsConcurrency = 10;
   /**
    * Highest task priority allowed.
@@ -154,10 +166,13 @@ public class TasksProperties {
    *
    * <p>Can use "earliest", "latest" or Duration notion. For example, if you want to rewind 30 min back, you should write "-PT30M";
    */
+  @NotBlank
+  @ResolvedValue
   private String autoResetOffsetTo = "-PT30M";
   /**
    * When do we consider a task or task unique key old enough to be removed from the database.
    */
+  @NotNull
   private Duration finishedTasksHistoryToKeep = Duration.ofDays(30);
   /**
    * How many old tasks maximum do we delete in one batch/transaction. Deletion should always happen in small batches to not create too big spikes for
@@ -168,6 +183,7 @@ public class TasksProperties {
    * <p>TODO: Implement dynamic, adaptive configuration/system for that instead. Batch Size could be constant, but interval should learn from current
    * situation. Can use TCP/IP flow control algorithms.
    */
+  @Min(1L)
   private int tasksHistoryDeletingBatchSize = 2 * 125;
 
   //TODO: This does not make sense as generic parameter.
@@ -191,6 +207,7 @@ public class TasksProperties {
   /**
    * How long a task has to be stuck, before we start sending out VictorOps alerts.
    */
+  @NotNull
   private Duration stuckTaskAge = Duration.ofMinutes(5);
 
   private boolean checkVersionBeforeGrabbing = false;
@@ -201,6 +218,7 @@ public class TasksProperties {
    * <p>If a task handler is configured with a bucket not present in this list, then the handler will not be invoked when new tasks of the configured
    * type are submitted, and instead the task will be sent to the error state.
    */
+  @NotNull
   private List<String> additionalProcessingBuckets = new ArrayList<>();
 
   /**
@@ -208,9 +226,17 @@ public class TasksProperties {
    */
   private boolean preventStartWithoutZookeeper = true;
 
+  @NotBlank
+  @ResolvedValue
   private String taskTableName = "tw_task";
+  @NotBlank
+  @ResolvedValue
   private String uniqueTaskKeyTableName = "unique_tw_task_key";
+  @NotBlank
+  @ResolvedValue
   private String taskDataTableName = "tw_task_data";
+  @NotNull
+  @ResolvedValue
   private String taskTablesSchemaName = "";
 
   /**
@@ -223,6 +249,7 @@ public class TasksProperties {
   /**
    * Just to allow `ignoreUnknownFields` work.
    */
+  @ResolvedValue
   private String baseUrl;
 
   /**
@@ -231,6 +258,7 @@ public class TasksProperties {
    *
    * <p>The side effect is, that for example erroneous tasks count will never exceed this number.
    */
+  @Min(1)
   private int maxDatabaseFetchSize = 10000;
 
   /**
@@ -280,39 +308,42 @@ public class TasksProperties {
    * <p>The default 25 is somewhat optimized for RDS Multi A/Z databases with high commit latency, where we have 6 nodes application cluster,
    * relatively close to the database.
    */
+  @Min(1)
   private Integer taskGrabbingMaxConcurrency = 25;
 
   /**
    * Cluster wide tasks state monitoring options.
    */
+  @Valid
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
 
   public enum DbType {
     MYSQL, POSTGRES
   }
 
+  @Valid
   private TasksManagement tasksManagement = new TasksManagement();
 
+  @Valid
   private Compression compression = new Compression();
 
+  @Valid
   private Environment environment = new Environment();
 
   @Valid
   private Triggering triggering = new Triggering();
 
   @Data
-  @Validated
   public static class Triggering {
 
     @Valid
     private Kafka kafka = new Kafka();
 
     @Data
-    @Validated
     public static class Kafka {
 
       @NotBlank
-      @ResolvedValueConstraint
+      @ResolvedValue
       private String bootstrapServers;
 
       /**
@@ -324,7 +355,6 @@ public class TasksProperties {
   }
 
   @Data
-  @Validated
   public static class TasksManagement {
 
     /**
@@ -339,12 +369,14 @@ public class TasksProperties {
     private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_DEVEL"));
 
     @NotNull
+    @Valid
     private List<TypeSpecificTaskManagement> typeSpecific = Collections.emptyList();
 
     @Data
-    @Validated
     public static class TypeSpecificTaskManagement {
+
       @NotBlank
+      @ResolvedValue
       private String taskType;
       @NotEmpty
       private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
@@ -357,9 +389,17 @@ public class TasksProperties {
   @Data
   public static class Mdc {
 
+    @NotBlank
+    @ResolvedValue
     private String taskIdKey = "twTaskId";
+    @NotBlank
+    @ResolvedValue
     private String taskVersionKey = "twTaskVersion";
+    @NotBlank
+    @ResolvedValue
     private String taskTypeKey = "twTaskType";
+    @NotBlank
+    @ResolvedValue
     private String taskSubTypeKey = "twTaskSubType";
   }
 
@@ -374,10 +414,12 @@ public class TasksProperties {
      *
      * <p>Monitor can actually run slower or faster, when leadership is switching rapidly.
      */
+    @NotNull
     private Duration interval = Duration.ofSeconds(30);
     /**
      * The time between monitor acquires leadership and first check is done.
      */
+    @NotNull
     private Duration startDelay = Duration.ofSeconds(5);
     /**
      * If enabled, we will gather approximate tasks and unique keys counts from database information schema tables.
@@ -389,6 +431,7 @@ public class TasksProperties {
   @Accessors(chain = true)
   public static class Compression {
 
+    @NotNull
     private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
 
     /**
@@ -416,6 +459,8 @@ public class TasksProperties {
      *
      * <p>Allows tw-tasks to decide when it should fail fast, instead of risking with incompatibilities or/and processing pauses.
      */
+    @NotBlank
+    @ResolvedValue
     private String previousVersion;
 
   }

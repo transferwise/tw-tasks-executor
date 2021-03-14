@@ -75,7 +75,7 @@ public class TransactionManagerConfiguration {
     hds.setMinimumIdle(10);
     hds.setIdleTimeout(60000);
     hds.setValidationTimeout(10000);
-    hds.setLeakDetectionThreshold(10000);
+    //hds.setLeakDetectionThreshold(10000);
 
     if (hds.getJdbcUrl().contains("mariadb")) {
       Properties props = hds.getDataSourceProperties();

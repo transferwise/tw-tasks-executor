@@ -1,8 +1,6 @@
 package com.transferwise.tasks.processing;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Preconditions;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.Criticality;
@@ -33,7 +31,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse.Code;
 import com.transferwise.tasks.triggering.TaskTriggering;
@@ -64,11 +62,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
-@Transactional(propagation = Propagation.NEVER)
 public class TasksProcessingService implements GracefulShutdownStrategy, ITasksProcessingService {
 
   @Autowired
@@ -90,13 +86,13 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   @Autowired(required = false)
   private final List<ITaskProcessingInterceptor> taskProcessingInterceptors = new ArrayList<>();
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private UnitOfWorkManager unitOfWorkManager;
   @Autowired
   private IMdcService mdcService;
   @Autowired
   private IEntryPointsService entryPointsHelper;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   private final AtomicInteger runningTasksCount = new AtomicInteger();
 
@@ -125,11 +121,13 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     tasksProcessingExecutor = executorsHelper.newCachedExecutor("tasksProcessing");
     tasksGrabbingExecutor = executorsHelper.newCachedExecutor("tasksGrabbing");
 
-    meterHelper.registerGauge(METRIC_PREFIX + "processing.ongoingTasksGrabbingsCount", ongoingTasksGrabbingsCount::get);
+    coreMetricsTemplate.registerOngoingTasksGrabbingsCount(ongoingTasksGrabbingsCount);
   }
 
   @Override
   public AddTaskForProcessingResponse addTaskForProcessing(TaskTriggering taskTriggering) {
+    Preconditions.checkState(!TransactionSynchronizationManager.isActualTransactionActive());
+
     String bucketId = taskTriggering.getBucketId();
     BaseTask task = taskTriggering.getTask();
 
@@ -179,7 +177,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         break;
       }
       if (tasksProperties.isDebugMetricsEnabled()) {
-        meterHelper.debugPriorityQueueCheck(bucketId, priority);
+        coreMetricsTemplate.debugPriorityQueueCheck(bucketId, priority);
       }
       GlobalProcessingState.PrioritySlot prioritySlot = bucket.getPrioritySlot(priority);
 
@@ -194,7 +192,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
         if (noRoomMap.containsKey(type)) {
           if (tasksProperties.isDebugMetricsEnabled()) {
-            meterHelper.debugRoomMapAlreadyHasType(bucketId, priority, type);
+            coreMetricsTemplate.debugRoomMapAlreadyHasType(bucketId, priority, type);
           }
           continue;
         }
@@ -202,7 +200,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         TaskTriggering taskTriggering = typeTasks.peek();
         if (taskTriggering == null) {
           if (tasksProperties.isDebugMetricsEnabled()) {
-            meterHelper.debugTaskTriggeringQueueEmpty(bucketId, priority, type);
+            coreMetricsTemplate.debugTaskTriggeringQueueEmpty(bucketId, priority, type);
           }
           // Empty queues are always in the end, no point of going forward.
           break;
@@ -214,7 +212,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
           try {
             ProcessTaskResponse processTaskResponse = grabTaskForProcessing(bucketId, task);
 
-            meterHelper.registerTaskGrabbingResponse(bucketId, type, priority, processTaskResponse);
+            coreMetricsTemplate.registerTaskGrabbingResponse(bucketId, type, priority, processTaskResponse);
 
             if (processTaskResponse.getResult() == ProcessTaskResponse.Result.NO_SPACE) {
               noRoomMap.put(type, Boolean.TRUE);
@@ -255,8 +253,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         prioritySlot.getTypeTasks().put(taskType, typeTasks = new GlobalProcessingState.TypeTasks().setType(taskType));
 
         GlobalProcessingState.TypeTasks finalTypeTasks = typeTasks;
-        Map<String, String> tags = ImmutableMap.of("bucketId", bucket.getBucketId(), "type", taskType);
-        meterHelper.registerGauge(METRIC_PREFIX + "processing.typeTriggersCount", tags, () -> finalTypeTasks.getSize().get());
+        coreMetricsTemplate.registerProcessingTriggersCount(bucket.getBucketId(), taskType, () -> finalTypeTasks.getSize().get());
 
         prioritySlot.getOrderedTypeTasks().add(typeTasks);
       }
@@ -276,10 +273,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   protected void markAsError(IBaseTask task, String bucketId) {
     boolean markAsErrorSucceeded = taskDao.setStatus(task.getVersionId().getId(), TaskStatus.ERROR, task.getVersionId().getVersion());
     if (markAsErrorSucceeded) {
-      meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+      coreMetricsTemplate.registerTaskMarkedAsError(bucketId, task.getType());
     } else {
       // Some old trigger was re-executed, logging would be spammy here.
-      meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+      coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
     }
   }
 
@@ -341,7 +338,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       concurrencyPolicy.freeSpaceForTask(task);
       globalProcessingState.increaseBucketsVersion();
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
-        meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+        coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
       }
       return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR).setCode(Code.UNKNOWN_ERROR);
     }
@@ -377,7 +374,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
               if (!grabbed) {
                 concurrencyPolicy.freeSpaceForTask(task);
                 globalProcessingState.increaseBucketsVersion();
-                meterHelper.registerFailedTaskGrabbing(bucket.getBucketId(), task.getType());
+                coreMetricsTemplate.registerFailedTaskGrabbing(bucket.getBucketId(), task.getType());
               }
             }
           } catch (Throwable t) {
@@ -459,7 +456,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                   boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
 
                   Runnable process = () -> {
-                    meterHelper.registerTaskProcessingStart(bucketId, task.getType());
+                    coreMetricsTemplate.registerTaskProcessingStart(bucketId, task.getType());
                     LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.add(Thread.currentThread()));
                     try {
                       resultHolder.setValue(syncTaskProcessor.process(task));
@@ -526,7 +523,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
               } else if (taskProcessor instanceof IAsyncTaskProcessor) {
                 AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
                 try {
-                  meterHelper.registerTaskProcessingStart(bucketId, task.getType());
+                  coreMetricsTemplate.registerTaskProcessingStart(bucketId, task.getType());
                   ((IAsyncTaskProcessor) taskProcessor).process(task,
                       () -> markTaskAsDoneFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
                           processingStartTimeMs),
@@ -591,11 +588,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       taskDao.deleteTask(taskId, task.getVersion());
     } else if (tasksProperties.isClearPayloadOnFinish()) {
       if (!taskDao.clearPayloadAndMarkDone(taskId, task.getVersion())) {
-        meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
+        coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
       }
     } else {
       if (!taskDao.setStatus(taskId, TaskStatus.DONE, task.getVersion())) {
-        meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
+        coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
       }
     }
   }
@@ -611,7 +608,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     } else {
       log.debug("Repeating task '{}' will be reprocessed @ {}. Tries count reset: {}.", task.getVersionId(), retryTime,
           retryPolicy.resetTriesCountOnSuccess(task));
-      meterHelper.registerTaskRetry(bucketId, task.getType());
+      coreMetricsTemplate.registerTaskRetry(bucketId, task.getType());
       setToBeRetried(task, retryTime, retryPolicy.resetTriesCountOnSuccess(task));
     }
   }
@@ -625,20 +622,20 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     if (retryTime == null) {
       log.info("Task {} marked as ERROR.", LogUtils.asParameter(task.getVersionId()));
       if (taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
-        meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+        coreMetricsTemplate.registerTaskMarkedAsError(bucketId, task.getType());
       } else {
-        meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.ERROR);
+        coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.ERROR);
       }
     } else {
       log.info("Task {} will be reprocessed @ " + retryTime + ".", LogUtils.asParameter(task.getVersionId()));
-      meterHelper.registerTaskRetryOnError(bucketId, task.getType());
+      coreMetricsTemplate.registerTaskRetryOnError(bucketId, task.getType());
       setToBeRetried(task, retryTime, false);
     }
   }
 
   private void setToBeRetried(Task task, ZonedDateTime retryTime, boolean resetTriesCount) {
     if (!taskDao.setToBeRetried(task.getId(), retryTime, task.getVersion(), resetTriesCount)) {
-      meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
+      coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
     }
   }
 
@@ -647,7 +644,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     runningTasksCount.decrementAndGet();
     GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
     bucket.getRunningTasksCount().decrementAndGet();
-    meterHelper.registerTaskProcessingEnd(bucketId, task.getType(), processingStartTimeMs, processingResult.name());
+    coreMetricsTemplate.registerTaskProcessingEnd(bucketId, task.getType(), processingStartTimeMs, processingResult.name());
 
     concurrencyPolicy.freeSpaceForTask(task);
     globalProcessingState.increaseBucketsVersion();
@@ -691,12 +688,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
         GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
 
-        Map<String, String> tags = ImmutableMap.of("bucketId", bucketId);
-        meterHelper.registerGauge(METRIC_PREFIX + "processing.runningTasksCount", tags, () -> bucket.getRunningTasksCount().get());
-        meterHelper
-            .registerGauge(METRIC_PREFIX + "processing.inProgressTasksGrabbingCount", tags, () -> bucket.getInProgressTasksGrabbingCount().get());
-        meterHelper.registerGauge(METRIC_PREFIX + "processing.triggersCount", tags, () -> bucket.getSize().get());
-        meterHelper.registerGauge(METRIC_PREFIX + "processing.stateVersion", tags, () -> bucket.getVersion().get());
+        coreMetricsTemplate.registerRunningTasksCount(bucketId, () -> bucket.getRunningTasksCount().get());
+        coreMetricsTemplate.registerInProgressTasksGrabbingCount(bucketId, () -> bucket.getInProgressTasksGrabbingCount().get());
+        coreMetricsTemplate.registerProcessingTriggersCount(bucketId, () -> bucket.getSize().get());
+        coreMetricsTemplate.registerProcessingStateVersion(bucketId, () -> bucket.getVersion().get());
 
         tasksProcessingExecutor.submit(() -> {
           while (!shuttingDown) {

@@ -23,7 +23,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy.StuckTaskResolutionStrategy;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.stucktasks.TasksResumer.StuckTaskResolutionStats;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import java.time.Clock;
@@ -64,7 +64,7 @@ class TasksResumerTest {
   private IExecutorServicesProvider executorServicesProvider;
 
   @Mock
-  private IMeterHelper meterHelper;
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   @InjectMocks
   private TasksResumer service;
