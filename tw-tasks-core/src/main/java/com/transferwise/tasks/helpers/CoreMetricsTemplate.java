@@ -47,11 +47,10 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   private static final String METRIC_TASKS_RESUMINGS_COUNT = METRIC_PREFIX + "tasks.resumingsCount";
   private static final String METRIC_TASKS_MARKED_AS_FAILED_COUNT = METRIC_PREFIX + "tasks.markedAsFailedCount";
   private static final String METRIC_TASKS_ADDINGS_COUNT = METRIC_PREFIX + "task.addings.count";
-  private static final String METRIC_IN_PROGRESS_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.inProgressTriggeringsCount";
-  private static final String METRIC_ACTIVE_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.activeTriggeringsCount";
-  private static final String METRIC_BUCKETS_COUNT = METRIC_PREFIX + "bucketsManager.bucketsCount";
-  private static final String METRIC_ONGOING_TASKS_GRABBINGS_COUNT = METRIC_PREFIX + "processing.ongoingTasksGrabbingsCount";
-  private static final String METRIC_POLLING_BUCKETS_COUNT = METRIC_PREFIX + "kafkaTasksExecutionTriggerer.pollingBucketsCount";
+  private static final String METRIC_TASKS_SERVICE_IN_PROGRESS_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.inProgressTriggeringsCount";
+  private static final String METRIC_TASKS_SERVICE_ACTIVE_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.activeTriggeringsCount";
+  private static final String METRIC_BUCKETS_MANAGER_BUCKETS_COUNT = METRIC_PREFIX + "bucketsManager.bucketsCount";
+  private static final String METRIC_PROCESSING_ONGOING_TASKS_GRABBINGS_COUNT = METRIC_PREFIX + "processing.ongoingTasksGrabbingsCount";
   private static final String METRIC_TASKS_CLEANER_DELETABLE_TASKS_COUNT = METRIC_PREFIX + "tasksCleaner.deletableTasksCount";
   private static final String METRIC_TASKS_CLEANER_DELETED_TASKS_COUNT = METRIC_PREFIX + "tasksCleaner.deletedTasksCount";
   private static final String METRIC_TASKS_CLEANER_DELETED_UNIQUE_KEYS_COUNT = METRIC_PREFIX + "tasksCleaner.deletedUniqueKeysCount";
@@ -59,6 +58,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   private static final String METRIC_TASKS_CLEANER_DELETE_LAG_SECONDS = METRIC_PREFIX + "tasksCleaner.deleteLagSeconds";
   private static final String METRIC_DAO_DATA_SIZE = METRIC_PREFIX + "dao.data.size";
   private static final String METRIC_DAO_DATA_SERIALIZED_SIZE = METRIC_PREFIX + "dao.data.serialized.size";
+  private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_POLLING_BUCKETS_COUNT =
+      METRIC_PREFIX + "kafkaTasksExecutionTriggerer.pollingBucketsCount";
   private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_RECEIVED_TRIGGERS_COUNT =
       METRIC_PREFIX + "kafkaTasksExecutionTriggerer.receivedTriggersCount";
   private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_COMMITS_COUNT = METRIC_PREFIX + "kafkaTasksExecutionTriggerer.commitsCount";
@@ -266,39 +267,39 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
 
   @Override
   public void registerInProgressTriggeringsCount(AtomicInteger count) {
-    Gauge.builder(METRIC_IN_PROGRESS_TRIGGERINGS_COUNT, count::get)
+    Gauge.builder(METRIC_TASKS_SERVICE_IN_PROGRESS_TRIGGERINGS_COUNT, count::get)
         .register(meterCache.getMeterRegistry());
   }
 
   @Override
   public void registerActiveTriggeringsCount(AtomicInteger count) {
-    Gauge.builder(METRIC_ACTIVE_TRIGGERINGS_COUNT, count::get)
+    Gauge.builder(METRIC_TASKS_SERVICE_ACTIVE_TRIGGERINGS_COUNT, count::get)
         .register(meterCache.getMeterRegistry());
   }
 
   @Override
   public void registerOngoingTasksGrabbingsCount(AtomicInteger count) {
-    Gauge.builder(METRIC_ONGOING_TASKS_GRABBINGS_COUNT, count::get)
+    Gauge.builder(METRIC_PROCESSING_ONGOING_TASKS_GRABBINGS_COUNT, count::get)
         .register(meterCache.getMeterRegistry());
   }
 
   @Override
   public void registerPollingBucketsCount(AtomicInteger count) {
-    Gauge.builder(METRIC_POLLING_BUCKETS_COUNT, count::get)
+    Gauge.builder(METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_POLLING_BUCKETS_COUNT, count::get)
         .register(meterCache.getMeterRegistry());
   }
 
   @Override
   public void registerTasksCleanerTasksDeletion(TaskStatus status, int deletableTasksCount, int deletedTasksCount, int deletedUniqueKeysCount,
       int deletedTaskDatasCount) {
-    TagsSet tas = TagsSet.of(TAG_TASK_TYPE, status.name());
-    meterCache.counter(METRIC_TASKS_CLEANER_DELETABLE_TASKS_COUNT, tas)
+    TagsSet tags = TagsSet.of(TAG_TASK_TYPE, status.name());
+    meterCache.counter(METRIC_TASKS_CLEANER_DELETABLE_TASKS_COUNT, tags)
         .increment(deletableTasksCount);
-    meterCache.counter(METRIC_TASKS_CLEANER_DELETED_TASKS_COUNT, tas)
+    meterCache.counter(METRIC_TASKS_CLEANER_DELETED_TASKS_COUNT, tags)
         .increment(deletedTasksCount);
-    meterCache.counter(METRIC_TASKS_CLEANER_DELETED_UNIQUE_KEYS_COUNT, tas)
+    meterCache.counter(METRIC_TASKS_CLEANER_DELETED_UNIQUE_KEYS_COUNT, tags)
         .increment(deletedUniqueKeysCount);
-    meterCache.counter(METRIC_TASKS_CLEANER_DELETED_TASK_DATAS_COUNT, tas)
+    meterCache.counter(METRIC_TASKS_CLEANER_DELETED_TASK_DATAS_COUNT, tags)
         .increment(deletedTaskDatasCount);
   }
 
@@ -418,8 +419,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public Object registerKafkaTasksExecutionTriggererOffsetsToBeCommitedCount(String bucketId,
-      Supplier<Number> countSupplier) {
+  public Object registerKafkaTasksExecutionTriggererOffsetsToBeCommitedCount(String bucketId, Supplier<Number> countSupplier) {
     return registerGauge(METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_OFFSETS_TO_BE_COMMITED_COUNT, countSupplier, TAG_BUCKET_ID,
         resolveBucketId(bucketId));
   }
@@ -430,8 +430,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public Object registerKafkaTasksExecutionTriggererUnprocessedFetchedRecordsCount(String bucketId,
-      Supplier<Number> countSupplier) {
+  public Object registerKafkaTasksExecutionTriggererUnprocessedFetchedRecordsCount(String bucketId, Supplier<Number> countSupplier) {
     return registerGauge(METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_UNPROCESSED_FETCHED_RECORDS_COUNT, countSupplier, TAG_BUCKET_ID,
         resolveBucketId(bucketId));
   }
@@ -443,7 +442,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
 
   @Override
   public Object registerBucketsCount(Supplier<Integer> supplier) {
-    return registerGauge(METRIC_BUCKETS_COUNT, supplier::get);
+    return registerGauge(METRIC_BUCKETS_MANAGER_BUCKETS_COUNT, supplier::get);
   }
 
   @Override

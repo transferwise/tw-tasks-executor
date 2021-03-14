@@ -19,7 +19,7 @@ public class KafkaListenerMetricsTemplate implements IKafkaListenerMetricsTempla
 
   @Override
   public void registerKafkaCoreMessageProcessing(int shard, String topic) {
-    meterCache.counter(METRIC_CORE_KAFKA_PROCESSED_MESSAGES_COUNT, TagsSet.of(TAG_TOPIC, topic, TAG_SHARD, String.valueOf(shard)))
+    meterCache.counter(METRIC_CORE_KAFKA_PROCESSED_MESSAGES_COUNT, TagsSet.of(TAG_SHARD, String.valueOf(shard), TAG_TOPIC, topic))
         .increment();
   }
 
