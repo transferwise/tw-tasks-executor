@@ -8,7 +8,7 @@ import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutDataResponse;
@@ -42,11 +42,11 @@ public class TasksManagementService implements ITasksManagementService {
   @Autowired
   private IManagementTaskDao managementTaskDao;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private IMdcService mdcService;
   @Autowired
   private IEntryPointsService entryPointsHelper;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   @Override
   @EntryPoint(usesExisting = true)
@@ -64,9 +64,9 @@ public class TasksManagementService implements ITasksManagementService {
             boolean succeeded = taskDao.setStatus(taskVersionId.getId(), TaskStatus.FAILED, taskVersionId.getVersion());
             log.info("Marking of task '" + taskVersionId.getId() + "' as FAILED " + (succeeded ? " succeeded" : "failed") + ".");
             if (succeeded) {
-              meterHelper.registerTaskMarkedAsFailed(null, task.getType());
+              coreMetricsTemplate.registerTaskMarkedAsFailed(null, task.getType());
             } else {
-              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
+              coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
             }
             response.getResults().put(taskVersionId.getId(), new MarkTasksAsFailedResponse.Result().setSuccess(succeeded));
           }
@@ -98,9 +98,9 @@ public class TasksManagementService implements ITasksManagementService {
               log.info("Marking task " + LogUtils.asParameter(taskVersionId) + " in status '" + task
                   .getStatus() + "' to be immediately resumed " + (succeeded ? " succeeded" : "failed") + ".");
               if (succeeded) {
-                meterHelper.registerTaskResuming(null, task.getType());
+                coreMetricsTemplate.registerTaskResuming(null, task.getType());
               } else {
-                meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
+                coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.WAITING);
               }
               response.getResults().put(taskVersionId.getId(), new ResumeTasksImmediatelyResponse.Result()
                   .setSuccess(succeeded));

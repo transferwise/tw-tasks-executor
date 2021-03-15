@@ -1,6 +1,6 @@
 package com.transferwise.tasks.config;
 
-import com.transferwise.tasks.config.ResolvedValueConstraint.ResolvedValueValidator;
+import com.transferwise.tasks.config.ResolvedValue.ResolvedValueValidator;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -15,7 +15,7 @@ import javax.validation.Payload;
 @Constraint(validatedBy = ResolvedValueValidator.class)
 @Target({ElementType.METHOD, ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ResolvedValueConstraint {
+public @interface ResolvedValue {
 
   String message() default "Unresolved value.";
 
@@ -23,10 +23,10 @@ public @interface ResolvedValueConstraint {
 
   Class<? extends Payload>[] payload() default {};
 
-  class ResolvedValueValidator implements ConstraintValidator<ResolvedValueConstraint, String> {
+  class ResolvedValueValidator implements ConstraintValidator<ResolvedValue, String> {
 
     @Override
-    public void initialize(ResolvedValueConstraint contactNumber) {
+    public void initialize(ResolvedValue contactNumber) {
     }
 
     @Override

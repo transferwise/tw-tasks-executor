@@ -1,12 +1,10 @@
 package com.transferwise.tasks.helpers.kafka;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.EntryPointsGroups;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.time.Duration;
 import java.util.HashMap;
@@ -46,11 +44,11 @@ public class ConsistentKafkaConsumer<T> {
   @Setter
   private Duration delayTimeout = Duration.ofSeconds(5);
   @Setter
-  private IMeterHelper meterHelper;
-  @Setter
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Setter
   private UnitOfWorkManager unitOfWorkManager;
+  @Setter
+  private IKafkaListenerMetricsTemplate kafkaListenerMetricsTemplate;
 
   public void consume() {
     MutableObject<Consumer<String, T>> consumerHolder = new MutableObject<>();
@@ -146,8 +144,8 @@ public class ConsistentKafkaConsumer<T> {
 
   protected void registerCommitException(Throwable t) {
     if (t instanceof CommitFailedException || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
-      if (meterHelper != null) {
-        meterHelper.incrementCounter(METRIC_PREFIX + "consistentKafkaConsumer.failedCommitsCount", 1);
+      if (kafkaListenerMetricsTemplate != null) {
+        kafkaListenerMetricsTemplate.registerFailedCommit();
       }
       log.debug("Committing Kafka offset failed.", t);
       return;

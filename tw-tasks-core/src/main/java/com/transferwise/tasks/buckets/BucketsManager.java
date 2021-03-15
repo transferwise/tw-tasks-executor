@@ -1,11 +1,9 @@
 package com.transferwise.tasks.buckets;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import java.util.Comparator;
 import java.util.List;
@@ -25,7 +23,7 @@ public class BucketsManager implements IBucketsManager {
   @Autowired
   private IPriorityManager priorityManager;
   @Autowired
-  private IMeterHelper meterHelper;
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   private final Map<String, BucketProperties> bucketsProperties = new ConcurrentHashMap<>();
   private List<String> bucketIds;
@@ -46,7 +44,7 @@ public class BucketsManager implements IBucketsManager {
 
       registerUniqueBucketIds();
     });
-    meterHelper.registerGauge(METRIC_PREFIX + "bucketsManager.bucketsCount", () -> bucketIds.size());
+    coreMetricsTemplate.registerBucketsCount(() -> bucketIds.size());
   }
 
   protected void registerUniqueBucketIds() {

@@ -1,7 +1,5 @@
 package com.transferwise.tasks;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
@@ -15,7 +13,7 @@ import com.transferwise.tasks.entrypoints.EntryPointsNames;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.LogUtils;
@@ -47,8 +45,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   @Autowired
   private IPriorityManager priorityManager;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private ITaskHandlerRegistry taskHandlerRegistry;
   @Autowired
   private IMdcService mdcService;
@@ -58,6 +54,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private IEntryPointsService entryPointsHelper;
   @Autowired
   private IEnvironmentValidator environmentValidator;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -78,8 +76,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
 
     log.info("Tasks service initialized for client '" + tasksProperties.getClientId() + "'.");
 
-    meterHelper.registerGauge(METRIC_PREFIX + "tasksService.inProgressTriggeringsCount", inProgressAfterCommitTasks::get);
-    meterHelper.registerGauge(METRIC_PREFIX + "tasksService.activeTriggeringsCount", activeAfterCommitTasks::get);
+    coreMetricsTemplate.registerInProgressTriggeringsCount(inProgressAfterCommitTasks);
+    coreMetricsTemplate.registerActiveTriggeringsCount(activeAfterCommitTasks);
   }
 
   @Override
@@ -111,10 +109,11 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
                   .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority)
                   .setCompression(request.getCompression()));
 
-          meterHelper.registerTaskAdding(request.getType(), request.getUniqueKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
+          coreMetricsTemplate
+              .registerTaskAdding(request.getType(), request.getUniqueKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
 
           if (!insertTaskResponse.isInserted()) {
-            meterHelper.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
+            coreMetricsTemplate.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());
             if (request.isWarnWhenTaskExists()) {
               log.warn("Task with uuid '" + request.getTaskId() + "'"
                   + (request.getUniqueKey() == null ? "" : " and key '" + request.getUniqueKey() + "'")
@@ -155,14 +154,14 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
           long version = task.getVersion();
 
           if (version != request.getVersion()) {
-            meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+            coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
             log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
             return false;
           }
 
           if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
             if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
-              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+              coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
               if (log.isDebugEnabled()) {
                 log.debug("Can not resume task '" + taskId + "', expected version " + request.getVersion()
                     + " does not match " + task.getVersion() + ".");
@@ -179,7 +178,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
               log.warn("Task '" + taskId + "' will be force resumed. Status will change from '" + task.getStatus() + "' to 'SUBMITTED'.");
             }
             if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
-              meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+              coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
               log.debug("Can not resume task {}, it has wrong version '{}'.", LogUtils.asParameter(task.getVersionId()), task.getStatus());
               return false;
             }

@@ -42,6 +42,7 @@ dependencies {
 
     compileOnly libraries.lombok
     compileOnly libraries.spotbugsAnnotations
+    compileOnly libraries.jakartaValidationApi
 
     implementation libraries.slf4j
     implementation libraries.apacheCommonsCollections

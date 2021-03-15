@@ -8,8 +8,8 @@ import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.demoapp.payout.PayoutInstruction;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
-import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
+import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -35,13 +35,13 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
   @Autowired
   private KafkaProperties kafkaProperties;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
   @Autowired
   private ITaskDataSerializer taskDataSerializer;
+  @Autowired
+  private IKafkaListenerMetricsTemplate kafkaListenerMetricsTemplate;
 
   private ExecutorService executorService;
 
@@ -79,7 +79,7 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
             log.error(t.getMessage(), t);
           }
         })
-        .setMeterHelper(meterHelper)
+        .setKafkaListenerMetricsTemplate(kafkaListenerMetricsTemplate)
         .setErrorLoggingThrottler(errorLoggingThrottler)
         .setUnitOfWorkManager(unitOfWorkManager)
         .consume();

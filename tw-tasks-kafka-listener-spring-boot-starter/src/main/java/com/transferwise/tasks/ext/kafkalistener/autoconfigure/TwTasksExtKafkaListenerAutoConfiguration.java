@@ -7,12 +7,13 @@ import com.transferwise.tasks.helpers.kafka.messagetotask.CoreKafkaListener;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandlerRegistry;
 import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerFactory;
 import com.transferwise.tasks.helpers.kafka.messagetotask.KafkaMessageHandlerRegistry;
+import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
+import com.transferwise.tasks.helpers.kafka.meters.KafkaListenerMetricsTemplate;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.kafka.core.KafkaTemplate;
 
 @EnableConfigurationProperties
 @Configuration
@@ -42,5 +43,11 @@ public class TwTasksExtKafkaListenerAutoConfiguration {
   @ConditionalOnMissingBean
   public TwTasksKafkaConfiguration twTaskKafkaConfiguration(KafkaProperties kafkaProperties) {
     return new TwTasksKafkaConfiguration(kafkaProperties);
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(IKafkaListenerMetricsTemplate.class)
+  public KafkaListenerMetricsTemplate twTasksKafkaListenerMetricsTemplate() {
+    return new KafkaListenerMetricsTemplate();
   }
 }

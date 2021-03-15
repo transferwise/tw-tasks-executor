@@ -24,7 +24,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
-import com.transferwise.tasks.helpers.IMeterHelper;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.DomainUtils;
@@ -63,13 +63,13 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   @Autowired
   private IExecutorServicesProvider executorServicesProvider;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private IMdcService mdcService;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
   @Autowired
   private ITasksProcessingService tasksProcessingService;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   private LeaderSelectorV2 leaderSelector;
 
@@ -201,13 +201,13 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
                 ZonedDateTime nextEventTime = taskHandlerRegistry.getExpectedProcessingMoment(task);
                 if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), nextEventTime)) {
                   log.debug("Were not able to mark task '" + task.getVersionId() + "' as submitted.");
-                  meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+                  coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
                 } else {
                   BaseTask baseTask = DomainUtils.convert(task, BaseTask.class);
                   baseTask.setVersion(baseTask.getVersion() + 1);
 
                   tasksExecutionTriggerer.trigger(baseTask);
-                  meterHelper.registerScheduledTaskResuming(baseTask.getType());
+                  coreMetricsTemplate.registerScheduledTaskResuming(baseTask.getType());
                 }
               }
               if (log.isDebugEnabled() && result.getStuckTasks().size() > 0) {
@@ -263,16 +263,16 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
         break;
       case MARK_AS_FAILED:
         if (!taskDao.setStatus(task.getVersionId().getId(), TaskStatus.FAILED, task.getVersionId().getVersion())) {
-          meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
+          coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.FAILED);
         } else {
           stuckTaskResolutionStats.countFailed();
           String taskType = task.getType();
-          meterHelper.registerStuckTaskMarkedAsFailed(taskType, stuckDetectionSource);
-          meterHelper.registerTaskMarkedAsFailed(bucketId, taskType);
+          coreMetricsTemplate.registerStuckTaskMarkedAsFailed(taskType, stuckDetectionSource);
+          coreMetricsTemplate.registerTaskMarkedAsFailed(bucketId, taskType);
         }
         break;
       case IGNORE:
-        meterHelper.registerStuckTaskAsIgnored(task.getType(), stuckDetectionSource);
+        coreMetricsTemplate.registerStuckTaskAsIgnored(task.getType(), stuckDetectionSource);
         break;
       default:
         throw new UnsupportedOperationException("Resolution strategy " + taskResolutionStrategy + " is not supported.");
@@ -282,26 +282,26 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   protected void retryTask(ITaskProcessingPolicy taskProcessingPolicy, String bucketId, ITaskDao.StuckTask task,
       StuckDetectionSource stuckDetectionSource, StuckTaskResolutionStats stuckTaskResolutionStats) {
     if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), getMaxStuckTime(taskProcessingPolicy, task))) {
-      meterHelper.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
+      coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
       return;
     }
     BaseTask baseTask = DomainUtils.convert(task, BaseTask.class);
     baseTask.setVersion(baseTask.getVersion() + 1); // markAsSubmittedAndSetNextEventTime is bumping task version, so we will as well.
     tasksExecutionTriggerer.trigger(baseTask);
     stuckTaskResolutionStats.countResumed();
-    meterHelper.registerStuckTaskResuming(task.getType(), stuckDetectionSource);
-    meterHelper.registerTaskResuming(bucketId, task.getType());
+    coreMetricsTemplate.registerStuckTaskResuming(task.getType(), stuckDetectionSource);
+    coreMetricsTemplate.registerTaskResuming(bucketId, task.getType());
   }
 
   protected void markTaskAsError(String bucketId, IBaseTask task, StuckDetectionSource stuckDetectionSource,
       StuckTaskResolutionStats stuckTaskResolutionStats) {
     log.error("Marking task " + LogUtils.asParameter(task.getVersionId()) + " as ERROR, because we don't know if it still processing somewhere.");
     if (!taskDao.setStatus(task.getVersionId().getId(), TaskStatus.ERROR, task.getVersionId().getVersion())) {
-      meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+      coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
     } else {
       stuckTaskResolutionStats.countError();
-      meterHelper.registerStuckTaskMarkedAsError(task.getType(), stuckDetectionSource);
-      meterHelper.registerTaskMarkedAsError(bucketId, task.getType());
+      coreMetricsTemplate.registerStuckTaskMarkedAsError(task.getType(), stuckDetectionSource);
+      coreMetricsTemplate.registerTaskMarkedAsError(bucketId, task.getType());
     }
   }
 

@@ -1,5 +1,6 @@
 package com.transferwise.tasks;
 
+import com.transferwise.common.baseutils.meters.cache.IMeterCache;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.test.ITestTasksService;
@@ -45,6 +46,8 @@ public abstract class BaseIntTest {
   protected TestTaskHandler testTaskHandlerAdapter;
   @Autowired
   protected MeterRegistry meterRegistry;
+  @Autowired
+  protected IMeterCache meterCache;
 
   @Autowired
   void setApplicationContext(ApplicationContext applicationContext) {
@@ -73,6 +76,7 @@ public abstract class BaseIntTest {
     testTasksService.resumeProcessing();
 
     meterRegistry.clear();
+    meterCache.clear();
 
     testInfo.getTestMethod().ifPresent(name ->
         log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)

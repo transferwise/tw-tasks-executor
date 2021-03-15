@@ -24,13 +24,13 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
   @Autowired
   private TasksProperties tasksProperties;
 
-  private volatile List<ITaskHandler> handlers;
+  private List<ITaskHandler> handlers;
 
   @Override
   public ITaskHandler getTaskHandler(IBaseTask task) {
     // TODO: Should we add caching here for larger applications?
     // TODO: Or at least advice about keeping the number of handlers low in docs.
-    // TODO: Applications themselves can create hierarchical handlers themselves being able to handle most types of tasks. 
+    // TODO: Applications themselves can create hierarchical handlers themselves being able to handle most types of tasks.
     ITaskHandler result = null;
     for (ITaskHandler taskHandler : getHandlers()) {
       if (taskHandler.handles(task)) {
@@ -64,17 +64,15 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
 
   /**
    * Task handlers should be lazily loaded to avoid any circular dependencies.
+   *
+   * <p>We don't need volatile nor double synchronized-if here, because the initialization is immutable.
    */
   protected List<ITaskHandler> getHandlers() {
     if (handlers == null) {
-      synchronized (this) {
-        if (handlers == null) {
-          handlers = new ArrayList<>(applicationContext.getBeansOfType(ITaskHandler.class).values());
-          if (log.isDebugEnabled()) {
-            for (ITaskHandler taskHandler : handlers) {
-              log.debug("Registering task handler: " + taskHandler);
-            }
-          }
+      handlers = new ArrayList<>(applicationContext.getBeansOfType(ITaskHandler.class).values());
+      if (log.isDebugEnabled()) {
+        for (ITaskHandler taskHandler : handlers) {
+          log.debug("Registering task handler: " + taskHandler);
         }
       }
     }

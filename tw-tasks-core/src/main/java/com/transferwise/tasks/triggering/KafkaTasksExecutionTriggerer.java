@@ -1,12 +1,9 @@
 package com.transferwise.tasks.triggering;
 
-import static com.transferwise.tasks.helpers.IMeterHelper.METRIC_PREFIX;
-
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.base.Preconditions;
 import com.transferwise.common.baseutils.ExceptionUtils;
-import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.concurrency.LockUtils;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
@@ -19,8 +16,8 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
+import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
-import com.transferwise.tasks.helpers.IMeterHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.processing.GlobalProcessingState;
@@ -37,6 +34,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -63,11 +61,9 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
-@Transactional(propagation = Propagation.NEVER, rollbackFor = Exception.class)
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy {
 
   @Autowired
@@ -89,9 +85,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   @Autowired
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
-  private IMeterHelper meterHelper;
-  @Autowired
   private IMdcService mdcService;
+  @Autowired
+  private ICoreMetricsTemplate coreMetricsTemplate;
 
   private ObjectMapper objectMapper;
   private KafkaProducer<String, String> kafkaProducer;
@@ -121,7 +117,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       releaseCompletedOffset(consumerBucket, topicPartition, offset);
     });
 
-    meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.pollingBucketsCount", pollingBucketsCount::get);
+    coreMetricsTemplate.registerPollingBucketsCount(pollingBucketsCount);
 
     objectMapper = new ObjectMapper();
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -131,13 +127,15 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
   @Override
   public void trigger(BaseTask task) {
+    Preconditions.checkState(!TransactionSynchronizationManager.isActualTransactionActive());
+
     ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
     if (taskHandler == null) {
       log.error("Marking task {} as ERROR, because no task handler was found for type '" + task.getType() + "'.",
           LogUtils.asParameter(task.getVersionId()));
-      meterHelper.registerTaskMarkedAsError(null, task.getType());
+      coreMetricsTemplate.registerTaskMarkedAsError(null, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
-        meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+        coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
         log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
       return;
@@ -148,9 +146,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     if (!bucketsManager.isConfiguredBucket(processingBucketId)) {
       log.error("Marking task {} as ERROR, because task handler has unknown bucket '{}'.", LogUtils.asParameter(task.getVersionId()),
           processingBucketId);
-      meterHelper.registerTaskMarkedAsError(processingBucketId, task.getType());
+      coreMetricsTemplate.registerTaskMarkedAsError(processingBucketId, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
-        meterHelper.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
+        coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
         log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
       return;
@@ -170,24 +168,29 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     // TODO: Future improvement: try to also trigger in the same node, if there is room or more specifically if it is idle (for min latency)
     // TODO: Maybe needs another concurrency control for that. E.g. only trigger in node, when conc < 5, even max conc is 10.
 
+    // We need to give a non-null random key, so triggers will be evenly spread around partitions.
+    // With <null> key, the kafka client will start doing some kind of batch partitioning.
+
+    String key = String.valueOf((char) ThreadLocalRandom.current().nextInt(0xFFFF));
     kafkaProducer
-        .send(new ProducerRecord<>(getTopic(processingBucketId), UuidUtils.generatePrefixCombUuid().toString(), taskSt), (metadata, exception) -> {
-          if (exception != null) {
-            if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {
-              mdcService.with(() -> {
-                mdcService.put(task);
-                log.error("Task {} triggering failed through Kafka.", LogUtils.asParameter(task.getVersionId()), exception);
-              });
-            }
-          } else {
-            if (log.isDebugEnabled()) {
-              mdcService.with(() -> {
-                mdcService.put(task);
-                log.debug("Task '{}' triggering acknowledged by Kafka.", task.getVersionId());
-              });
-            }
-          }
-        });
+        .send(new ProducerRecord<>(getTopic(processingBucketId), key, taskSt),
+            (metadata, exception) -> {
+              if (exception != null) {
+                if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {
+                  mdcService.with(() -> {
+                    mdcService.put(task);
+                    log.error("Task {} triggering failed through Kafka.", LogUtils.asParameter(task.getVersionId()), exception);
+                  });
+                }
+              } else {
+                if (log.isDebugEnabled()) {
+                  mdcService.with(() -> {
+                    mdcService.put(task);
+                    log.debug("Task '{}' triggering acknowledged by Kafka.", task.getVersionId());
+                  });
+                }
+              }
+            });
   }
 
   public ConsumerBucket getConsumerBucket(String bucketId) {
@@ -196,14 +199,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       if (consumerBucket == null) {
         consumerBuckets.put(bucketId, consumerBucket = new ConsumerBucket().setBucketId(bucketId));
 
-        ConsumerBucket finalCb = consumerBucket;
-        Map<String, String> tags = ImmutableMap.of("bucketId", bucketId);
-        meterHelper
-            .registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.offsetsToBeCommitedCount", tags, finalCb::getOffsetsToBeCommitedCount);
-        meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.offsetsCompletedCount", tags, finalCb::getOffsetsCompletedCount);
-        meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.unprocessedFetchedRecordsCount", tags,
-            finalCb::getUnprocessedFetchedRecordsCount);
-        meterHelper.registerGauge(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.offsetsCount", tags, finalCb::getOffsetsCount);
+        coreMetricsTemplate.registerKafkaTasksExecutionTriggererOffsetsToBeCommitedCount(bucketId, consumerBucket::getOffsetsToBeCommitedCount);
+        coreMetricsTemplate.registerKafkaTasksExecutionTriggererOffsetsCompletedCount(bucketId, consumerBucket::getOffsetsCompletedCount);
+        coreMetricsTemplate
+            .registerKafkaTasksExecutionTriggererUnprocessedFetchedRecordsCount(bucketId, consumerBucket::getUnprocessedFetchedRecordsCount);
+        coreMetricsTemplate.registerKafkaTasksExecutionTriggererOffsetsCount(bucketId, consumerBucket::getOffsetsCount);
       }
 
       BucketProperties bucketProperties = bucketsManager.getBucketProperties(bucketId);
@@ -255,8 +255,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
             TaskTriggering taskTriggering = new TaskTriggering().setTask(task).setBucketId(bucketId).setOffset(offset)
                 .setTopicPartition(topicPartition);
 
-            meterHelper
-                .incrementCounter(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.receivedTriggersCount", ImmutableMap.of("bucketId", bucketId), 1);
+            coreMetricsTemplate.registerKafkaTasksExecutionTriggererTriggersReceive(bucketId);
+
             while (!shuttingDown) {
               long processingStateVersion = bucket.getVersion().get();
 
@@ -282,7 +282,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                       log.error(e.getMessage(), e);
                     }
                   }
-                  //TODO: consumerBucket.getKafkaConsumer().resume(...)
+                  // TODO: consumerBucket.getKafkaConsumer().resume(...)
                 } finally {
                   versionLock.unlock();
                 }
@@ -319,6 +319,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
   void releaseCompletedOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
     consumerBucket.getOffsetsStorageLock().lock();
+    // TODO: Lots of stuff inside this lock...
     try {
       ConsumerTopicPartition consumerTopicPartition = consumerBucket.getConsumerTopicPartitions().get(topicPartition);
 
@@ -327,8 +328,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         // Theoretically possible, when we reconnect to Kafka and we had registered one offset multiple times
         // (in this case there is only single record in TreeSet for it).
 
-        meterHelper.incrementCounter(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.offsetAlreadyCommitted", 1);
-        log.debug("Offset " + offset + " has already been commited.");
+        coreMetricsTemplate.registerKafkaTasksExecutionTriggererAlreadyCommitedOffset(consumerBucket.getBucketId());
+        log.debug("Offset {} has already been commited.", offset);
         return;
       }
       consumerTopicPartition.getOffsetsCompleted().put(offset, Boolean.TRUE);
@@ -370,8 +371,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           log.debug("Commiting bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommited().entrySet().stream()
               .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
         }
-        meterHelper.incrementCounter(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.commitsCount",
-            ImmutableMap.of("bucketId", bucketId), 1);
+        coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
+
         if (finalize) {
           consumerBucket.getKafkaConsumer().commitSync(consumerBucket.getOffsetsToBeCommited());
         } else {
@@ -394,8 +395,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
   protected void registerCommitException(String bucketId, Throwable t) {
     if (t instanceof CommitFailedException || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
-      meterHelper.incrementCounter(METRIC_PREFIX + "kafkaTasksExecutionTriggerer.failedCommitsCount",
-          ImmutableMap.of("bucketId", bucketId), 1);
+      coreMetricsTemplate.registerKafkaTasksExecutionTriggererFailedCommit(bucketId);
       log.debug("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
       return;
     }
