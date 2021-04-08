@@ -98,8 +98,8 @@ public class MySqlTaskDao implements ITaskDao {
   protected String insertTaskDataSql;
   protected String setToBeRetriedSql;
   protected String setToBeRetriedSql1;
+  protected String grabForProcessingWithStatusAssertionSql;
   protected String grabForProcessingSql;
-  protected String grabForProcessingWithoutStatusAssertionSql;
   protected String setStatusSql;
   protected String getStuckTasksSql;
   protected String prepareStuckOnProcessingTaskForResumingSql;
@@ -152,10 +152,10 @@ public class MySqlTaskDao implements ITaskDao {
     setToBeRetriedSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     setToBeRetriedSql1 = "update " + taskTable + " set status=?,next_event_time=?"
         + ",processing_tries_count=?,state_time=?,time_updated=?,version=? where id=? and version=?";
-    grabForProcessingSql = "update " + taskTable + " set processing_client_id=?,status=?"
+    grabForProcessingWithStatusAssertionSql = "update " + taskTable + " set processing_client_id=?,status=?"
         + ",processing_start_time=?,next_event_time=?,processing_tries_count=processing_tries_count+1"
         + ",state_time=?,time_updated=?,version=? where id=? and version=? and status=?";
-    grabForProcessingWithoutStatusAssertionSql = "update " + taskTable + " set processing_client_id=?,status=?"
+    grabForProcessingSql = "update " + taskTable + " set processing_client_id=?,status=?"
         + ",processing_start_time=?,next_event_time=?,processing_tries_count=processing_tries_count+1"
         + ",state_time=?,time_updated=?,version=? where id=? and version=?";
     setStatusSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
@@ -282,10 +282,10 @@ public class MySqlTaskDao implements ITaskDao {
 
     int updatedCount;
     if (tasksProperties.isAssertStatusOnGrabbing()) {
-      updatedCount = jdbcTemplate.update(grabForProcessingSql, args(clientId, TaskStatus.PROCESSING, now,
+      updatedCount = jdbcTemplate.update(grabForProcessingWithStatusAssertionSql, args(clientId, TaskStatus.PROCESSING, now,
           maxProcessingEndTime, now, now, task.getVersion() + 1, task.getId(), task.getVersion(), TaskStatus.SUBMITTED));
     } else {
-      updatedCount = jdbcTemplate.update(grabForProcessingWithoutStatusAssertionSql, args(clientId, TaskStatus.PROCESSING, now,
+      updatedCount = jdbcTemplate.update(grabForProcessingSql, args(clientId, TaskStatus.PROCESSING, now,
           maxProcessingEndTime, now, now, task.getVersion() + 1, task.getId(), task.getVersion()));
     }
 
