@@ -118,7 +118,7 @@ test {
     // outputs.upToDateWhen { false }
 
     jvmArgs("-XX:TieredStopAtLevel=1", "-server", "-noverify", "-Djava.security.egd=file:/dev/./urandom", "-XX:+ExplicitGCInvokesConcurrent",
-            "-Xmx768m", "-XX:+HeapDumpOnOutOfMemoryError")
+            "-Xmx1g", "-XX:+HeapDumpOnOutOfMemoryError")
     useJUnitPlatform()
 }
 
