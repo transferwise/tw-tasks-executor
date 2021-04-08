@@ -2,6 +2,11 @@
 
 Describes notable changes.
 
+#### 1.27.0 - 2021/04/08
+- We don't check if task is in submitted status, when grabbing, by default.
+  The version check is enough.
+  It can be turned on though via a property, it can be useful for tw-task test suites.
+
 #### 1.26.0 - 2021/03/14
 - Refactoring and optimizing code around metrics.
 - Fixed high CPU usage around `TasksProperties`, due to `@Validated` annotations.
