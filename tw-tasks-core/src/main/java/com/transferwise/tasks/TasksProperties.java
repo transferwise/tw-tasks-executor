@@ -212,6 +212,8 @@ public class TasksProperties {
 
   private boolean checkVersionBeforeGrabbing = false;
 
+  private boolean assertStatusOnGrabbing = false;
+
   /**
    * The additional task buckets, not including the default bucket, that we will process.
    *

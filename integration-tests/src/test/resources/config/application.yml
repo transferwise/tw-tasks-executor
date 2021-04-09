@@ -40,7 +40,6 @@ tw-tasks:
           view-task-data-roles:
             - ROLE_DEVEL
 
-
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.kafka: WARN
 logging.level.org.apache.zookeeper: WARN
@@ -57,6 +56,7 @@ tw-incidents:
     enabled: false
 tw-curator:
   zookeeper-connect-string: ${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}
+
 ---
 
 spring:
@@ -74,6 +74,9 @@ testenv:
   zookeeper:
     host: zk-service1
     port: 2181
+tw-tasks:
+  core:
+    assert-status-on-grabbing: true
 
 ---
 
