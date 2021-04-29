@@ -293,11 +293,11 @@ public class SampleCronTaskHandler extends TaskHandlerAdapter {
 		});
 		setRetryPolicy(new ITaskRetryPolicy() {
 			@Override
-			ZonedDateTime getRetryTime(ITask task, Throwable t) {
+			public ZonedDateTime getRetryTime(ITask task, Throwable t) {
 				return ZonedDateTime.now().plusMinutes(45); // We could also use CronUtils here, if we would want to use cron expressions.
 			}
 			@Override
-			boolean resetTriesCount() {
+			public boolean resetTriesCountOnSuccess(IBaseTask task) {
 				return true; // Don't increase the task tries count when job was correctly processed.
 			}
 		});
