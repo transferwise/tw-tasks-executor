@@ -293,7 +293,7 @@ public class SampleCronTaskHandler extends TaskHandlerAdapter {
 		});
 		setRetryPolicy(new ITaskRetryPolicy() {
 			@Override
-			ZonedDateTime getRetryTime(Task task) {
+			ZonedDateTime getRetryTime(ITask task, Throwable t) {
 				return ZonedDateTime.now().plusMinutes(45); // We could also use CronUtils here, if we would want to use cron expressions.
 			}
 			@Override
