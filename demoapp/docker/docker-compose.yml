@@ -80,6 +80,7 @@ services:
     --query_cache_type=0
     --innodb_adaptive_hash_index=0
     --collation-server=utf8mb4_unicode_ci --transaction-isolation=READ-COMMITTED
+    --innodb_autoinc_lock_mode=2
     "
 
 #    --innodb_page_size=8k

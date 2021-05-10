@@ -127,7 +127,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
   @Override
   public void trigger(BaseTask task) {
-    Preconditions.checkState(!TransactionSynchronizationManager.isActualTransactionActive());
+    if (tasksProperties.isAssertionsEnabled()) {
+      Preconditions.checkState(!TransactionSynchronizationManager.isActualTransactionActive());
+    }
 
     ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
     if (taskHandler == null) {

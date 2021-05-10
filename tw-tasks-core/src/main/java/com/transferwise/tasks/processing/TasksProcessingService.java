@@ -126,7 +126,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
   @Override
   public AddTaskForProcessingResponse addTaskForProcessing(TaskTriggering taskTriggering) {
-    Preconditions.checkState(!TransactionSynchronizationManager.isActualTransactionActive());
+    if (tasksProperties.isAssertionsEnabled()) {
+      Preconditions.checkState(!TransactionSynchronizationManager.isActualTransactionActive());
+    }
 
     String bucketId = taskTriggering.getBucketId();
     BaseTask task = taskTriggering.getTask();

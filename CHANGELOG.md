@@ -2,6 +2,9 @@
 
 Describes notable changes.
 
+#### 1.27.1 - 2021/05/10
+- Checking of some database transactions state is done only when assertions are enabled.
+
 #### 1.27.0 - 2021/04/08
 - We don't check if task is in submitted status, when grabbing, by default.
   The version check is enough.
