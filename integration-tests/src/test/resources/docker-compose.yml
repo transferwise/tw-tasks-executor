@@ -57,7 +57,12 @@ services:
     --character-set-server=utf8mb4
     --collation-server=utf8mb4_unicode_ci
     --transaction-isolation=READ-COMMITTED
-    --innodb_autoinc_lock_mode=2"
+    --innodb_flush_log_at_trx_commit=1
+    --innodb_autoinc_lock_mode=2
+    --log_bin=1
+    --binlog_format=ROW
+    --sync_binlog=1
+    "
   postgres:
     image: postgres:12
     ports:

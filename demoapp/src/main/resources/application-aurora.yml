@@ -1,0 +1,6 @@
+spring:
+  profiles: aurora
+  datasource:
+    url: jdbc:mysql://aurora-perf-test-aurora-mysql.cluster-cw9mlsbpgbuj.eu-central-1.rds.amazonaws.com:3306/demoapp?characterEncoding=UTF-8&rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true
+    password: changeme
+    username: changeme
