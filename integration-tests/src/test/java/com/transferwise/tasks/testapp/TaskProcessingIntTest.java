@@ -38,7 +38,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.NonNull;
@@ -381,7 +380,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest().setType("test"))
     );
-    await().atMost(Duration.ofDays(1)).until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
+    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
       try {
         return testTasksService.getFinishedTasks("test", null).size() == 1;
       } catch (Throwable t) {

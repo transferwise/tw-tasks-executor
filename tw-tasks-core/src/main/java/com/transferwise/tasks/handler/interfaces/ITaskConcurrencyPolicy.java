@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 public interface ITaskConcurrencyPolicy {
 
   /**
-   * Engine will ask here if we can start processing of this task.
+   * Engine will ask from it if we can start processing of this task.
    */
   @NonNull
   BookSpaceResponse bookSpace(IBaseTask task);
@@ -32,11 +32,11 @@ public interface ITaskConcurrencyPolicy {
     /**
      * If there is no room, when should we check again?
      *
-     * <p>It is only necessary for some kind of rate limiting based policy, where we are returning no-room, even when there may be no tasks
-     * processing
-     * at the same moment. It is not needed for a simple counter based concurrency like `SimpleTaskConcurrencyPolicy` implementation.
+     * <p>It is only necessary for some kind of rate limiting based policy, where we are returning "no-room", even when there may be no tasks
+     * processing at the same moment.
+     * `tryAgainTime` is not needed for a simple counter based concurrency like `SimpleTaskConcurrencyPolicy` implementation.
      *
-     * <p>If you have the case, that you are returning no-room while there is no task getting processed at the same time, and you will leave this
+     * <p>If you have the case, where you are returning no-room while there is no task getting processed at the same time, and you will leave this
      * attribute empty, there is a chance for small (by default 5 seconds) processing pause. So be careful.
      *
      * <p>The trade-off between a small and a large duration is CPU burn vs some latency. Probably best to think how large processing latency you can

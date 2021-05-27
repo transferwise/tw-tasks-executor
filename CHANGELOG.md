@@ -3,7 +3,7 @@
 Describes notable changes.
 
 #### 1.28.0 - 2021/05/26
-- Better support for implementing rate-limiting in `ITaskConcurrencyPolicy` implementation.
+- Better support for implementing rate-limiting as an `ITaskConcurrencyPolicy` implementation.
 
 #### 1.27.1 - 2021/05/10
 - Checking of some database transactions state is done only when assertions are enabled.

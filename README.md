@@ -626,6 +626,10 @@ Basically a copy-paste of current auto-configuration class has to be done. Our c
 
 No out-of-the box copy-paste free support is currently intended for other than Spring-Boot type of applications.
 
+## How-tos
+
+[Rate limiting](docs/rate-limiting.md)
+
 ## License
 Copyright 2019 TransferWise Ltd.
 

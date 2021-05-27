@@ -43,7 +43,7 @@ public class RateLimitingTaskConcurrencyPolicy implements ITaskConcurrencyPolicy
 
     // Most optimal would be to set `tryAgainTime` when a new permit becomes available.
     // Unfortunately Guava's implementation does not expose it's inner method for it, so we just try again after 100 millis.
-    // 100 millis worst case latency here and then is not a problem for us.
+    // 100 millis worst case latency here and there is not a problem for us.
     // There probably is a better rate limiting library.
     return new BookSpaceResponse(false).setTryAgainTime(Instant.now().plusMillis(100));
   }
