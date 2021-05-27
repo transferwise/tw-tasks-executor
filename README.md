@@ -376,13 +376,13 @@ class PayoutTaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
 	private Map<String, AtomicInteger> inProgressCntsPerType = new ConcurrentHashMap<>()
 
 	@Override
-	boolean bookSpaceForTask(BaseTask task) {
+	BookSpaceResponse bookSpace(BaseTask task) {
 		int maxConcurrency = 5
 
 		int cnt = inProgressCnt.incrementAndGet();
 		if (cnt > maxConcurrency) {
 			inProgressCnt.decrementAndGet();
-			return false;
+			return new BookSpaceResponse(false);
 		}
 
 		// Overall concurrency is satisfied, lets check per partner concurrency as well.
@@ -394,14 +394,14 @@ class PayoutTaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
 			if (inProgressCntPerType.incrementAndGet() > maxConcurrencyPerTransferMethod) {
 				inProgressCntPerType.decrementAndGet();
 				inProgressCnt.decrementAndGet();
-				return false;
+				return new BookSpaceResponse(false);
 			}
 		}
-		return true;
+		return new BookSpaceResponse(true);
 	}
 
 	@Override
-	void freeSpaceForTask(BaseTask task) {
+	void freeSpace(BaseTask task) {
 		String transferMethod = getTransferMethod(task);
 		if (transferMethod != null) {
 			if (getOrCreateTypeCounter(transferMethod).decrementAndGet() < 0) {
@@ -625,6 +625,10 @@ For very specific and extreme cases a `ITaskDao` can be directly injected and us
 Basically a copy-paste of current auto-configuration class has to be done. Our conditionals are Spring Boot based and will not work there.
 
 No out-of-the box copy-paste free support is currently intended for other than Spring-Boot type of applications.
+
+## How-tos
+
+[Rate limiting](docs/rate-limiting.md)
 
 ## License
 Copyright 2019 TransferWise Ltd.

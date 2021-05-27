@@ -13,6 +13,7 @@ import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -21,6 +22,7 @@ import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
+import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
@@ -36,7 +38,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -351,6 +355,39 @@ public class TaskProcessingIntTest extends BaseIntTest {
     assertThat(ownerRef.getValue()).isEqualTo("TransferWise");
     assertThat(criticalityRef.getValue()).isEqualTo(Criticality.CRITICAL_PLUS);
     assertThat(deadlineRef.getValue()).isAfter(Instant.now());
+  }
+
+  @Test
+  void taskWithRateLimitingConcurrencyPolicyWillNotHang() {
+    AtomicInteger counter = new AtomicInteger();
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> new ProcessResult().setResultCode(ResultCode.DONE));
+
+    testTaskHandlerAdapter.setConcurrencyPolicy(new ITaskConcurrencyPolicy() {
+      @Override
+      public @NonNull BookSpaceResponse bookSpace(IBaseTask task) {
+        if (counter.incrementAndGet() < 5) {
+          return new BookSpaceResponse(false).setTryAgainTime(Instant.now().plusMillis(10));
+        }
+        return new BookSpaceResponse(true);
+      }
+
+      @Override
+      public void freeSpace(IBaseTask task) {
+
+      }
+    });
+
+    transactionsHelper.withTransaction().asNew().call(() ->
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test"))
+    );
+    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
+      try {
+        return testTasksService.getFinishedTasks("test", null).size() == 1;
+      } catch (Throwable t) {
+        log.error(t.getMessage(), t);
+      }
+      return false;
+    }));
   }
 
   private int counterSum(String name) {

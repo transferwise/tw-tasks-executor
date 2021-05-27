@@ -23,18 +23,18 @@ public class SimpleTaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
   }
 
   @Override
-  public boolean bookSpaceForTask(IBaseTask task) {
+  public BookSpaceResponse bookSpace(IBaseTask task) {
     int cnt = inProgressCnt.incrementAndGet();
     if (cnt > maxConcurrency) {
       inProgressCnt.decrementAndGet();
-      return false;
+      return new BookSpaceResponse(false);
     }
     maxInProgressCnt = Math.max(maxInProgressCnt, cnt);
-    return true;
+    return new BookSpaceResponse(true);
   }
 
   @Override
-  public void freeSpaceForTask(IBaseTask task) {
+  public void freeSpace(IBaseTask task) {
     if (inProgressCnt.decrementAndGet() < 0) {
       throw new IllegalStateException("Counter went below zero. Algorithm error detected.");
     }
