@@ -17,17 +17,6 @@ It can be especially useful for test environments.
 8. Rename buckets and processing buckets to shards.
 Much better understandable term. Not many people are aware that in hashmap (where the term bucket is coming from), the shards are called buckets.
 
-10. Try to get rid of KafkaTemplate and use a TwTasks defined Provider interface instead.
-
-11. Consider the need for Tasks' error handlers.
-Currently there is no strong need for it, because this can be done with proper retry policy and task processor combination.
-However error handlers would be cleaner solution. But those error handlers would need their own retries policies and what not,
-and in the end it may not make things cleaner.
-
-13. Move task payload to separate table for better efficiency with default MySQL binlog settings.
-
-14. Add possibility for binary payload.
-
 16. unique_task_keys table should also support taskIds, it currently works only with string keys.
 
 17. Rename property `tw-tasks.zookeeper-connect-string` to `tw-tasks.kafka.zookeeper.connect-string`, because it is only used for Kafka

@@ -5,7 +5,7 @@ references:
     docker:
       - image: arti.tw.ee/circle_openjdk8:latest
         user: circleci
-      - image: circleci/mariadb:10.3
+      - image: circleci/mariadb:10.4
         name: mysql1
         command: "mysqld --ssl=0
             --character-set-server=utf8mb4

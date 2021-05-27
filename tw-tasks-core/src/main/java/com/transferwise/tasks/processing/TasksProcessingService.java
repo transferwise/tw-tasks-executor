@@ -26,6 +26,7 @@ import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.IAsyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy;
+import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy.BookSpaceResponse;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
@@ -57,7 +58,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
 import javax.annotation.concurrent.GuardedBy;
+import lombok.Data;
 import lombok.Getter;
+import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
@@ -167,8 +170,9 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
    *
    * <p>Return immediately as soon as one suitable task has been triggered.
    */
-  protected void processTasks(GlobalProcessingState.Bucket bucket) {
+  protected ProcessTasksResponse processTasks(GlobalProcessingState.Bucket bucket) {
     String bucketId = bucket.getBucketId();
+    MutableObject<Instant> tryAgainTime = new MutableObject<>();
 
     MutableBoolean taskProcessed = new MutableBoolean();
 
@@ -218,6 +222,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
             if (processTaskResponse.getResult() == ProcessTaskResponse.Result.NO_SPACE) {
               noRoomMap.put(type, Boolean.TRUE);
+              if (processTaskResponse.getTryAgainTime() != null) {
+                if (tryAgainTime.getValue() == null || tryAgainTime.getValue().isAfter(processTaskResponse.getTryAgainTime())) {
+                  tryAgainTime.setValue(processTaskResponse.getTryAgainTime());
+                }
+              }
             } else {
               // Start again, i.e. find a task with highest priority and lowest offset.
               taskProcessed.setTrue();
@@ -238,6 +247,12 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         });
       }
     }
+
+    ProcessTasksResponse processTasksResponse = new ProcessTasksResponse();
+    if (!taskProcessed.isTrue()) {
+      processTasksResponse.setTryAgainTime(tryAgainTime.getValue());
+    }
+    return processTasksResponse;
   }
 
   protected void transferFromIntermediateBuffer(GlobalProcessingState.Bucket bucket, GlobalProcessingState.PrioritySlot prioritySlot) {
@@ -312,9 +327,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.ERROR).setCode(Code.NO_CONCURRENCY_POLICY);
     }
 
-    if (!concurrencyPolicy.bookSpaceForTask(task)) {
+    BookSpaceResponse bookSpaceResponse = concurrencyPolicy.bookSpace(task);
+    if (!bookSpaceResponse.isHasRoom()) {
       log.debug("There is no space to process task '{}'.", task.getVersionId());
-      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.NO_SPACE);
+      return new ProcessTaskResponse().setResult(ProcessTaskResponse.Result.NO_SPACE)
+          .setTryAgainTime(bookSpaceResponse.getTryAgainTime());
     }
 
     try {
@@ -337,7 +354,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
       });
     } catch (Throwable t) {
       log.error(t.getMessage(), t);
-      concurrencyPolicy.freeSpaceForTask(task);
+      concurrencyPolicy.freeSpace(task);
       globalProcessingState.increaseBucketsVersion();
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
@@ -374,7 +391,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
               }
             } finally {
               if (!grabbed) {
-                concurrencyPolicy.freeSpaceForTask(task);
+                concurrencyPolicy.freeSpace(task);
                 globalProcessingState.increaseBucketsVersion();
                 coreMetricsTemplate.registerFailedTaskGrabbing(bucket.getBucketId(), task.getType());
               }
@@ -648,7 +665,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     bucket.getRunningTasksCount().decrementAndGet();
     coreMetricsTemplate.registerTaskProcessingEnd(bucketId, task.getType(), processingStartTimeMs, processingResult.name());
 
-    concurrencyPolicy.freeSpaceForTask(task);
+    concurrencyPolicy.freeSpace(task);
     globalProcessingState.increaseBucketsVersion();
   }
 
@@ -700,16 +717,24 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             try {
               long stateVersion = bucket.getVersion().get();
 
-              processTasks(bucket);
+              ProcessTasksResponse processTasksResponse = processTasks(bucket);
+              Instant tryAgainTime = processTasksResponse.getTryAgainTime();
 
               Lock versionLock = bucket.getVersionLock();
               versionLock.lock();
               try {
-                while (bucket.getVersion().get() == stateVersion && !shuttingDown) {
-                  try {
-                    bucket.getVersionCondition().await(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS);
-                  } catch (InterruptedException e) {
-                    log.error(e.getMessage(), e);
+                if (bucket.getVersion().get() == stateVersion && !shuttingDown) {
+                  long defaultWaitTimeMs = tasksProperties.getGenericMediumDelay().toMillis();
+                  long tryAgainWaitTimeMs =
+                      tryAgainTime == null ? Integer.MAX_VALUE : tryAgainTime.toEpochMilli() - TwContextClockHolder.getClock().millis();
+                  long waitTimeMs = Math.min(defaultWaitTimeMs, tryAgainWaitTimeMs);
+
+                  if (waitTimeMs > 0) {
+                    try {
+                      bucket.getVersionCondition().await(waitTimeMs, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                      log.error(e.getMessage(), e);
+                    }
                   }
                 }
               } finally {
@@ -735,6 +760,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     private Result result;
 
     private Code code;
+
+    private Instant tryAgainTime;
 
     public enum Result {
       OK, NO_SPACE, ERROR
@@ -762,5 +789,12 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     SUCCESS,
     COMMIT_AND_RETRY,
     ERROR
+  }
+
+  @Data
+  @Accessors(chain = true)
+  private static class ProcessTasksResponse {
+
+    private Instant tryAgainTime;
   }
 }

@@ -136,4 +136,9 @@ public class TaskDataIntTest extends BaseIntTest {
 
     assertThat(oldData).isEqualTo("");
   }
+
+  @Test
+  void testTransactionalInsert(){
+
+  }
 }

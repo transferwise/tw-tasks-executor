@@ -52,24 +52,24 @@ public class PayoutProcessingTaskHandlerConfiguration {
       private final AtomicInteger lhvInProgressCnt = new AtomicInteger();
 
       @Override
-      public boolean bookSpaceForTask(IBaseTask task) {
+      public BookSpaceResponse bookSpace(IBaseTask task) {
         if (totalInProgressCnt.incrementAndGet() > 40) {
           totalInProgressCnt.decrementAndGet();
-          return false;
+          return new BookSpaceResponse(false);
         }
 
         if (task.getType().equals(TASK_TYPE_PROCESSING + ".LHV")) {
           if (lhvInProgressCnt.incrementAndGet() > 20) {
             lhvInProgressCnt.decrementAndGet();
             totalInProgressCnt.decrementAndGet();
-            return false;
+            return new BookSpaceResponse(false);
           }
         }
-        return true;
+        return new BookSpaceResponse(true);
       }
 
       @Override
-      public void freeSpaceForTask(IBaseTask task) {
+      public void freeSpace(IBaseTask task) {
         totalInProgressCnt.decrementAndGet();
         if (task.getType().equals(TASK_TYPE_PROCESSING + ".LHV")) {
           lhvInProgressCnt.decrementAndGet();

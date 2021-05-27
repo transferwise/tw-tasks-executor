@@ -11,6 +11,7 @@ dependencies {
     implementation project(":tw-tasks-incidents-spring-boot-starter")
     implementation project(":tw-tasks-kafka-listener-spring-boot-starter")
     implementation project(":tw-tasks-management-spring-boot-starter")
+    implementation project(":tw-tasks-jobs-spring-boot-starter")
 
     implementation libraries.springBootStarterWeb
     implementation libraries.springBootStarterJdbc
