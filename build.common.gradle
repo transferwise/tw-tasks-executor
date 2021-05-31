@@ -1,21 +1,7 @@
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
-ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
 group = "com.transferwise.tasks"
-ext.projectGitHubRepoName = "tw-tasks-executor"
-ext.projectScmUrl = "https://github.com/transferwise/${projectGitHubRepoName}"
-ext.projectScmConnection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
-
-buildscript {
-    repositories {
-        maven {
-            setUrl("https://arti.tw.ee/artifactory/plugins-release")
-        }
-        mavenLocal()
-    }
-}
 
 apply plugin: "java-library"
 apply plugin: "checkstyle"
@@ -25,9 +11,7 @@ apply plugin: "com.github.spotbugs"
 apply from: "../build.libraries.gradle"
 
 repositories {
-    maven {
-        setUrl("https://arti.tw.ee/artifactory/libs-release")
-    }
+    mavenCentral()
     mavenLocal()
 }
 
@@ -71,8 +55,8 @@ configurations {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_1_8
-    targetCompatibility = JavaVersion.VERSION_1_8
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
     withSourcesJar()
     withJavadocJar()
 }
@@ -117,7 +101,7 @@ test {
     // When you want to rerun tests without any changes made
     // outputs.upToDateWhen { false }
 
-    jvmArgs("-XX:TieredStopAtLevel=1", "-server", "-noverify", "-Djava.security.egd=file:/dev/./urandom", "-XX:+ExplicitGCInvokesConcurrent",
+    jvmArgs("-server", "-noverify", "-Djava.security.egd=file:/dev/./urandom", "-XX:+ExplicitGCInvokesConcurrent",
             "-Xmx1g", "-XX:+HeapDumpOnOutOfMemoryError")
     useJUnitPlatform()
 }
@@ -133,8 +117,6 @@ tasks.findAll { it.name.startsWith("spotbugs") }*.configure {
 
 
 tasks.withType(Checkstyle) {
-    //Unfortunately it does not allow to suppress javadoc issues.
-    //config = getCheckstyleConfig()
     config = resources.text.fromFile(file('../google_checks.xml'))
 
     maxWarnings = 0
@@ -145,10 +127,3 @@ tasks.withType(Checkstyle) {
     }
 }
 
-private def getCheckstyleConfig() {
-    def checkstyleJar = project.configurations.checkstyle.find({
-        return it.name.contains("checkstyle")
-    })
-
-    return resources.text.fromArchiveEntry(checkstyleJar, "google_checks.xml")
-}

@@ -1,26 +1,19 @@
 buildscript {
-    repositories {
-        maven {
-            setUrl("https://arti.tw.ee/artifactory/plugins-release")
-        }
-        mavenLocal()
-    }
-
     dependencies {
-        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.13.4"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.14.3"
     }
 }
 
 plugins {
-    id "com.github.spotbugs" version "4.6.0" apply false
+    id "com.github.spotbugs" version "4.7.1" apply false
     id "idea"
-    id 'org.springframework.boot' version '2.3.8.RELEASE' apply false
+    id 'org.springframework.boot' version '2.3.11.RELEASE' apply false
 }
 
 idea.project {
     vcs = 'Git'
-    languageLevel = JavaVersion.VERSION_1_8
-    targetBytecodeVersion = JavaVersion.VERSION_1_8
+    languageLevel = JavaVersion.VERSION_11
+    targetBytecodeVersion = JavaVersion.VERSION_11
 }
 
 idea.module {
@@ -39,11 +32,3 @@ task clean {
 
 }
 
-task addTag(type: Exec) {
-    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
-}
-task pushTag(type: Exec) {
-    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
-}
-
-pushTag.dependsOn addTag
