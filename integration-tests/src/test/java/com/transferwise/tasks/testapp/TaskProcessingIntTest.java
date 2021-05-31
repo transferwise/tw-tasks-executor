@@ -26,6 +26,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
+import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
@@ -35,12 +36,14 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +66,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
   @Autowired
   protected ITaskDataSerializer taskDataSerializer;
+  @Autowired
+  protected GlobalProcessingState globalProcessingState;
 
   private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer;
 
@@ -253,9 +258,19 @@ public class TaskProcessingIntTest extends BaseIntTest {
   }
 
   @Test
+  @SneakyThrows
   void highestPriorityTasksWillBeProcessedFirst() {
     List<Integer> processedPriorities = new CopyOnWriteArrayList<>();
+
+    CountDownLatch countDownLatch = new CountDownLatch(1);
+
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      if (countDownLatch.getCount() == 1) {
+        // Wait until the in memory table has received enough entries from Kafka.
+        await().until(() -> globalProcessingState.getBuckets().get("default").getSize().get() > 2);
+      }
+
+      countDownLatch.countDown();
       processedPriorities.add(task.getPriority());
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
@@ -271,6 +286,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
     });
 
     testTasksService.resumeProcessing();
+
+    countDownLatch.await(30, TimeUnit.SECONDS);
 
     await().until(() -> processedPriorities.size() == 4);
 
