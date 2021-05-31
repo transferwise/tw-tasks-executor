@@ -26,6 +26,7 @@ import com.transferwise.tasks.handler.interfaces.ITaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
+import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
 import io.micrometer.core.instrument.Timer;
@@ -41,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,6 +65,8 @@ public class TaskProcessingIntTest extends BaseIntTest {
   protected ITasksExecutionTriggerer tasksExecutionTriggerer;
   @Autowired
   protected ITaskDataSerializer taskDataSerializer;
+  @Autowired
+  protected GlobalProcessingState globalProcessingState;
 
   private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer;
 
@@ -253,9 +257,16 @@ public class TaskProcessingIntTest extends BaseIntTest {
   }
 
   @Test
+  @SneakyThrows
   void highestPriorityTasksWillBeProcessedFirst() {
     List<Integer> processedPriorities = new CopyOnWriteArrayList<>();
+
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      if (processedPriorities.size() == 0) {
+        // Wait until the in memory table has received enough entries from Kafka.
+        await().until(() -> globalProcessingState.getBuckets().get("default").getSize().get() > 2);
+      }
+
       processedPriorities.add(task.getPriority());
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
