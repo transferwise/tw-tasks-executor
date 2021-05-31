@@ -36,7 +36,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -262,15 +261,12 @@ public class TaskProcessingIntTest extends BaseIntTest {
   void highestPriorityTasksWillBeProcessedFirst() {
     List<Integer> processedPriorities = new CopyOnWriteArrayList<>();
 
-    CountDownLatch countDownLatch = new CountDownLatch(1);
-
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      if (countDownLatch.getCount() == 1) {
+      if (processedPriorities.size() == 0) {
         // Wait until the in memory table has received enough entries from Kafka.
         await().until(() -> globalProcessingState.getBuckets().get("default").getSize().get() > 2);
       }
 
-      countDownLatch.countDown();
       processedPriorities.add(task.getPriority());
       return new ProcessResult().setResultCode(ResultCode.DONE);
     });
@@ -286,8 +282,6 @@ public class TaskProcessingIntTest extends BaseIntTest {
     });
 
     testTasksService.resumeProcessing();
-
-    countDownLatch.await(30, TimeUnit.SECONDS);
 
     await().until(() -> processedPriorities.size() == 4);
 
