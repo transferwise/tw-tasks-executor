@@ -1,4 +1,11 @@
 apply plugin: "maven-publish"
+apply plugin: "signing"
+
+ext.artifactoryUser = project.hasProperty("artifactoryUser") ? project.artifactoryUser : System.env.ARTIFACTORY_USER as String
+ext.artifactoryPassword = project.hasProperty("artifactoryPassword") ? project.artifactoryPassword : System.env.ARTIFACTORY_PASSWORD as String
+ext.projectGitHubRepoName = "tw-tasks-executor"
+ext.projectScmUrl = "https://github.com/transferwise/${projectGitHubRepoName}"
+ext.projectScmConnection = "scm:git:git://github.com/transferwise/${projectGitHubRepoName}.git"
 
 publishing {
     publications {
@@ -37,11 +44,11 @@ publishing {
         }
     }
 
-/*
-    signing {
-        sign publishing.publications.mavenJava
+    if (System.getenv("OPENSOURCE_PUBLISH") == "true") {
+        signing {
+            sign publishing.publications.mavenJava
+        }
     }
-*/
 
     javadoc {
         if (JavaVersion.current().isJava9Compatible()) {
@@ -50,19 +57,32 @@ publishing {
     }
 
     repositories {
-        maven {
-            url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-            credentials {
-                username = artifactoryUser
-                password = artifactoryPassword
+        if (System.getenv("OPENSOURCE_PUBLISH") == "true") {
+            maven {
+                url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+                credentials {
+                    username sonatypeUsername
+                    password sonatypePassword
+                }
+            }
+        } else {
+            maven {
+                url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
+                credentials {
+                    username = artifactoryUser
+                    password = artifactoryPassword
+                }
             }
         }
-        /*maven {
-            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-            credentials {
-                username sonatypeUsername
-                password sonatypePassword
-            }
-        }*/
     }
 }
+
+task addTag(type: Exec) {
+    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
+}
+task pushTag(type: Exec) {
+    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
+}
+
+pushTag.dependsOn addTag
+pushTag.mustRunAfter publish

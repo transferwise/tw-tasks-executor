@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.29.0 - 2021/05/31
+- JDK 11+ is a requirement.
+- Opensource facelift.
+
 #### 1.28.0 - 2021/05/26
 - Better support for implementing rate-limiting as an `ITaskConcurrencyPolicy` implementation.
 

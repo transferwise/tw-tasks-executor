@@ -3,7 +3,7 @@ version: 2
 references:
   container_config: &container_config
     docker:
-      - image: arti.tw.ee/circle_openjdk8:latest
+      - image: arti.tw.ee/circle_openjdk11
         user: circleci
       - image: circleci/mariadb:10.4
         name: mysql1
@@ -60,7 +60,7 @@ references:
       POSTGRES_TCP_HOST: postgres1
       POSTGRES_TCP_5432: 5432
 jobs:
-  test:
+  build:
     <<: *container_config
     steps:
       - checkout
@@ -110,8 +110,36 @@ jobs:
           target: reports
           when: always
 
+  artifacts-publish:
+    <<: *container_config
+    resource_class: small
+    steps:
+      - checkout
+      - restore_cache:
+          key: tw-tasks-executor-gradle-v1-{{ checksum "build.gradle" }}-{{ checksum "gradle.properties" }}
+      - run:
+          name: Set git config
+          command: |
+            mkdir -p ~/.ssh
+            ssh-keyscan github.com >> ~/.ssh/known_hosts
+            git config --global user.name "TransferWise CircleCI" && git config --global user.email circle@circle.tw.ee
+      - run:
+          name: Publish artifacts
+          command: |
+            if ./.circleci/version-changed.sh tw-tasks-core ; then
+              ./gradlew pushTag publish --no-daemon --console=plain
+            fi
+
 workflows:
   version: 2
-  test:
+  build_and_publish:
     jobs:
-      - test
+      - build
+      - artifacts-publish:
+          context: artifactory-deploy
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - master
