@@ -71,7 +71,7 @@ public class TransactionManagerConfiguration {
     hds.setTransactionIsolation("TRANSACTION_READ_COMMITTED");
     hds.setRegisterMbeans(true);
     hds.setMaxLifetime(1800000);
-    hds.setMaximumPoolSize(30);
+    hds.setMaximumPoolSize(100);
     hds.setMinimumIdle(10);
     hds.setIdleTimeout(60000);
     hds.setValidationTimeout(10000);

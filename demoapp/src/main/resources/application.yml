@@ -11,30 +11,31 @@ spring:
     url: jdbc:postgresql://localhost:15432/postgres
     username: postgres
     password: example-password-change-me
-    tomcat:
-      max-active: 100
-      max-idle: 30
-      min-idle: 0
-      initial-size: 1
-      validation-query: SELECT 1
-      validation-query-timeout: 5
-      validation-interval: 5000
-      test-on-borrow: true
-      test-on-return: false
-      test-on-connect: true
-      test-while-idle: true
-      time-between-eviction-runs-millis: 60000
-      min-evictable-idle-time-millis: 120000
-      jmx-enabled: true
-      log-validation-errors: true
-      suspect-timeout: 120
-      max-age: 86400000
-      default-transaction-isolation: 2
-      abandon-when-percentage-full: 80
-      remove-abandoned: true
-      remove-abandoned-timeout: 240
-      max-wait: 600000
-      jdbc-interceptors: ConnectionState;QueryTimeoutInterceptor(queryTimeout=60);SlowQueryReport(threshold=10000,maxQueries=0)
+# Applies only when tomcat jdbc pool had been in use.
+#    tomcat:
+#      max-active: 100
+#      max-idle: 30
+#      min-idle: 0
+#      initial-size: 1
+#      validation-query: SELECT 1
+#      validation-query-timeout: 5
+#      validation-interval: 5000
+#      test-on-borrow: true
+#      test-on-return: false
+#      test-on-connect: true
+#      test-while-idle: true
+#      time-between-eviction-runs-millis: 60000
+#      min-evictable-idle-time-millis: 120000
+#      jmx-enabled: true
+#      log-validation-errors: true
+#      suspect-timeout: 120
+#      max-age: 86400000
+#      default-transaction-isolation: 2
+#      abandon-when-percentage-full: 80
+#      remove-abandoned: true
+#      remove-abandoned-timeout: 240
+#      max-wait: 600000
+#      jdbc-interceptors: ConnectionState;QueryTimeoutInterceptor(queryTimeout=60);SlowQueryReport(threshold=10000,maxQueries=0)
   kafka:
     bootstrap-servers: localhost:9092
     client-id: ${demoapp.node-id}
@@ -129,7 +130,7 @@ loggingFile: logs2/demoapp.log
 spring:
   profiles: mysql
   datasource:
-    url: jdbc:mysql://localhost:13306/demoapp?characterEncoding=UTF-8&rewriteBatchedStatements=true&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:13306/demoapp
     username: root
     password: example-password-change-me
 tw-tasks.core:
@@ -143,4 +144,4 @@ spring.liquibase.change-log: 'classpath:db/changelog/db.tw-tasks-mysql.xml'
 spring:
   profiles: mariadb
   datasource:
-    url: jdbc:mariadb://localhost:13307/demoapp?rewriteBatchedStatements=false&useSSL=false&useServerPrepStmts=true&useCompression=false
+    url: jdbc:mariadb://localhost:13307/demoapp

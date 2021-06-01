@@ -178,7 +178,7 @@ class DemoAppRealTest {
   }
 
   private void exchange(Long id, String url, String body) {
-    int port = (id % 2 == 0) ? 12222 : 12223;
+    int port = (id % 1 == 0) ? 12222 : 12223;
 
     HttpHeaders headers = new HttpHeaders();
     headers.add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);

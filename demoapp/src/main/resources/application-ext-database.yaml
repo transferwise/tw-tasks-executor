@@ -1,0 +1,4 @@
+spring:
+  profiles: ext-database
+  datasource:
+    url: jdbc:mariadb://localhost:13307/demoapp
