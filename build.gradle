@@ -7,7 +7,7 @@ buildscript {
 plugins {
     id "com.github.spotbugs" version "4.7.1" apply false
     id "idea"
-    id 'org.springframework.boot' version '2.3.11.RELEASE' apply false
+    id 'org.springframework.boot' version '2.5.4' apply false
 }
 
 idea.project {
