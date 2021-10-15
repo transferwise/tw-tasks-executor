@@ -37,7 +37,7 @@ public class DbPerfTestHandlerConfiguration {
 
       return null;
     }))
-        .setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(100))
+        .setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(5))
         .setProcessingPolicy(new SimpleTaskProcessingPolicy().setMaxProcessingDuration(Duration.ofMinutes(2)))
         .setRetryPolicy(
             new ExponentialTaskRetryPolicy().setDelay(Duration.ofSeconds(5)).setMultiplier(2).setMaxCount(20).setMaxDelay(Duration.ofMinutes(120)));

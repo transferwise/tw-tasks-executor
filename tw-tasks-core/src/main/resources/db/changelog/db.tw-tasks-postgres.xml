@@ -1,44 +1,72 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                   xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd">
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.0.xsd">
 
-    <changeSet id="02.05.2017.1" author="Kristo Kuusküll" runOnChange="false">
-        <sql>
-            CREATE TABLE tw_task (
-            id UUID PRIMARY KEY,
-            type TEXT NOT NULL,
-            sub_type TEXT NULL,
-            status TEXT NOT NULL,
-            data TEXT NOT NULL,
-            next_event_time TIMESTAMPTZ(6) NOT NULL,
-            state_time TIMESTAMPTZ(3) NOT NULL,
-            processing_client_id TEXT NULL,
-            processing_start_time TIMESTAMPTZ(3) NULL,
-            time_created TIMESTAMPTZ(3) NOT NULL,
-            time_updated TIMESTAMPTZ(3) NOT NULL,
-            processing_tries_count BIGINT NOT NULL,
-            version BIGINT NOT NULL,
-            priority INT NOT NULL DEFAULT 5
-            );
+  <changeSet id="02.05.2017.1" author="Kristo Kuusküll" runOnChange="false">
+    <sql>
+      CREATE TABLE tw_task
+      (
+      id                     UUID           NOT NULL,
+      type                   TEXT           NOT NULL,
+      sub_type               TEXT           NULL,
+      status                 TEXT           NOT NULL,
+      data                   TEXT           NOT NULL,
+      next_event_time        TIMESTAMPTZ(6) NOT NULL,
+      state_time             TIMESTAMPTZ(3) NOT NULL,
+      processing_client_id   TEXT           NULL,
+      processing_start_time  TIMESTAMPTZ(3) NULL,
+      time_created           TIMESTAMPTZ(3) NOT NULL,
+      time_updated           TIMESTAMPTZ(3) NOT NULL,
+      processing_tries_count BIGINT         NOT NULL,
+      version                BIGINT         NOT NULL,
+      priority               INT            NOT NULL DEFAULT 5,
+      PRIMARY KEY (status, id)
+      )
+      partition by list (status);
 
-            CREATE INDEX tw_task_idx1 ON tw_task (status, next_event_time);
+      create table tw_task_prt_new partition of tw_task for values in ('NEW');
+      create table tw_task_prt_submitted partition of tw_task for values in ('SUBMITTED');
+      create table tw_task_prt_processing partition of tw_task for values in ('PROCESSING');
+      create table tw_task_prt_error partition of tw_task for values in ('ERROR');
+      create table tw_task_prt_waiting partition of tw_task for values in ('WAITING');
+      create table tw_task_prt_done partition of tw_task for values in ('DONE');
+      create table tw_task_prt_failed partition of tw_task for values in ('FAILED');
 
-            CREATE TABLE tw_task_data (
-            task_id UUID PRIMARY KEY NOT NULL,
-            data_format INT NOT NULL,
-            data BYTEA NOT NULL
-            ) WITH (toast_tuple_target=8160);
+<!--      create table tw_task_hot partition of tw_task for values in ('NEW', 'SUBMITTED', 'PROCESSING');-->
+<!--      create table tw_task_warm partition of tw_task for values in ('ERROR', 'WAITING');-->
+<!--      create table tw_task_cold partition of tw_task for values in ('DONE', 'FAILED');-->
 
-            ALTER TABLE tw_task_data ALTER COLUMN data SET STORAGE EXTERNAL;
 
-            CREATE TABLE unique_tw_task_key (
-            task_id UUID PRIMARY KEY NOT NULL,
-            key_hash INT NOT NULL,
-            key TEXT NOT NULL,
-            unique (key_hash, key)
-            );
-        </sql>
-    </changeSet>
+      <!--            CREATE TABLE tw_task_part0 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 0);-->
+      <!--            CREATE TABLE tw_task_part1 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 1);-->
+      <!--            CREATE TABLE tw_task_part2 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 2);-->
+      <!--            CREATE TABLE tw_task_part3 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 3);-->
+      <!--            CREATE TABLE tw_task_part4 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 4);-->
+      <!--            CREATE TABLE tw_task_part5 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 5);-->
+      <!--            CREATE TABLE tw_task_part6 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 6);-->
+      <!--            CREATE TABLE tw_task_part7 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 7);-->
+      <!--            CREATE TABLE tw_task_part8 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 8);-->
+      <!--            CREATE TABLE tw_task_part9 PARTITION OF tw_task FOR VALUES WITH (modulus 10, remainder 9);-->
+
+      CREATE INDEX tw_task_idx1 ON tw_task (status, next_event_time);
+      CREATE INDEX tw_task_idx2 ON tw_task (id);
+
+      CREATE TABLE tw_task_data (
+      task_id UUID PRIMARY KEY NOT NULL,
+      data_format INT NOT NULL,
+      data BYTEA NOT NULL
+      ) WITH (toast_tuple_target=8160);
+
+      ALTER TABLE tw_task_data ALTER COLUMN data SET STORAGE EXTERNAL;
+
+      CREATE TABLE unique_tw_task_key (
+      task_id UUID PRIMARY KEY NOT NULL,
+      key_hash INT NOT NULL,
+      key TEXT NOT NULL,
+      unique (key_hash, key)
+      );
+    </sql>
+  </changeSet>
 </databaseChangeLog>

@@ -116,6 +116,7 @@ services:
     -c 'min_wal_size=2GB' -c 'max_wal_size=8GB'
     -c 'checkpoint_completion_target=0.9'
     -c 'default_statistics_target=100'
+    -c 'autovacuum_naptime=10s'
     -c 'archive_command='
     -c 'archive_mode=on'
     "

@@ -77,9 +77,9 @@ tw-tasks:
       kafka:
         bootstrap-servers: localhost:9092
     #trigger-same-task-in-all-nodes: true
-    #tasksHistoryDeletingBatchSize: 500
-    #tasksCleaningInterval: PT0.5s
-    #finishedTasksHistoryToKeep: PT1M
+    tasksHistoryDeletingBatchSize: 500
+    tasksCleaningInterval: PT0.5s
+    finishedTasksHistoryToKeep: PT30M
 
 zookeeper:
   connect-string: localhost:2181
@@ -144,4 +144,14 @@ spring.liquibase.change-log: 'classpath:db/changelog/db.tw-tasks-mysql.xml'
 spring:
   profiles: mariadb
   datasource:
-    url: jdbc:mariadb://localhost:13307/demoapp
+    url: jdbc:mariadb://tw-staging-kristo-failover-test.cw9mlsbpgbuj.eu-central-1.rds.amazonaws.com:3306/kristo_failover_test
+    username: kristo_failover_test
+    password: Kalamaja123
+
+#  liquibase:
+#    user: kristo_failover_test_flyway
+#    password: Kalamaja123
+
+tw-reliable-jdbc:
+  databases.demoapp:
+    fastFailoverJdbcUrl: jdbc:mariadb://tw-staging-kristo-failover-test-v2.cw9mlsbpgbuj.eu-central-1.rds.amazonaws.com:3306/kristo_failover_test

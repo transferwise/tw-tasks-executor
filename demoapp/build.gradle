@@ -23,6 +23,8 @@ dependencies {
     implementation libraries.twGracefulShutdownIntefaces
     implementation libraries.twContext
 
+    implementation "com.transferwise.common:tw-reliable-jdbc-starter:0.21.1.1"
+
     compileOnly libraries.newRelic
 
     runtimeOnly libraries.springBootStarterActuator

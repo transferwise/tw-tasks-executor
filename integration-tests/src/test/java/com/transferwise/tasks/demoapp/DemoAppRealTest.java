@@ -19,7 +19,7 @@ import org.springframework.http.RequestEntity;
 import org.springframework.web.client.RestTemplate;
 
 @Slf4j
-@Disabled("Not meant to be automatically run.")
+//@Disabled("Not meant to be automatically run.")
 class DemoAppRealTest {
 
   private final RestTemplate restTemplate = new RestTemplate();
@@ -95,7 +95,7 @@ class DemoAppRealTest {
   void dbPerfTest() throws Exception {
     int submitThreads = 30;
     int tasks = 10000;
-    int depth = 100;
+    int depth = 10000;
 
     log.info("Expected tasks count is " + tasks * depth + ".");
 

@@ -243,6 +243,10 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
         bucketId = taskProcessingPolicy.getProcessingBucket(task);
       }
     }
+
+    //TODO: If we are still on SUBMITTED state, we don't have to change the record and thus the version.
+    //But we need to update the next_event_time, or the stuck tasks resumer will find it again and again.
+
     if (!TaskStatus.PROCESSING.name().equals(task.getStatus())) {
       retryTask(taskProcessingPolicy, bucketId, task, stuckDetectionSource, stuckTaskResolutionStats);
       return;
@@ -281,6 +285,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
 
   protected void retryTask(ITaskProcessingPolicy taskProcessingPolicy, String bucketId, ITaskDao.StuckTask task,
       StuckDetectionSource stuckDetectionSource, StuckTaskResolutionStats stuckTaskResolutionStats) {
+
+    //TODO: We should not mark it as submitted when it already is, we can just send out the Kafka trigger.
     if (!taskDao.markAsSubmitted(task.getVersionId().getId(), task.getVersionId().getVersion(), getMaxStuckTime(taskProcessingPolicy, task))) {
       coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
       return;
