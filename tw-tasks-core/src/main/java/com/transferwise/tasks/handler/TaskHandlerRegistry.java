@@ -27,6 +27,11 @@ public class TaskHandlerRegistry implements ITaskHandlerRegistry {
   private List<ITaskHandler> handlers;
 
   @Override
+  public void setHandlers(List<ITaskHandler> handlers) {
+    this.handlers = handlers;
+  }
+
+  @Override
   public ITaskHandler getTaskHandler(IBaseTask task) {
     // TODO: Should we add caching here for larger applications?
     // TODO: Or at least advice about keeping the number of handlers low in docs.
