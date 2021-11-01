@@ -503,6 +503,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                     } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.COMMIT_AND_RETRY) {
                       processingResultHolder.setValue(ProcessingResult.COMMIT_AND_RETRY);
                       setRepeatOnSuccess(bucketId, taskHandler, task);
+                    } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE_AND_DELETE) {
+                      deleteTask(task);
                     } else {
                       processingResultHolder.setValue(ProcessingResult.ERROR);
                       setRetriesOrError(bucketId, taskHandler, task, null);
@@ -516,6 +518,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                       if (result == null || result.getResultCode() == null
                           || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
                         markTaskAsDone(task);
+                      } else if (result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE_AND_DELETE) {
+                        deleteTask(task);
                       } else {
                         setRetriesOrError(bucketId, taskHandler, task, null);
                       }
@@ -614,6 +618,12 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.DONE);
       }
     }
+  }
+
+  private void deleteTask(Task task) {
+    UUID taskId = task.getId();
+    log.debug("Task '{}' finished successfully, deleting.", taskId);
+    taskDao.deleteTask(taskId, task.getVersion());
   }
 
   private void setRepeatOnSuccess(String bucketId, ITaskHandler taskHandler, Task task) {

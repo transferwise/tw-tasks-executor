@@ -19,6 +19,7 @@ public interface ISyncTaskProcessor extends ITaskProcessor {
 
     public enum ResultCode {
       DONE,
+      DONE_AND_DELETE,
       /**
        * For Quartz/Cron kind of jobs. Commit the current work and schedule a retry. ITaskRetryPolicy.resetTriesCount() tells if the task
        * processingTriesCount should be reset or incremented (since triesCount is how getRetryTime knows if previous processing was successful).
