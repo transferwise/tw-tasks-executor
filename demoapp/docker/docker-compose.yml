@@ -1,4 +1,4 @@
-version: '3.7'
+version: '3.3'
 
 # Make sure you disable userland networking, for proper perf tests.
 

@@ -54,9 +54,11 @@ spring:
       enableAutoCommit: false
   aop:
     proxy-target-class: true
-  liquibase:
+  flyway:
     enabled: true
-    change-log: 'classpath:db/changelog/db.tw-tasks-postgres.xml'
+    user: postgres
+    password: example-password-change-me
+    locations: classpath:db/changelog/postgres
 
 tw-tasks:
   core:
@@ -77,9 +79,11 @@ tw-tasks:
       kafka:
         bootstrap-servers: localhost:9092
     #trigger-same-task-in-all-nodes: true
-    #tasksHistoryDeletingBatchSize: 500
-    #tasksCleaningInterval: PT0.5s
-    #finishedTasksHistoryToKeep: PT1M
+    tasksHistoryDeletingBatchSize: 500
+    tasksCleaningInterval: PT0.5s
+    finishedTasksHistoryToKeep: PT30M
+    taskGrabbingMaxConcurrency: 500
+    asyncTaskTriggering: false
 
 zookeeper:
   connect-string: localhost:2181
@@ -136,7 +140,7 @@ spring:
 tw-tasks.core:
   db-type: MYSQL
 
-spring.liquibase.change-log: 'classpath:db/changelog/db.tw-tasks-mysql.xml'
+spring.flyway.locations: classpath:db/changelog/mysql
 
 ---
 

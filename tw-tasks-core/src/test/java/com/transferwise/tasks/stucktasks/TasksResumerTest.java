@@ -97,7 +97,7 @@ class TasksResumerTest {
         now.plusMinutes(10)
     );
 
-    assertThat(stats.getResumed()).isEqualTo(1);
+    assertThat(stats.getResumed().get()).isEqualTo(1);
   }
 
   @ParameterizedTest(name = "handleStuckTask respects StuckTaskResolutionStrategy {3}")
@@ -114,6 +114,7 @@ class TasksResumerTest {
     ITaskProcessingPolicy processingPolicy = Mockito.mock(ITaskProcessingPolicy.class);
     when(processingPolicy.getStuckTaskResolutionStrategy(any(), any())).thenReturn(resolutionStrategy);
     lenient().when(processingPolicy.getProcessingDeadline(any())).thenReturn(null);
+    lenient().when(processingPolicy.getExpectedQueueTime(any())).thenReturn(null);
 
     when(taskHandlerRegistry.getTaskHandler(any())).thenReturn(Mockito.mock(ITaskHandler.class));
     when(taskHandlerRegistry.getTaskHandler(null).getProcessingPolicy(any())).thenReturn(processingPolicy);
@@ -144,9 +145,9 @@ class TasksResumerTest {
         TaskStatus.FAILED,
         task.getVersionId().getVersion()
     );
-    assertEquals(resumed, stats.getResumed());
-    assertEquals(error, stats.getError());
-    assertEquals(failed, stats.getFailed());
+    assertEquals(resumed, stats.getResumed().get());
+    assertEquals(error, stats.getError().get());
+    assertEquals(failed, stats.getFailed().get());
   }
 
   private static Stream<Arguments> resolutionCasesForHandleStuckTransfers() {
