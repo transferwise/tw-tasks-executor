@@ -28,8 +28,8 @@ dependencies {
     runtimeOnly libraries.springBootStarterActuator
     runtimeOnly libraries.micrometerRegistryPrometheus
     runtimeOnly libraries.janino
-    runtimeOnly libraries.liquibaseCore
     runtimeOnly libraries.twEntryPointsStarter
+    runtimeOnly libraries.flywayCore
 
     // Database drivers
     runtimeOnly libraries.mariadbJavaClient

@@ -10,6 +10,7 @@ import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -59,6 +60,21 @@ public class TransactionManagerConfiguration {
     IsolationLevelDataSourceAdapter da = new IsolationLevelDataSourceAdapter();
     da.setTargetDataSource(dataSourceImpl);
     return da;
+  }
+
+  @Bean
+  @FlywayDataSource
+  public DataSource flywayDataSource() {
+    HikariDataSource hds = new HikariDataSource();
+    hds.setPoolName("demoapp_flyway");
+    hds.setJdbcUrl(env.getProperty("spring.datasource.url"));
+    hds.setUsername(env.getProperty("spring.flyway.user"));
+    hds.setPassword(env.getProperty("spring.flyway.password"));
+
+    hds.setMinimumIdle(0);
+    hds.setMaximumPoolSize(1);
+
+    return hds;
   }
 
   private DataSource dataSource() {

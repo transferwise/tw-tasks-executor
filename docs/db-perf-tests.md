@@ -90,12 +90,12 @@ You can verify how long it took to execute all of them with following.
 
 Mysql family:
 ```mysql
-select TIMESTAMPDIFF(SECOND, min(time_created), max(state_time)) from tw_task;
+select TIMESTAMPDIFF(SECOND, min(time_created), max(state_time)) from tw_task where type='DB_PERF_TEST';
 ```
 
 Postgresql:
 ```postgresql
-select EXTRACT(EPOCH FROM max(state_time)) - EXTRACT(EPOCH FROM min(tw_task.time_created)) from tw_task;
+select EXTRACT(EPOCH FROM max(state_time)) - EXTRACT(EPOCH FROM min(tw_task.time_created)) from tw_task where type='DB_PERF_TEST';
 ```
 
 #### Tips and tricks

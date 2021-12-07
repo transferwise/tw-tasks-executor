@@ -2,6 +2,10 @@
 
 Describes notable changes.
 
+#### 1.30.0 - 2021/12/07
+- Scheduled and stuck tasks are now resumed concurrently, by default with the parallelism of 10.
+  This eliminates a bottleneck for services relying on large volume of scheduled tasks.
+
 #### 1.29.0 - 2021/05/31
 - JDK 11+ is a requirement.
 - Opensource facelift.

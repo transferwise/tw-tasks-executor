@@ -15,6 +15,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -42,7 +43,7 @@ public class TasksProperties {
    * How often do we try to clean very old tasks from the database.
    */
   @NotNull
-  private Duration tasksCleaningInterval = Duration.ofSeconds(15);
+  private Duration tasksCleaningInterval = Duration.ofSeconds(1);
   /**
    * How often do we check if any scheduled task should be executed now.
    */
@@ -335,6 +336,9 @@ public class TasksProperties {
   @Valid
   private Triggering triggering = new Triggering();
 
+  @Valid
+  private TasksResumer tasksResumer = new TasksResumer();
+
   @Data
   public static class Triggering {
 
@@ -465,5 +469,19 @@ public class TasksProperties {
     @ResolvedValue
     private String previousVersion;
 
+  }
+
+  @Data
+  @Accessors(chain = true)
+  public static class TasksResumer {
+
+    /**
+     * Specifies how many tasks we are loading from the database in one go to be then resumed concurrently.
+     */
+    @Positive
+    private int batchSize = 1000;
+
+    @Positive
+    private int concurrency = 10;
   }
 }

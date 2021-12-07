@@ -33,6 +33,7 @@ import io.micrometer.core.instrument.Timer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -75,8 +76,9 @@ public class TaskProcessingIntTest extends BaseIntTest {
     kafkaTasksExecutionTriggerer = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
   }
 
-  @Test
-  void allUniqueTasksWillGetProcessed() throws Exception {
+  @ParameterizedTest(name = "allUniqueTasksWillGetProcessed({0})")
+  @ValueSource(booleans = {false, true})
+  void allUniqueTasksWillGetProcessed(boolean scheduled) throws Exception {
     final int initialProcessingsCount = counterSum("twTasks.tasks.processingsCount");
     final int initialProcessedCount = counterSum("twTasks.tasks.processedCount");
     final int initialDuplicatesCount = counterSum("twTasks.tasks.duplicatesCount");
@@ -98,10 +100,16 @@ public class TaskProcessingIntTest extends BaseIntTest {
         final int key = i;
         executorService.submit(() -> {
           try {
-            tasksService.addTask(new AddTaskRequest()
+            var taskRequest = new AddTaskRequest()
                 .setData(taskDataSerializer.serialize("Hello World! " + key))
                 .setType("test")
-                .setUniqueKey(String.valueOf(key)));
+                .setUniqueKey(String.valueOf(key));
+
+            if (scheduled) {
+              taskRequest.setRunAfterTime(ZonedDateTime.now().plusSeconds(1));
+            }
+
+            tasksService.addTask(taskRequest);
           } catch (Throwable t) {
             log.error(t.getMessage(), t);
           }
@@ -341,14 +349,14 @@ public class TaskProcessingIntTest extends BaseIntTest {
     );
 
     Task task = await().until(() -> transactionsHelper.withTransaction().asNew().call(
-        () -> {
-          try {
-            return testTasksService.getFinishedTasks("test", null);
-          } catch (Throwable t) {
-            log.error(t.getMessage(), t);
-          }
-          return null;
-        }),
+            () -> {
+              try {
+                return testTasksService.getFinishedTasks("test", null);
+              } catch (Throwable t) {
+                log.error(t.getMessage(), t);
+              }
+              return null;
+            }),
         res -> {
           if (res == null) {
             return false;
