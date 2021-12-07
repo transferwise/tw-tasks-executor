@@ -164,6 +164,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
             int concurrency = tasksProperties.getTasksResumer().getConcurrency();
             var semaphore = new Semaphore(concurrency);
             var futures = new ArrayList<Future<Void>>(concurrency);
+            var waitTimeMs = tasksProperties.getGenericMediumDelay().toMillis();
 
             while (statusesToCheck.size() > 0) {
               for (int i = statusesToCheck.size() - 1; i >= 0; i--) {
@@ -178,8 +179,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
                     if (control.shouldStop() || paused) {
                       break;
                     }
-                    gotLease = ExceptionUtils.doUnchecked(
-                        () -> semaphore.tryAcquire(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS));
+                    gotLease = ExceptionUtils.doUnchecked(() -> semaphore.tryAcquire(waitTimeMs, TimeUnit.MILLISECONDS));
                   }
 
                   if (gotLease) {
@@ -195,11 +195,11 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
 
                 // This algorithm can create a bit tail lag, but on the other hand allows to create it relatively simple and robust.
                 for (var f : futures) {
-                  if (TwContextClockHolder.getClock().millis() - startTimeMs > tasksProperties.getGenericMediumDelay().toMillis()) {
+                  if (TwContextClockHolder.getClock().millis() - startTimeMs > waitTimeMs) {
                     log.error("Stall detected in resuming scheduled tasks.");
                     break;
                   }
-                  ExceptionUtils.doUnchecked(() -> f.get(1, TimeUnit.SECONDS));
+                  ExceptionUtils.doUnchecked(() -> f.get(waitTimeMs, TimeUnit.MILLISECONDS));
                 }
 
                 stuckTaskResolutionStats.logStats();
@@ -222,8 +222,9 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
           .toContext()
           .execute(() -> {
 
+            var waitTimeMs = tasksProperties.getGenericMediumDelay().toMillis();
             var executorService = new ThreadNamingExecutorServiceWrapper("tasks-resumer", executorServicesProvider.getGlobalExecutorService());
-            int concurrency = tasksProperties.getTasksResumer().getConcurrency();
+            var concurrency = tasksProperties.getTasksResumer().getConcurrency();
             var semaphore = new Semaphore(concurrency);
             var futures = new ArrayList<Future<Void>>(concurrency);
 
@@ -237,7 +238,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
                     break;
                   }
                   gotLease = ExceptionUtils.doUnchecked(
-                      () -> semaphore.tryAcquire(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS));
+                      () -> semaphore.tryAcquire(waitTimeMs, TimeUnit.MILLISECONDS));
                 }
 
                 if (gotLease) {
@@ -271,11 +272,11 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
 
               // This algorithm can create a bit tail lag, but on the other hand allows to create it relatively simple and robust.
               for (var f : futures) {
-                if (TwContextClockHolder.getClock().millis() - startTimeMs > tasksProperties.getGenericMediumDelay().toMillis()) {
+                if (TwContextClockHolder.getClock().millis() - startTimeMs > waitTimeMs) {
                   log.error("Stall detected in resuming scheduled tasks.");
                   break;
                 }
-                ExceptionUtils.doUnchecked(() -> f.get(1, TimeUnit.SECONDS));
+                ExceptionUtils.doUnchecked(() -> f.get(waitTimeMs, TimeUnit.MILLISECONDS));
               }
 
               if (log.isDebugEnabled() && result.getStuckTasks().size() > 0) {
