@@ -121,6 +121,7 @@ jobs:
           name: Set git config
           command: |
             mkdir -p ~/.ssh
+            rm -rf ~/.ssh/*
             ssh-keyscan github.com >> ~/.ssh/known_hosts
             git config --global user.name "TransferWise CircleCI" && git config --global user.email circle@circle.tw.ee
       - run:

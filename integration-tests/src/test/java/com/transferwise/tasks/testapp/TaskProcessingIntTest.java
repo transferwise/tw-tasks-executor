@@ -5,6 +5,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.transferwise.common.baseutils.ExceptionUtils;
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.context.Criticality;
 import com.transferwise.common.context.TwContext;
 import com.transferwise.common.context.UnitOfWork;
@@ -13,6 +14,7 @@ import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.domain.Task;
@@ -77,12 +79,10 @@ public class TaskProcessingIntTest extends BaseIntTest {
   }
 
   @ParameterizedTest(name = "allUniqueTasksWillGetProcessed({0})")
-  @ValueSource(booleans = {false, true})
-  void allUniqueTasksWillGetProcessed(boolean scheduled) throws Exception {
-    final int initialProcessingsCount = counterSum("twTasks.tasks.processingsCount");
-    final int initialProcessedCount = counterSum("twTasks.tasks.processedCount");
-    final int initialDuplicatesCount = counterSum("twTasks.tasks.duplicatesCount");
-    final long initialSummaryCount = timerSum("twTasks.tasks.processingTime");
+  @ValueSource(ints = {0, 1, 2})
+  void allUniqueTasksWillGetProcessed(int scenario) throws Exception {
+    boolean scheduled = scenario == 1;
+    boolean stuck = scenario == 2;
 
     final int duplicatesMultiplier = 2;
     final int uniqueTasksCount = 500;
@@ -109,13 +109,26 @@ public class TaskProcessingIntTest extends BaseIntTest {
               taskRequest.setRunAfterTime(ZonedDateTime.now().plusSeconds(1));
             }
 
-            tasksService.addTask(taskRequest);
+            if (stuck) {
+              taskDao.insertTask(new InsertTaskRequest().setStatus(TaskStatus.SUBMITTED).setMaxStuckTime(ZonedDateTime.now().minusHours(1))
+                  .setData(taskDataSerializer.serialize("Hello World! " + key))
+                  .setType("test")
+                  .setPriority(5)
+                  .setTaskId(UuidUtils.generatePrefixCombUuid())
+                  .setKey(String.valueOf(key))
+              );
+            } else {
+              tasksService.addTask(taskRequest);
+            }
+
           } catch (Throwable t) {
             log.error(t.getMessage(), t);
           }
         });
       }
     }
+
+    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().size() == uniqueTasksCount);
 
     log.info("Waiting for all tasks to be registered.");
     executorService.shutdown();
@@ -138,10 +151,12 @@ public class TaskProcessingIntTest extends BaseIntTest {
     assertEquals(uniqueTasksCount, resultRegisteringSyncTaskProcessor.getTaskResults().size());
 
     // instrumentation assertion
-    assertEquals(uniqueTasksCount + initialProcessingsCount, counterSum("twTasks.tasks.processingsCount"));
-    assertEquals(uniqueTasksCount + initialProcessedCount, counterSum("twTasks.tasks.processedCount"));
-    assertEquals(uniqueTasksCount + initialDuplicatesCount, counterSum("twTasks.tasks.duplicatesCount"));
-    assertEquals(uniqueTasksCount + initialSummaryCount, timerSum("twTasks.tasks.processingTime"));
+    assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.processingsCount"));
+    assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.processedCount"));
+    if (!stuck) {
+      assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.duplicatesCount"));
+    }
+    assertEquals(uniqueTasksCount, timerSum("twTasks.tasks.processingTime"));
 
     assertEquals(ITasksService.TasksProcessingState.STARTED, tasksService.getTasksProcessingState(null));
   }

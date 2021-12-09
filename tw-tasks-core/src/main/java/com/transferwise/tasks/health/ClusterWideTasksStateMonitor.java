@@ -34,6 +34,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
@@ -59,8 +60,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private AtomicInteger erroneousTasksCount;
 
   private AtomicInteger stuckTasksCount;
-  private Map<String, Integer> stuckTasksCountByType;
-  private Map<String, AtomicInteger> stuckTasksCounts;
+  private Map<Pair<TaskStatus, String>, Integer> stuckTasksCountByStatusAndType;
+  private Map<Pair<TaskStatus, String>, AtomicInteger> stuckTasksCounts;
 
   private AtomicLong approximateTasksCount;
   private AtomicLong approximateUniqueKeysCount;
@@ -70,7 +71,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
   private List<Object> registeredMetricHandles;
   private Map<String, Object> taskInErrorStateHandles;
-  private Map<String, Object> stuckTasksStateHandles;
+  private Map<Pair<TaskStatus,String>, Object> stuckTasksStateHandles;
 
   private final Lock stateLock = new ReentrantLock();
   private boolean initialized;
@@ -138,7 +139,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
             stuckTasksCount = null;
             stuckTasksCounts = new HashMap<>();
-            stuckTasksCountByType = new HashMap<>();
+            stuckTasksCountByStatusAndType = new HashMap<>();
 
             erroneousTasksCount = null;
             erroneousTasksCounts = new HashMap<>();
@@ -244,9 +245,9 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     int stuckTasksCountValue = taskDao.getStuckTasksCount(age, tasksProperties.getMaxDatabaseFetchSize());
 
     if (stuckTasksCountValue == 0) {
-      stuckTasksCountByType = Collections.emptyMap();
+      stuckTasksCountByStatusAndType = Collections.emptyMap();
     } else {
-      stuckTasksCountByType = taskDao.getStuckTasksCountByType(age, tasksProperties.getMaxDatabaseFetchSize());
+      stuckTasksCountByStatusAndType = taskDao.getStuckTasksCountByStatusAndType(age, tasksProperties.getMaxDatabaseFetchSize());
     }
 
     if (stuckTasksCount == null) {
@@ -256,24 +257,24 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       stuckTasksCount.set(stuckTasksCountValue);
     }
 
-    Set<String> stuckTaskTypes = new HashSet<>();
-    stuckTasksCountByType.forEach((type, count) -> {
-      stuckTaskTypes.add(type);
-      AtomicInteger typeCounter = stuckTasksCounts.computeIfAbsent(type, k -> {
+    Set<Pair<TaskStatus,String>> stuckTasksByStatusAndType = new HashSet<>();
+    stuckTasksCountByStatusAndType.forEach((statusAndType, count) -> {
+      stuckTasksByStatusAndType.add(statusAndType);
+      AtomicInteger typeCounter = stuckTasksCounts.computeIfAbsent(statusAndType, k -> {
         AtomicInteger cnt = new AtomicInteger();
-        Object handle = coreMetricsTemplate.registerStuckTasksCount(type, cnt);
+        Object handle = coreMetricsTemplate.registerStuckTasksCount(statusAndType.getLeft(), statusAndType.getRight(), cnt);
         registeredMetricHandles.add(handle);
-        stuckTasksStateHandles.put(type, handle);
+        stuckTasksStateHandles.put(statusAndType, handle);
         return cnt;
       });
       typeCounter.set(count);
     });
 
     // make sure that we reset values for the tasks that are not stuck anymore
-    for (Iterator<String> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
-      String taskType = it.next();
-      if (!stuckTaskTypes.contains(taskType)) {
-        Object handle = stuckTasksStateHandles.remove(taskType);
+    for (Iterator<Pair<TaskStatus,String>> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
+      Pair<TaskStatus,String> taskStatusAndType = it.next();
+      if (!stuckTasksByStatusAndType.contains(taskStatusAndType)) {
+        Object handle = stuckTasksStateHandles.remove(taskStatusAndType);
         registeredMetricHandles.remove(handle);
         coreMetricsTemplate.unregisterMetric(handle);
         it.remove();
@@ -337,7 +338,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   }
 
   @Override
-  public Map<String, Integer> getStuckTasksCountByType() {
-    return stuckTasksCountByType;
+  public Map<Pair<TaskStatus, String>, Integer> getStuckTasksCountByType() {
+    return stuckTasksCountByStatusAndType;
   }
 }

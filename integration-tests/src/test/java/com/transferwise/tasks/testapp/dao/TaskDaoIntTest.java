@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.data.TemporalUnitWithinOffset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -360,10 +361,12 @@ abstract class TaskDaoIntTest extends BaseIntTest {
 
     ZonedDateTime limitTime = ZonedDateTime.now().plusSeconds(1);
 
-    Map<String, Integer> stuckTask = taskDao.getStuckTasksCountByType(limitTime, 10);
-    assertThat(stuckTask).size().isEqualTo(2);
-    assertThat(stuckTask.get("TEST")).isEqualTo(3);
-    assertThat(stuckTask.get("XXX")).isEqualTo(1);
+    Map<Pair<TaskStatus, String>, Integer> stuckTask = taskDao.getStuckTasksCountByStatusAndType(limitTime, 10);
+    assertThat(stuckTask).size().isEqualTo(4);
+    assertThat(stuckTask.get(Pair.of(TaskStatus.NEW, "TEST"))).isEqualTo(1);
+    assertThat(stuckTask.get(Pair.of(TaskStatus.WAITING, "TEST"))).isEqualTo(1);
+    assertThat(stuckTask.get(Pair.of(TaskStatus.PROCESSING, "TEST"))).isEqualTo(1);
+    assertThat(stuckTask.get(Pair.of(TaskStatus.SUBMITTED, "XXX"))).isEqualTo(1);
   }
 
   @Test

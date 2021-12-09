@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.tuple.Pair;
 
 public interface ITaskDao {
 
@@ -98,7 +99,7 @@ public interface ITaskDao {
 
   int getStuckTasksCount(ZonedDateTime age, int maxCount);
 
-  Map<String, Integer> getStuckTasksCountByType(ZonedDateTime age, int maxCount);
+  Map<Pair<TaskStatus,String>, Integer> getStuckTasksCountByStatusAndType(ZonedDateTime age, int maxCount);
 
   <T> T getTask(UUID taskId, Class<T> clazz);
 

@@ -3,6 +3,7 @@ package com.transferwise.tasks.health;
 import com.transferwise.common.incidents.Incident;
 import com.transferwise.common.incidents.IncidentGenerator;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.EntryPointsGroups;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
@@ -12,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import lombok.Setter;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TasksIncidentGenerator implements IncidentGenerator {
@@ -51,13 +53,13 @@ public class TasksIncidentGenerator implements IncidentGenerator {
             errorIncident = null;
           }
 
-          Map<String, Integer> stuckTasksCountByType = tasksStateMonitor.getStuckTasksCountByType();
-          if (stuckTasksCountByType != null && !stuckTasksCountByType.isEmpty()) {
-            int cnt = stuckTasksCountByType.values().stream().mapToInt(Integer::intValue).sum();
+          Map<Pair<TaskStatus, String>, Integer> stuckTasksCountByStatusAndType = tasksStateMonitor.getStuckTasksCountByType();
+          if (stuckTasksCountByStatusAndType != null && !stuckTasksCountByStatusAndType.isEmpty()) {
+            int cnt = stuckTasksCountByStatusAndType.values().stream().mapToInt(Integer::intValue).sum();
             if (stuckIncident == null) {
               stuckIncident = new Incident()
                   .setId("twTasks/stuck")
-                  .setMessage(buildDetailedErrorReport(stuckTasksCountByType, "stuck"))
+                  .setMessage(buildDetailedStuckReport(stuckTasksCountByStatusAndType, "stuck"))
                   .setSummary("" + cnt + " tasks are stuck.")
                   .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(cnt)));
             }
@@ -81,6 +83,21 @@ public class TasksIncidentGenerator implements IncidentGenerator {
           .append(count)
           .append(" tasks of type ")
           .append(type)
+          .append(" ").append(status).append("\n");
+    });
+
+    return msg.toString();
+  }
+
+  private static String buildDetailedStuckReport(Map<Pair<TaskStatus, String>, Integer> stuckTaskPerStatusAndType, String status) {
+    StringBuilder msg = new StringBuilder();
+    stuckTaskPerStatusAndType.forEach((statusAndType, count) -> {
+      msg.append("- ")
+          .append(count)
+          .append(" tasks of type ")
+          .append(statusAndType.getRight())
+          .append(" in status ")
+          .append(statusAndType.getLeft().name())
           .append(" ").append(status).append("\n");
     });
 

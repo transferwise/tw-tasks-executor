@@ -8,6 +8,7 @@ import com.transferwise.tasks.testapp.IResultRegisteringSyncTaskProcessor;
 import com.transferwise.tasks.testapp.TestTaskHandler;
 import com.transferwise.tasks.testapp.config.TestApplication;
 import com.transferwise.tasks.testapp.config.TestConfiguration;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
@@ -60,6 +61,18 @@ public abstract class BaseIntTest {
   void setupBaseTest(TestInfo testInfo) {
     startTimeMs = System.currentTimeMillis();
     testInfo.getTestMethod().ifPresent(name -> log.info("Setting up for '{}'", name));
+
+    transactionsHelper.withTransaction().asNew().call(() -> {
+      testTasksService.reset();
+      return null;
+    });
+
+    for (var meter : meterRegistry.getMeters()) {
+      if (!(meter instanceof Gauge)) {
+        meterRegistry.remove(meter);
+      }
+    }
+    meterCache.clear();
   }
 
   @AfterEach
@@ -74,9 +87,6 @@ public abstract class BaseIntTest {
 
     // Cheap when it's already running.
     testTasksService.resumeProcessing();
-
-    meterRegistry.clear();
-    meterCache.clear();
 
     testInfo.getTestMethod().ifPresent(name ->
         log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)
