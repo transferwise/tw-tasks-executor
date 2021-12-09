@@ -4,6 +4,7 @@ Describes notable changes.
 
 #### 1.30.1 - 2021/12/09
 - Stuck tasks resumer was hanging due to semaphore not getting released.
+- Stuck tasks count metric now also has task status dimension.
 
 #### 1.30.0 - 2021/12/07
 - Scheduled and stuck tasks are now resumed concurrently, by default with the parallelism of 10.
