@@ -368,8 +368,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public Object registerStuckTasksCount(String type, AtomicInteger count) {
-    return registerGauge(METRIC_HEALTH_STUCK_TASKS_COUNT_PER_TYPE, count::get, TAG_TASK_TYPE, type);
+  public Object registerStuckTasksCount(TaskStatus status, String type, AtomicInteger count) {
+    return registerGauge(METRIC_HEALTH_STUCK_TASKS_COUNT_PER_TYPE, count::get, TAG_TASK_STATUS, status.name(), TAG_TASK_TYPE, type);
   }
 
   @Override

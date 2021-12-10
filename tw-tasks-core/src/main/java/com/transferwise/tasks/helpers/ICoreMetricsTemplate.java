@@ -88,7 +88,7 @@ public interface ICoreMetricsTemplate {
 
   Object registerStuckTasksCount(AtomicInteger stuckTasksCount);
 
-  Object registerStuckTasksCount(String type, AtomicInteger count);
+  Object registerStuckTasksCount(TaskStatus status, String type, AtomicInteger count);
 
   Object registerApproximateTasksCount(AtomicLong approximateTasksCount);
 

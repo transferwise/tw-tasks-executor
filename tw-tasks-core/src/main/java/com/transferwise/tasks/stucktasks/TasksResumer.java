@@ -43,6 +43,7 @@ import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.curator.framework.CuratorFramework;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -160,10 +161,10 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
             statusesToCheck.add(TaskStatus.SUBMITTED);
             statusesToCheck.add(TaskStatus.PROCESSING);
 
-            var executorService = new ThreadNamingExecutorServiceWrapper("tasks-resumer", executorServicesProvider.getGlobalExecutorService());
+            var executorService = new ThreadNamingExecutorServiceWrapper("stk-tasks-resumer", executorServicesProvider.getGlobalExecutorService());
             int concurrency = tasksProperties.getTasksResumer().getConcurrency();
             var semaphore = new Semaphore(concurrency);
-            var futures = new ArrayList<Future<Void>>(concurrency);
+            var futures = new ArrayList<Future<Boolean>>(concurrency);
             var waitTimeMs = tasksProperties.getGenericMediumDelay().toMillis();
 
             while (statusesToCheck.size() > 0) {
@@ -184,29 +185,47 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
 
                   if (gotLease) {
                     futures.add(executorService.submit(() -> {
-                      mdcService.put(task);
-                      handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, stuckTaskResolutionStats);
-                      return null;
+                      try {
+                        mdcService.put(task);
+                        handleStuckTask(task, StuckDetectionSource.CLUSTER_WIDE_STUCK_TASKS_DETECTOR, stuckTaskResolutionStats);
+                      } catch (Throwable t) {
+                        log.error("Resuming stuck task '" + task.getVersionId() + "' failed.", t);
+                        return false;
+                      } finally {
+                        semaphore.release();
+                      }
+                      return true;
                     }));
                   }
                 }
 
                 long startTimeMs = TwContextClockHolder.getClock().millis();
 
+                var successCnt = new MutableInt();
                 // This algorithm can create a bit tail lag, but on the other hand allows to create it relatively simple and robust.
                 for (var f : futures) {
                   if (TwContextClockHolder.getClock().millis() - startTimeMs > waitTimeMs) {
                     log.error("Stall detected in resuming scheduled tasks.");
                     break;
                   }
-                  ExceptionUtils.doUnchecked(() -> f.get(waitTimeMs, TimeUnit.MILLISECONDS));
+                  ExceptionUtils.doUnchecked(() -> {
+                    if (Boolean.TRUE.equals(f.get(waitTimeMs, TimeUnit.MILLISECONDS))) {
+                      successCnt.increment();
+                    }
+                  });
                 }
 
                 stuckTaskResolutionStats.logStats();
 
+                if (successCnt.getValue() < futures.size()) {
+                  ExceptionUtils.doUnchecked(() -> Thread.sleep(tasksProperties.getGenericMediumDelay().toMillis()));
+                }
+
                 if (!result.isHasMore()) {
                   statusesToCheck.remove(i);
                 }
+
+                futures.clear();
               }
             }
           });
@@ -223,10 +242,10 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
           .execute(() -> {
 
             var waitTimeMs = tasksProperties.getGenericMediumDelay().toMillis();
-            var executorService = new ThreadNamingExecutorServiceWrapper("tasks-resumer", executorServicesProvider.getGlobalExecutorService());
+            var executorService = new ThreadNamingExecutorServiceWrapper("sch-tasks-resumer", executorServicesProvider.getGlobalExecutorService());
             var concurrency = tasksProperties.getTasksResumer().getConcurrency();
             var semaphore = new Semaphore(concurrency);
-            var futures = new ArrayList<Future<Void>>(concurrency);
+            var futures = new ArrayList<Future<Boolean>>(concurrency);
 
             while (true) {
               var result = taskDao.getStuckTasks(tasksProperties.getTasksResumer().getBatchSize(), TaskStatus.WAITING);
@@ -259,28 +278,38 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
                         coreMetricsTemplate.registerScheduledTaskResuming(baseTask.getType());
                       }
                     } catch (Throwable t) {
-                      log.error("Resuming task '" + task.getVersionId() + "' failed.", t);
+                      log.error("Resuming scheduled task '" + task.getVersionId() + "' failed.", t);
+                      return false;
                     } finally {
                       semaphore.release();
                     }
-                    return null;
+                    return true;
                   }));
                 }
               }
 
               long startTimeMs = TwContextClockHolder.getClock().millis();
 
+              var successCnt = new MutableInt();
               // This algorithm can create a bit tail lag, but on the other hand allows to create it relatively simple and robust.
               for (var f : futures) {
                 if (TwContextClockHolder.getClock().millis() - startTimeMs > waitTimeMs) {
                   log.error("Stall detected in resuming scheduled tasks.");
                   break;
                 }
-                ExceptionUtils.doUnchecked(() -> f.get(waitTimeMs, TimeUnit.MILLISECONDS));
+                ExceptionUtils.doUnchecked(() -> {
+                  if (Boolean.TRUE.equals(f.get(waitTimeMs, TimeUnit.MILLISECONDS))) {
+                    successCnt.increment();
+                  }
+                });
               }
 
               if (log.isDebugEnabled() && result.getStuckTasks().size() > 0) {
                 log.debug("Resumed " + result.getStuckTasks().size() + " waiting tasks.");
+              }
+
+              if (successCnt.getValue() < futures.size()) {
+                ExceptionUtils.doUnchecked(() -> Thread.sleep(tasksProperties.getGenericMediumDelay().toMillis()));
               }
 
               if (!result.isHasMore()) {

@@ -389,6 +389,8 @@ public class MySqlTaskDao implements ITaskDao {
   public int getStuckTasksCount(ZonedDateTime age, int maxCount) {
     int cnt = 0;
 
+    // Measure stuck per status. So we know quickly if it is scheduled or submitted.
+
     for (TaskStatus taskStatus : stuckStatuses) {
       List<Integer> results = jdbcTemplate.query(getStuckTasksCountSql, args(taskStatus, age, maxCount), (rs, rowNum) -> rs.getInt(1));
 
@@ -401,11 +403,11 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
   @MonitoringQuery
-  public Map<String, Integer> getStuckTasksCountByType(ZonedDateTime age, int maxCount) {
-    Map<String, MutableInt> resultMap = new HashMap<>();
+  public Map<Pair<TaskStatus, String>, Integer> getStuckTasksCountByStatusAndType(ZonedDateTime age, int maxCount) {
+    Map<Pair<TaskStatus,String>, MutableInt> resultMap = new HashMap<>();
     for (TaskStatus taskStatus : stuckStatuses) {
       jdbcTemplate.query(getStuckTasksCountGroupedSql, args(taskStatus, age, maxCount), rs -> {
-        resultMap.computeIfAbsent(rs.getString(1), k -> new MutableInt(0)).add(rs.getInt(2));
+        resultMap.computeIfAbsent(Pair.of(taskStatus, rs.getString(1)), k -> new MutableInt(0)).add(rs.getInt(2));
       });
     }
     return resultMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> e.getValue().getValue()));
