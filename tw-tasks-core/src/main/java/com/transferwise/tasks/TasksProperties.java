@@ -124,18 +124,6 @@ public class TasksProperties {
    */
   @ResolvedValue
   private String kafkaTopicsNamespace;
-  /**
-   * When listening Kafka Topics, it is possible to specify the topics replication factor and partitions count, which is applied on application
-   * startup.
-   *
-   * <p>It may add a small additional time for startup, which is sometimes preferred to be avoided (integration tests, development).
-   *
-   * <p>Using this option, the automatic topic configuration can be turned off.
-   *
-   * @deprecated used exclusively by ext-kafka-listener which is deprecated and soon will be removed
-   */
-  @Deprecated
-  private boolean coreKafkaListenerTopicsConfiguringEnabled = true;
 
   /**
    * Set it to false, if you use proper transaction manager and not spring's default one. You will get better performance and waste less memory.

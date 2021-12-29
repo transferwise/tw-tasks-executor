@@ -148,15 +148,6 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
     }
     executorService = new ThreadNamingExecutorServiceWrapper("core-kafka-listener", executorServicesProvider.getGlobalExecutorService());
     getTopicsShards().forEach((shard, topics) -> executorService.submit(() -> {
-      if (tasksProperties.isCoreKafkaListenerTopicsConfiguringEnabled()) {
-        for (MyTopic topic : topics) {
-          if (!topic.isConfigured() && topic.getPartitionsCount() != null) {
-            topicPartitionsManager.setPartitionsCount(getNamespacedTopic(topic.getAddress()), topic.getPartitionsCount());
-            topic.setConfigured(true);
-          }
-        }
-      }
-
       List<String> addresses = new ArrayList<>();
       for (MyTopic topic : topics) {
         addAddresses(addresses, topic.getAddress());

@@ -46,7 +46,3 @@ springBoot {
 bootRun {
     systemProperties = System.properties as Map<String, ?>
 }
-
-bootJar {
-    excludeDevtools = true
-}

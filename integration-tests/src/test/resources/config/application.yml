@@ -59,8 +59,6 @@ tw-curator:
 
 ---
 
-spring:
-  profiles: circle
 testenv:
   mysql:
     port: 3306
@@ -77,11 +75,13 @@ testenv:
 tw-tasks:
   core:
     assert-status-on-grabbing: true
-
+spring:
+  config:
+    activate:
+      on-profile: continuous-integration
 ---
 
 spring:
-  profiles: mysql
   datasource:
     url: jdbc:mariadb://${MARIADB_TCP_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
     username: root
@@ -90,6 +90,9 @@ spring:
     client-id: test-mysql
     consumer:
       groupId: 'test-mysql'
+  config:
+    activate:
+      on-profile: mysql
 
 tw-tasks.core:
   db-type: mysql
@@ -101,7 +104,6 @@ spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-mysql.xml
 ---
 
 spring:
-  profiles: postgres
   datasource:
     url: jdbc:postgresql://${POSTGRES_TCP_HOST:localhost}:${POSTGRES_TCP_5432}/postgres
     username: postgres
@@ -110,6 +112,9 @@ spring:
     client-id: test-postgres
     consumer:
       groupId: 'test'
+  config:
+    activate:
+      on-profile: postgres
 
 tw-tasks.core:
   db-type: postgres

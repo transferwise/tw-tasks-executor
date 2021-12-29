@@ -1,0 +1,99 @@
+name: "Build and Test"
+
+on:
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: "Build and Test"
+    runs-on:
+      - ubuntu-latest
+    env:
+      GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom"
+      IN_CIRCLE: true
+      MARIADB_TCP_3306: 3306
+      MARIADB_TCP_HOST: mysql1
+      KAFKA_TCP_9092: 9092
+      KAFKA_TCP_HOST: kafka1
+      ZOOKEEPER_TCP_2181: 2181
+      ZOOKEEPER_TCP_HOST: zk-service1
+      POSTGRES_TCP_HOST: postgres1
+      POSTGRES_TCP_5432: 5432
+    services:
+      mysql1:
+        image: mariadb:10.4
+        env:
+          MYSQL_ROOT_PASSWORD: example-password-change-me
+          MYSQL_DATABASE: tw-tasks-test
+      postgres1:
+        image: postgres:12
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: example-password-change-me
+      zk-servic1:
+        image: bitnami/zookeeper:3.5.5
+        env:
+          ALLOW_ANONYMOUS_LOGIN: "yes"
+          JVMFLAGS: "-Xmx512m -Xms64m"
+      zk1:
+        image: bitnami/zookeeper:3.4.14
+        env:
+          ALLOW_ANONYMOUS_LOGIN: "yes"
+          JVMFLAGS: "-Xmx512m -Xms64m"
+      kafka1:
+        image: wurstmeister/kafka:2.12-2.2.0
+        env:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zk1:2181
+          KAFKA_LISTENERS: PLAINTEXT://:9092
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+          KAFKA_MESSAGE_MAX_BYTES: '10000012'
+          KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 20000
+          KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
+          KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: "Retrieve gradle settings"
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle
+          key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
+      - name: "Assemble jar"
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --no-daemon
+      - name: "Run tests"
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --no-daemon --stacktrace
+      - name: "Test if publishing works"
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --no-daemon --stacktrace
+      - name: "Publish Test Report"
+        uses: mikepenz/action-junit-report@v2
+        if: always()
+        with:
+          report_paths: '**/build/test-results/**/*.xml'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          require_tests: true
+      - name: Publish checkstyle report
+        if: failure()
+        uses: jwgmeligmeyling/checkstyle-github-action@master
+        with:
+          path: '**/build/reports/**/*.xml'
+      - name: Publish spotbugs report
+        if: failure()
+        uses: jwgmeligmeyling/spotbugs-github-action@master
+        with:
+          path: '**/build/reports/**/*.xml'
+      - name: "Bootstrap git config"
+        if: github.ref == 'refs/heads/master'
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global user.name "TW GitHub Actions" && git config --global user.email circle@circle.tw.ee
+      - name: "Tag release"
+        if: github.ref == 'refs/heads/master'
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew tagRelease --console=plain --no-daemon

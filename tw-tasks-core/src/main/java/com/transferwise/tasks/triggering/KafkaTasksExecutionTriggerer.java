@@ -56,6 +56,8 @@ import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.ReassignmentInProgressException;
+import org.apache.kafka.common.errors.RebalanceInProgressException;
 import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -396,11 +398,13 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   }
 
   protected void registerCommitException(String bucketId, Throwable t) {
-    if (t instanceof CommitFailedException || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
+    if (t instanceof RebalanceInProgressException || t instanceof ReassignmentInProgressException || t instanceof CommitFailedException
+        || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
       coreMetricsTemplate.registerKafkaTasksExecutionTriggererFailedCommit(bucketId);
       log.debug("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
       return;
     }
+
     if (errorLoggingThrottler.canLogError()) {
       log.error("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
     }

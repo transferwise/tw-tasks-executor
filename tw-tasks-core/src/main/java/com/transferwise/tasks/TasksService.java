@@ -28,7 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
@@ -247,11 +247,11 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   @FunctionalInterface
   private interface TxSyncAdapterFactory {
 
-    TransactionSynchronizationAdapter create(IMdcService mdcService, UnitOfWorkManager unitOfWorkManager, BaseTask task);
+    TransactionSynchronization create(IMdcService mdcService, UnitOfWorkManager unitOfWorkManager, BaseTask task);
   }
 
   @RequiredArgsConstructor
-  private class SynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
+  private class SynchronouslyTriggerTaskTxSyncAdapter implements TransactionSynchronization {
 
     private final BaseTask task;
 
@@ -267,7 +267,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   }
 
   @RequiredArgsConstructor
-  private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
+  private class AsynchronouslyTriggerTaskTxSyncAdapter implements TransactionSynchronization {
 
     private final IMdcService mdcService;
     private final UnitOfWorkManager unitOfWorkManager;
