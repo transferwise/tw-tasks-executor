@@ -70,7 +70,7 @@ jobs:
       - name: "Bootstrap git config"
         if: github.ref != 'refs/heads/master'
         run: |
-          apt-get update && apt-get install -y openssh-client git
+          apt-get update && apt-get install -y openssh-client git sudo
           mkdir -p ~/.ssh
           ssh-keyscan github.com >> ~/.ssh/known_hosts
           git config --global user.name "TW GitHub Actions" && git config --global user.email circle@circle.tw.ee
