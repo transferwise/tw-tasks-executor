@@ -59,6 +59,8 @@ jobs:
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
     steps:
+      - name: Install packages
+        run: apt-get update && apt-get -y install sudo
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: "Retrieve gradle settings"
