@@ -24,7 +24,8 @@ jobs:
       ZOOKEEPER_TCP_HOST: zk-service1
       POSTGRES_TCP_HOST: postgres1
       POSTGRES_TCP_5432: 5432
-    container: ubuntu:20.04
+    container:
+      image: ubuntu:20.04
     services:
       mysql1:
         image: mariadb:10.4
