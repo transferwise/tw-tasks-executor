@@ -61,6 +61,19 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
+      - name: "Gradle cache"
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle
+          key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
+      - name: "Bootstrap git config"
+        if: github.ref != 'refs/heads/master'
+        run: |
+          apt-get update && apt-get install -y openssh-client git
+          mkdir -p ~/.ssh
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+          git config --global user.name "TW GitHub Actions" && git config --global user.email circle@circle.tw.ee
       - name: "Tag release"
         if: github.ref != 'refs/heads/master'
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew tagRelease --console=plain --no-daemon
