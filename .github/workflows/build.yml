@@ -17,12 +17,12 @@ jobs:
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom"
       IN_CIRCLE: true
       MARIADB_TCP_3306: 3306
-      MARIADB_TCP_HOST: mysql1
+      MARIADB_TCP_HOST: 127.0.0.1
       KAFKA_TCP_9092: 9092
-      KAFKA_TCP_HOST: kafka1
+      KAFKA_TCP_HOST: 127.0.0.1
       ZOOKEEPER_TCP_2181: 2181
-      ZOOKEEPER_TCP_HOST: zk-service1
-      POSTGRES_TCP_HOST: postgres1
+      ZOOKEEPER_TCP_HOST: 127.0.0.1
+      POSTGRES_TCP_HOST: 127.0.0.1
       POSTGRES_TCP_5432: 5432
     services:
       mysql1:
@@ -30,16 +30,22 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: example-password-change-me
           MYSQL_DATABASE: tw-tasks-test
+        ports:
+          - 3306:3306
       postgres1:
         image: postgres:12
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: example-password-change-me
-      zk-servic1:
+        ports:
+          - 5432:5432
+      zk-service1:
         image: bitnami/zookeeper:3.5.5
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
+        ports:
+          - 2181:2181
       zk1:
         image: bitnami/zookeeper:3.4.14
         env:
@@ -56,6 +62,8 @@ jobs:
           KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 20000
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+        ports:
+          - 9092:9092
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
