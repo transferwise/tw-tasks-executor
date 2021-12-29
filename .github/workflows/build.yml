@@ -51,11 +51,13 @@ jobs:
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
+        ports:
+          - 2182:2181
       kafka1:
         image: wurstmeister/kafka:2.12-2.2.0
         env:
           KAFKA_BROKER_ID: 1
-          KAFKA_ZOOKEEPER_CONNECT: zk1:2181
+          KAFKA_ZOOKEEPER_CONNECT: 127.0.0.1:2182
           KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://localhost:9092,INTERNAL://kafka1:9093"
           KAFKA_LISTENERS: EXTERNAL://:9092,INTERNAL://:9093
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
@@ -74,6 +76,8 @@ jobs:
           path: |
             ~/.gradle
           key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
       - name: "Assemble jar"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --no-daemon
       - name: "Run tests"
