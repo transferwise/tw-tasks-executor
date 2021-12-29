@@ -25,7 +25,7 @@ jobs:
       POSTGRES_TCP_HOST: postgres1
       POSTGRES_TCP_5432: 5432
     container:
-      image: ubuntu:20.04
+      image: azul/zulu-openjdk:11
     services:
       mysql1:
         image: mariadb:10.4
@@ -59,23 +59,8 @@ jobs:
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
     steps:
-      - name: Install packages
-        run: apt-get update && apt-get -y install sudo
       - name: Checkout repository
         uses: actions/checkout@v2
-      - uses: actions/setup-java@v2
-        with:
-          distribution: 'zulu'
-          java-version: '11'
-          cache: 'gradle'
-#      - name: "Retrieve gradle settings"
-#        uses: actions/cache@v2
-#        with:
-#          path: |
-#            ~/.gradle
-#          key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
-#      - name: Setup tmate session
-#        uses: mxschmitt/action-tmate@v3
       - name: "Assemble jar"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --no-daemon
       - name: "Run tests"
