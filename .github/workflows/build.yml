@@ -80,14 +80,14 @@ jobs:
         with:
           path: '**/build/reports/**/*.xml'
       - name: Publish spotbugs report
-        if: awlays()
+        if: failure()
         uses: jwgmeligmeyling/spotbugs-github-action@master
         with:
           path: '**/build/reports/**/*.xml'
       - name: "Collect test reports"
         run: |
           tar -zcvf all-test-reports.tar.gz **/build/reports all-test-reports.tar.gz
-        if: always()
+        if: failure()
       - name: "Store test results"
         uses: actions/upload-artifact@v2
         if: always()
