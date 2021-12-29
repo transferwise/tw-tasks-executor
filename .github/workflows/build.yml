@@ -14,7 +14,7 @@ jobs:
     runs-on:
       - ubuntu-latest
     env:
-      GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom"
+      GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
       IN_CIRCLE: true
       MARIADB_TCP_3306: 3306
       MARIADB_TCP_HOST: mysql1
@@ -64,7 +64,7 @@ jobs:
       - name: "Assemble jar"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --no-daemon
       - name: "Run tests"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --no-daemon --info --stacktrace
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --no-daemon --stacktrace
       - name: "Test if publishing works"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --no-daemon --stacktrace
       - name: "Publish Test Report"
@@ -75,15 +75,26 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           require_tests: true
       - name: Publish checkstyle report
-        if: failure()
+        if: always()
         uses: jwgmeligmeyling/checkstyle-github-action@master
         with:
           path: '**/build/reports/**/*.xml'
       - name: Publish spotbugs report
-        if: failure()
+        if: awlays()
         uses: jwgmeligmeyling/spotbugs-github-action@master
         with:
           path: '**/build/reports/**/*.xml'
+      - name: "Collect test reports"
+        run: |
+          tar -zcvf all-test-reports.tar.gz **/build/reports all-test-reports.tar.gz
+        if: always()
+      - name: "Store test results"
+        uses: actions/upload-artifact@v2
+        if: always()
+        with:
+          name: all-test-reports
+          path: all-test-reports.tar.gz
+          retention-days: 7
       - name: "Bootstrap git config"
         if: github.ref == 'refs/heads/master'
         run: |
