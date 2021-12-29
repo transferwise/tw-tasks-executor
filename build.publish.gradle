@@ -44,45 +44,20 @@ publishing {
         }
     }
 
-    if (System.getenv("OPENSOURCE_PUBLISH") == "true") {
+    if (System.getenv("OSS_SIGNING_KEY")) {
         signing {
+            useInMemoryPgpKeys(System.getenv("OSS_SIGNING_KEY"), System.getenv("OSS_SIGNING_PASSWORD"))
             sign publishing.publications.mavenJava
         }
     }
 
-    javadoc {
-        if (JavaVersion.current().isJava9Compatible()) {
-            options.addBooleanOption('html5', true)
-        }
-    }
-
     repositories {
-        if (System.getenv("OPENSOURCE_PUBLISH") == "true") {
-            maven {
-                url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
-                credentials {
-                    username sonatypeUsername
-                    password sonatypePassword
-                }
-            }
-        } else {
-            maven {
-                url "https://arti.tw.ee/artifactory/libs-${project.version.endsWith('-SNAPSHOT') ? 'snapshot' : 'release'}-local"
-                credentials {
-                    username = artifactoryUser
-                    password = artifactoryPassword
-                }
+        maven {
+            url System.getenv("MAVEN_URL")
+            credentials {
+                username = System.getenv("MAVEN_USER")
+                password = System.getenv("MAVEN_PASSWORD")
             }
         }
     }
 }
-
-task addTag(type: Exec) {
-    commandLine 'git', 'tag', "$project.name-$project.version", '-m', "$project.name-$project.version"
-}
-task pushTag(type: Exec) {
-    commandLine 'git', 'push', 'origin', "$project.name-$project.version"
-}
-
-pushTag.dependsOn addTag
-pushTag.mustRunAfter publish
