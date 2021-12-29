@@ -87,7 +87,7 @@ jobs:
       - name: "Collect test reports"
         run: |
           tar -zcvf all-test-reports.tar.gz **/build/reports all-test-reports.tar.gz
-        if: failure()
+        if: always()
       - name: "Store test results"
         uses: actions/upload-artifact@v2
         if: always()
