@@ -17,56 +17,46 @@ jobs:
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom"
       IN_CIRCLE: true
       MARIADB_TCP_3306: 3306
-      MARIADB_TCP_HOST: localhost
+      MARIADB_TCP_HOST: mysql1
       KAFKA_TCP_9092: 9092
-      KAFKA_TCP_HOST: localhost
+      KAFKA_TCP_HOST: kafka1
       ZOOKEEPER_TCP_2181: 2181
-      ZOOKEEPER_TCP_HOST: localhost
-      POSTGRES_TCP_HOST: localhost
+      ZOOKEEPER_TCP_HOST: zk-service1
+      POSTGRES_TCP_HOST: postgres1
       POSTGRES_TCP_5432: 5432
+    container: ubuntu:20.04
     services:
       mysql1:
         image: mariadb:10.4
         env:
           MYSQL_ROOT_PASSWORD: example-password-change-me
           MYSQL_DATABASE: tw-tasks-test
-        ports:
-          - 3306:3306
       postgres1:
         image: postgres:12
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: example-password-change-me
-        ports:
-          - 5432:5432
       zk-service1:
         image: bitnami/zookeeper:3.5.5
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
-        ports:
-          - 2181:2181
       zk1:
         image: bitnami/zookeeper:3.4.14
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
-        ports:
-          - 2182:2181
       kafka1:
         image: wurstmeister/kafka:2.12-2.2.0
         env:
           KAFKA_BROKER_ID: 1
-          KAFKA_ZOOKEEPER_CONNECT: 127.0.0.1:2182
-          KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://localhost:9092,INTERNAL://kafka1:9093"
-          KAFKA_LISTENERS: EXTERNAL://:9092,INTERNAL://:9093
+          KAFKA_ZOOKEEPER_CONNECT: zk1:2181
+          KAFKA_LISTENERS: PLAINTEXT://:9092
           KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
           KAFKA_MESSAGE_MAX_BYTES: '10000012'
           KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 20000
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
-        ports:
-          - 9092:9092
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
