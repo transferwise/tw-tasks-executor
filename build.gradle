@@ -47,7 +47,7 @@ task tagRelease {
     }
 }
 
-group = "com.transferwise.common"
+group = "com.transferwise.tasks"
 
 nexusPublishing {
     repositories {
