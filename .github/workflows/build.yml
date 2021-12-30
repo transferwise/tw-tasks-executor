@@ -60,7 +60,7 @@ jobs:
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
     steps:
       - name: "Install packages"
-        run: apt-get update && apt-get install -y openssh-client git sudo
+        run: apt-get update && apt-get install -y git sudo
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: "Gradle cache"
@@ -108,12 +108,6 @@ jobs:
           name: all-test-reports
           path: all-test-reports.tar.gz
           retention-days: 7
-      - name: "Bootstrap git config"
-        if: github.ref != 'refs/heads/master'
-        run: |
-          mkdir -p ~/.ssh
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          git config --global user.name "TW GitHub Actions" && git config --global user.email circle@circle.tw.ee
       - name: "Tag release"
         if: github.ref == 'refs/heads/master'
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew tagRelease --console=plain --no-daemon
