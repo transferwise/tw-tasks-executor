@@ -15,7 +15,7 @@ jobs:
       - ubuntu-latest
     env:
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
-      IN_CIRCLE: true
+      IN_CI: true
       MARIADB_TCP_3306: 3306
       MARIADB_TCP_HOST: mysql1
       KAFKA_TCP_9092: 9092
