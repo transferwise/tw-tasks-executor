@@ -8,9 +8,7 @@ jobs:
   stale:
 
     runs-on:
-      - self-hosted
-      - production
-      - medium
+      - ubuntu-latest
 
     steps:
       - uses: actions/stale@v3.0.11
