@@ -21,7 +21,6 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
@@ -33,8 +32,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -64,6 +61,7 @@ public class TestConfiguration {
 
     short one = 1;
 
+    // Creating all used topics beforehand, can improve test suite latency quite considerably.
     List<NewTopic> newTopics = Arrays.asList(
         new NewTopic("twTasks.test-mysql.executeTask.manualStart", one, one),
         new NewTopic("twTasks.test-mysql.executeTask.default", one, one),
@@ -79,8 +77,11 @@ public class TestConfiguration {
         new NewTopic("myTopicA", one, one)
     );
 
-    adminClient.createTopics(newTopics);
-    adminClient.close();
+    try {
+      adminClient.createTopics(newTopics);
+    } finally {
+      adminClient.close();
+    }
   }
 
   @Bean

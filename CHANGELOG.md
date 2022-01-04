@@ -11,11 +11,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - `tw-tasks-kafka-listener` module is not depending on `spring-kafka` anymore, so it can be used also on older services.
 - On offset loss in `tw-tasks-kafka-listener`, by default, we are rewinding back to 1 hours.
-- Reduced integration tests suite runtime from approximately 2 minutes to 25 seconds.
-  Can be reduced a bit more, but I had this work time-boxed.
+- Reduced integration tests suite runtime from approximately 2 minutes to 25 seconds. This was mainly achieved to have different Kafka consumer groups
+  for different things/tests and thus avoid lengthy stop-the-consume re-balancing pauses. Can be reduced a bit more, but I had this work time-boxed.
 - All Kafka consumers and producers register micrometer metrics.
-- Small tweaks to consumers and producers configs.
-  Important one is `ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName()`
+- Small tweaks to consumers and producers configs. Important one
+  is `ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName()`
+- `tw-tasks-kafka-listener` now rewinds 1 hour, when offset is lost.
+  This can be changed via `tw-tasks.impl.kafka.listener.autoResetOffsetTo` property.
 
 #### 1.31.0 - 2021/12/29
 

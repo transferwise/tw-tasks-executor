@@ -44,7 +44,6 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
 
   @Test
   void corruptedMessageResultsInErrorTaskOfCorruptedType() throws Exception {
-    log.info("A");
     // send corrupted message
     kafkaTemplate.send(
         new ProducerRecord<>(
@@ -56,7 +55,6 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
         )
     );
 
-    log.info("B");
     // send consistent message
     kafkaTemplate.send(
         new ProducerRecord<>(
@@ -68,25 +66,21 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
         )
     );
 
-    log.info("C");
     // there is a message of corrupted type in error state (because no handler provided for it)
     List<Task> corruptedTasks = Awaitility.await().until(
         () -> testTasksService.getTasks(DEFAULT_CORRUPTED_MESSAGE_TASK_TYPE, null, TaskStatus.ERROR),
         tasks -> tasks.size() == 1
     );
 
-    log.info("D");
     // the corrupted message is properly wrapped and saved
     CorruptedKafkaMessage message = objectMapper.readValue(corruptedTasks.get(0).getData(), CorruptedKafkaMessage.class);
     assertEquals(CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES, message.getTopic());
     assertThat(message.getCorruptedData()).isEqualTo("{\"corrupted json.");
 
-    log.info("E");
     // the further messages in the topic are processed
     Awaitility.await().until(
         () -> testTasksService.getTasks(CorruptedMessageTestSetup.TASK_TYPE, null, TaskStatus.DONE),
         tasks -> tasks.size() == 1
     );
-    log.info("F");
   }
 }

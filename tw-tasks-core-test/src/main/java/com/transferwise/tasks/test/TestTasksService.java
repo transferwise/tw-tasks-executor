@@ -76,9 +76,7 @@ public class TestTasksService extends TasksService implements ITestTasksService 
     }
 
     for (Future<Void> future : futures) {
-      long startTimeMs = System.currentTimeMillis();
       ExceptionUtils.doUnchecked((RunnableWithException) future::get);
-      log.info("Future:get took " + (System.currentTimeMillis() - startTimeMs));
     }
   }
 
