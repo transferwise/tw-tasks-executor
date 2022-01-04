@@ -28,7 +28,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
+import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -149,16 +152,14 @@ public class TestConfiguration {
 
   @Bean
   public IKafkaListenerConsumerPropertiesProvider twTasksKafkaListenerSpringKafkaConsumerPropertiesProvider() {
-    return new IKafkaListenerConsumerPropertiesProvider() {
-      @Override
-      public Map<String, Object> getProperties(int shard) {
-        var props = kafkaProperties.buildConsumerProperties();
+    return shard -> {
+      var props = kafkaProperties.buildConsumerProperties();
 
-        // Having a separate group id can greatly reduce Kafka re-balancing times for tests.
-        props.put(CommonClientConfigs.GROUP_ID_CONFIG, props.get(CommonClientConfigs.GROUP_ID_CONFIG) + "kafka-listener-" + shard);
+      // Having a separate group id can greatly reduce Kafka re-balancing times for tests.
+      props.put(CommonClientConfigs.GROUP_ID_CONFIG, props.get(CommonClientConfigs.GROUP_ID_CONFIG) + "kafka-listener-" + shard);
+      props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
 
-        return props;
-      }
+      return props;
     };
   }
 }

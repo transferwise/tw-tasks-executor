@@ -48,7 +48,7 @@ jobs:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
       kafka1:
-        image: wurstmeister/kafka:2.12-2.2.0
+        image: wurstmeister/kafka:2.13-2.6.3
         env:
           KAFKA_BROKER_ID: 1
           KAFKA_ZOOKEEPER_CONNECT: zk1:2181

@@ -50,8 +50,10 @@ import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -418,12 +420,15 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
 
     configs.put(ProducerConfig.ACKS_CONFIG, "all");
-    configs.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+    configs.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
     configs.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
     configs.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
     configs.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "10000");
     configs.put(ProducerConfig.LINGER_MS_CONFIG, "5");
     configs.put(ProducerConfig.CLIENT_ID_CONFIG, tasksProperties.getGroupId() + ".tw-tasks-triggerer");
+    configs.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
@@ -449,6 +454,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     configs.put(ConsumerConfig.CLIENT_ID_CONFIG, tasksProperties.getClientId() + ".tw-tasks.bucket." + bucketId);
     configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    configs.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
+    configs.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
+    configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 

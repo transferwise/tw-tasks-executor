@@ -13,6 +13,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - On offset loss in `tw-tasks-kafka-listener`, by default, we are rewinding back to 1 hours.
 - Reduced integration tests suite runtime from approximately 2 minutes to 25 seconds.
   Can be reduced a bit more, but I had this work time-boxed.
+- All Kafka consumers and producers register micrometer metrics.
+- Small tweaks to consumers and producers configs.
+  Important one is `ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName()`
 
 #### 1.31.0 - 2021/12/29
 

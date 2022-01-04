@@ -9,7 +9,6 @@ import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,12 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
-import org.apache.kafka.clients.admin.ListConsumerGroupOffsetsOptions;
-import org.apache.kafka.clients.admin.OffsetSpec;
 import org.apache.kafka.clients.admin.OffsetSpec.LatestSpec;
-import org.apache.kafka.clients.admin.RecordsToDelete;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
@@ -30,7 +24,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
-import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 
 @Slf4j
@@ -119,7 +112,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
 
   @ParameterizedTest(name = "flaky messages accepter will not stop the processing, iteration {0}")
   @ValueSource(ints = {0, 1, 2, 3})
-  void flakyMessagesAccepterWillNotStopTheProcessing(int iteration) throws Exception{
+  void flakyMessagesAccepterWillNotStopTheProcessing(int iteration) throws Exception {
     String topic = "toKafkaBatchTestTopic2";
     String groupId = "flakyMessagesAccepterWillNotStopTheProcessing" + iteration;
     int n = 10;
@@ -129,8 +122,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
       TopicPartition tp = new TopicPartition(topic, 0);
       long latestOffset = adminClient.listOffsets(Map.of(tp, new LatestSpec())).partitionResult(tp).get().offset();
       adminClient.alterConsumerGroupOffsets(groupId, Map.of(tp, new OffsetAndMetadata(latestOffset))).all().get();
-    }
-    finally{
+    } finally {
       adminClient.close();
     }
 
