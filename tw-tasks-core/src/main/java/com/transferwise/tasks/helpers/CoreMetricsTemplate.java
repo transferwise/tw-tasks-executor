@@ -7,9 +7,12 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +23,8 @@ import javax.annotation.Nonnull;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CoreMetricsTemplate implements ICoreMetricsTemplate {
@@ -111,6 +116,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
 
   @Autowired
   private IMeterCache meterCache;
+
+  private final AtomicInteger kafkaClientId = new AtomicInteger();
 
   private final Map<Triple<String, String, String>, AtomicInteger> taskProcessingGauges = new ConcurrentHashMap<>();
 
@@ -456,6 +463,20 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
         .description("Provides metadata about the library, for example the version.")
         .register(meterCache.getMeterRegistry());
 
+  }
+
+  @SuppressWarnings("rawtypes")
+  public void registerKafkaConsumer(Consumer consumer){
+    // Spring application are setting the tag `spring.id`, so we need to set it as well.
+    new KafkaClientMetrics(consumer, List.of(new ImmutableTag("spring.id", "tw-tasks-" + kafkaClientId.incrementAndGet())))
+        .bindTo(meterCache.getMeterRegistry());
+  }
+
+  @SuppressWarnings("rawtypes")
+  public void registerKafkaProducer(Producer producer){
+    // Spring application are setting the tag `spring.id`, so we need to set it as well.
+    new KafkaClientMetrics(producer, List.of(new ImmutableTag("spring.id", "tw-tasks-" + kafkaClientId.incrementAndGet())))
+        .bindTo(meterCache.getMeterRegistry());
   }
 
   protected String getDataSizeBucket(byte[] data) {

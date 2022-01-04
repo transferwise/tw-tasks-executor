@@ -15,8 +15,10 @@ dependencies {
     implementation libraries.springBeans
     implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
     implementation libraries.newRelic
-    implementation libraries.springKafka
-    implementation libraries.springBootAutoconfigure // (KafkaProperties)
     implementation libraries.jacksonDatabind
     implementation libraries.twContext
+    implementation libraries.kafkaClients
+    implementation libraries.micrometerCore
+
+    testImplementation libraries.springBootAutoconfigure
 }

@@ -55,7 +55,7 @@ public class NoOpTopicPartitionsManager implements ITopicPartitionsManager {
         } else {
           int currentPartitionsCount = topicDescription.partitions().size();
           if (currentPartitionsCount < partitionsCount) {
-            log.warn("Topic '" + topic + "' has " + currentPartitionsCount + " instead of configured " + partitionsCount + ".");
+            log.warn("Topic '" + topic + "' has " + currentPartitionsCount + " partitions instead of desired " + partitionsCount + ".");
           }
         }
       } finally {

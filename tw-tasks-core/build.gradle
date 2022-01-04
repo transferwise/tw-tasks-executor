@@ -29,7 +29,6 @@ dependencies {
     implementation libraries.springContext
     implementation libraries.springBeans
     implementation libraries.springBoot // (used by TwTasksApplicationListener)
-    implementation libraries.springBootAutoconfigure // (used for KafkaProperties)
     implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
     //
 }

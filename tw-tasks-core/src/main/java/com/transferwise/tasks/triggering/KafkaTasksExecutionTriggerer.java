@@ -423,10 +423,12 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     configs.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
     configs.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "10000");
     configs.put(ProducerConfig.LINGER_MS_CONFIG, "5");
+    configs.put(ProducerConfig.CLIENT_ID_CONFIG, tasksProperties.getGroupId() + ".tw-tasks-triggerer");
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
     KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(configs);
+    coreMetricsTemplate.registerKafkaProducer(kafkaProducer);
 
     return kafkaProducer;
   }
@@ -457,13 +459,14 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(configs);
+    coreMetricsTemplate.registerKafkaConsumer(kafkaConsumer);
 
     List<String> topics = getTopics(bucketId);
     log.info("Subscribing to Kafka topics '{}'", topics);
     if (bucketProperties.getAutoResetOffsetToDuration() == null) {
       kafkaConsumer.subscribe(topics);
     } else {
-      kafkaConsumer.subscribe(topics, new SeekToDurationOnRebalance(kafkaConsumer, bucketProperties.getAutoResetOffsetToDuration()));
+      kafkaConsumer.subscribe(topics, new SeekToDurationOnRebalanceListener(kafkaConsumer, bucketProperties.getAutoResetOffsetToDuration()));
     }
     return kafkaConsumer;
   }

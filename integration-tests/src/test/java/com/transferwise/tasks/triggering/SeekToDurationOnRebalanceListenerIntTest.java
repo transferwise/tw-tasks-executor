@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class SeekToDurationOnRebalanceIntTest extends BaseIntTest {
+public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
 
   private static final String TOPIC = "SeekToDurationOnRebalanceIntTest";
 
@@ -89,7 +89,7 @@ public class SeekToDurationOnRebalanceIntTest extends BaseIntTest {
     sendKafkaMessage(TOPIC, 2, now.minus(Duration.ofHours(1)).toEpochMilli(), "key", "9");
     sendKafkaMessage(TOPIC, 2, now.minus(Duration.ofHours(1)).toEpochMilli(), "key", "10");
 
-    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalance(kafkaConsumer, Duration.ofDays(4).negated()));
+    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer, Duration.ofDays(4).negated()));
 
     Set<String> values = new HashSet<>();
     await().until(
