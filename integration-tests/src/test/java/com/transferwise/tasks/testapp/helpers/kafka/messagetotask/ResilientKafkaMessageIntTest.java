@@ -8,19 +8,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
 import com.transferwise.tasks.helpers.kafka.messagetotask.CreateTaskForCorruptedMessageRecoveryStrategy.CorruptedKafkaMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.Collections;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.kafka.core.KafkaTemplate;
 
+@Slf4j
 class ResilientKafkaMessageIntTest extends BaseIntTest {
 
   @Autowired
@@ -30,12 +32,12 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
   private ObjectMapper objectMapper;
 
   @Autowired
-  private TwTasksKafkaConfiguration kafkaConfiguration;
+  private KafkaProperties kafkaProperties;
 
   @AfterEach
   @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
   void cleanup() {
-    try (AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties())) {
+    try (AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties())) {
       adminClient.deleteTopics(Collections.singletonList(CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES));
     }
   }

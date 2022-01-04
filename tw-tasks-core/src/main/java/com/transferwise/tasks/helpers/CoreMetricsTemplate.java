@@ -7,9 +7,12 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +23,8 @@ import javax.annotation.Nonnull;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.commons.lang3.tuple.Triple;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class CoreMetricsTemplate implements ICoreMetricsTemplate {
@@ -112,6 +117,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   @Autowired
   private IMeterCache meterCache;
 
+  private final AtomicInteger kafkaClientId = new AtomicInteger();
+
   private final Map<Triple<String, String, String>, AtomicInteger> taskProcessingGauges = new ConcurrentHashMap<>();
 
   @Override
@@ -138,10 +145,10 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public void registerTaskProcessingEnd(String bucketId, String taskType, long processingStartTimeMs, String processingResult) {
     String resolvedBucketId = resolveBucketId(bucketId);
     meterCache.counter(METRIC_TASKS_PROCESSED_COUNT, TagsSet.of(TAG_BUCKET_ID, resolvedBucketId, TAG_TASK_TYPE, taskType,
-        TAG_PROCESSING_RESULT, processingResult))
+            TAG_PROCESSING_RESULT, processingResult))
         .increment();
     meterCache.timer(METRIC_TASKS_PROCESSING_TIME, TagsSet.of(TAG_BUCKET_ID, resolvedBucketId, TAG_TASK_TYPE, taskType,
-        TAG_PROCESSING_RESULT, processingResult))
+            TAG_PROCESSING_RESULT, processingResult))
         .record(TwContextClockHolder.getClock().millis() - processingStartTimeMs, TimeUnit.MILLISECONDS);
     taskProcessingGauges.get(Triple.of(METRIC_TASKS_ONGOING_PROCESSINGS_COUNT, resolvedBucketId, taskType))
         .decrementAndGet();
@@ -150,15 +157,15 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   @Override
   public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus) {
     meterCache.counter(METRIC_TASKS_FAILED_STATUS_CHANGE_COUNT, TagsSet.of(TAG_TASK_TYPE, taskType,
-        TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name()))
+            TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name()))
         .increment();
   }
 
   @Override
   public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, ProcessTaskResponse processTaskResponse) {
     meterCache.counter(METRIC_TASKS_TASK_GRABBING, TagsSet.of(TAG_TASK_TYPE, taskType,
-        TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority), TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
-        TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()))
+            TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority), TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
+            TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()))
         .increment();
   }
 
@@ -171,14 +178,14 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   @Override
   public void debugRoomMapAlreadyHasType(String bucketId, int priority, String taskType) {
     meterCache.counter(METRIC_TASKS_DEBUG_ROOM_MAP_ALREADY_HAS_TYPE, TagsSet.of(TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority),
-        TAG_TASK_TYPE, taskType))
+            TAG_TASK_TYPE, taskType))
         .increment();
   }
 
   @Override
   public void debugTaskTriggeringQueueEmpty(String bucketId, int priority, String taskType) {
     meterCache.counter(METRIC_TASKS_DEBUG_TASK_TRIGGERING_QUEUE_EMPTY, TagsSet.of(TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority),
-        TAG_TASK_TYPE, taskType))
+            TAG_TASK_TYPE, taskType))
         .increment();
   }
 
@@ -229,14 +236,14 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   @Override
   public void registerTaskRetryOnError(String bucketId, String taskType) {
     meterCache.counter(METRIC_TASKS_RETRIES_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId), TAG_TASK_TYPE, taskType,
-        TAG_REASON, "ERROR"))
+            TAG_REASON, "ERROR"))
         .increment();
   }
 
   @Override
   public void registerTaskRetry(String bucketId, String taskType) {
     meterCache.counter(METRIC_TASKS_RETRIES_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId), TAG_TASK_TYPE, taskType,
-        TAG_REASON, "CONTINUE"))
+            TAG_REASON, "CONTINUE"))
         .increment();
   }
 
@@ -255,13 +262,13 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   @Override
   public void registerTaskAdding(String type, String key, boolean inserted, ZonedDateTime runAfterTime, byte[] data) {
     meterCache.counter(METRIC_TASKS_ADDINGS_COUNT,
-        TagsSet.of(
-            TAG_TASK_TYPE, type,
-            TAG_HAS_KEY, Boolean.toString(key != null),
-            TAG_IS_DUPLICATE, Boolean.toString(!inserted),
-            TAG_IS_SCHEDULED, Boolean.toString(runAfterTime != null),
-            TAG_DATA_SIZE, getDataSizeBucket(data)
-        ))
+            TagsSet.of(
+                TAG_TASK_TYPE, type,
+                TAG_HAS_KEY, Boolean.toString(key != null),
+                TAG_IS_DUPLICATE, Boolean.toString(!inserted),
+                TAG_IS_SCHEDULED, Boolean.toString(runAfterTime != null),
+                TAG_DATA_SIZE, getDataSizeBucket(data)
+            ))
         .increment();
   }
 
@@ -456,6 +463,20 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
         .description("Provides metadata about the library, for example the version.")
         .register(meterCache.getMeterRegistry());
 
+  }
+
+  @SuppressWarnings("rawtypes")
+  public void registerKafkaConsumer(Consumer consumer) {
+    // Spring application are setting the tag `spring.id`, so we need to set it as well.
+    new KafkaClientMetrics(consumer, List.of(new ImmutableTag("spring.id", "tw-tasks-" + kafkaClientId.incrementAndGet())))
+        .bindTo(meterCache.getMeterRegistry());
+  }
+
+  @SuppressWarnings("rawtypes")
+  public void registerKafkaProducer(Producer producer) {
+    // Spring application are setting the tag `spring.id`, so we need to set it as well.
+    new KafkaClientMetrics(producer, List.of(new ImmutableTag("spring.id", "tw-tasks-" + kafkaClientId.incrementAndGet())))
+        .bindTo(meterCache.getMeterRegistry());
   }
 
   protected String getDataSizeBucket(byte[] data) {

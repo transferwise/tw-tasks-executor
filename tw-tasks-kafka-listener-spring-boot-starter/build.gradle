@@ -12,7 +12,9 @@ dependencies {
     api project(":tw-tasks-kafka-listener")
     api project(":tw-tasks-core-spring-boot-starter")
 
+    compileOnly libraries.springKafka
+
     implementation project(":tw-tasks-core")
     implementation libraries.jacksonDatabind
-    implementation libraries.springKafka
+    implementation libraries.micrometerCore
 }

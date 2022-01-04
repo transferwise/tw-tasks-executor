@@ -9,7 +9,6 @@ dependencies {
 
     implementation libraries.twGracefulShutdown
     implementation libraries.apacheCuratorRecipies
-    implementation libraries.springKafka
     implementation libraries.micrometerCore
 
     runtimeOnly libraries.twContextStarter

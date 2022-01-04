@@ -24,7 +24,7 @@ services:
     volumes:
       - ./java/fullgc-agent.jar:/tmp/fullgc-agent.jar
   kafka:
-    image: wurstmeister/kafka:2.12-2.2.0
+    image: wurstmeister/kafka:2.13-2.6.3
     depends_on:
       - kafka-zk
     hostname: kafka

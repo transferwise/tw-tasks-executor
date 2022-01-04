@@ -17,7 +17,7 @@ services:
       ALLOW_ANONYMOUS_LOGIN: "yes"
       JVMFLAGS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -noverify -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
   kafka:
-    image: wurstmeister/kafka:2.12-2.4.1
+    image: wurstmeister/kafka:2.13-2.6.3
     depends_on:
       - kafka-zk
     ports:
@@ -35,7 +35,7 @@ services:
       KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 10000
       KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
       KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
       LOG4J_LOGGER_ORG: WARN,STDOUT
       LOG4J_LOGGER_ORG_APACHE_KAFKA: WARN,STDOUT
       LOG4J_LOGGER_KAFKA: WARN,STDOUT

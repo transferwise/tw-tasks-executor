@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndTimestamp;
@@ -26,9 +27,9 @@ import org.apache.kafka.common.TopicPartition;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class SeekToDurationOnRebalance implements ConsumerRebalanceListener {
+public class SeekToDurationOnRebalanceListener implements ConsumerRebalanceListener {
 
-  private final KafkaConsumer<?, ?> consumer;
+  private final Consumer<?, ?> consumer;
   private final Duration autoResetOffsetToDuration;
 
   @Override

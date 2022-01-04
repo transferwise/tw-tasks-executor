@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.producer.Producer;
 
 public interface ICoreMetricsTemplate {
 
@@ -115,4 +117,10 @@ public interface ICoreMetricsTemplate {
   Object registerKafkaTasksExecutionTriggererUnprocessedFetchedRecordsCount(String bucketId, Supplier<Number> countSupplier);
 
   Object registerKafkaTasksExecutionTriggererOffsetsCount(String bucketId, Supplier<Number> countSupplier);
+
+  @SuppressWarnings("rawtypes")
+  void registerKafkaConsumer(Consumer consumer);
+
+  @SuppressWarnings("rawtypes")
+  void registerKafkaProducer(Producer producer);
 }

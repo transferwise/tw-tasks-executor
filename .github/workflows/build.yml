@@ -48,7 +48,7 @@ jobs:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
       kafka1:
-        image: wurstmeister/kafka:2.12-2.2.0
+        image: wurstmeister/kafka:2.13-2.6.3
         env:
           KAFKA_BROKER_ID: 1
           KAFKA_ZOOKEEPER_CONNECT: zk1:2181
@@ -58,6 +58,7 @@ jobs:
           KAFKA_ZOOKEEPER_SESSION_TIMEOUT_MS: 20000
           KAFKA_UNCLEAN_LEADER_ELECTION_ENABLE: "true"
           KAFKA_LEADER_IMBALANCE_CHECK_INTERVAL_SECONDS: 5
+          KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     steps:
       - name: "Install packages"
         run: apt-get update && apt-get install -y git
@@ -70,11 +71,11 @@ jobs:
             ~/.gradle
           key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
       - name: "Assemble jar"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --no-daemon
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --stacktrace
       - name: "Run tests"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --no-daemon --stacktrace
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --stacktrace
       - name: "Test if publishing works"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --no-daemon --stacktrace
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --stacktrace
       - name: "Publish Test Report"
         uses: mikepenz/action-junit-report@v2
         if: always()

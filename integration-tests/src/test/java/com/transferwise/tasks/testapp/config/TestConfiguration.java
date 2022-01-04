@@ -7,7 +7,7 @@ import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration;
-import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.helpers.kafka.IKafkaListenerConsumerPropertiesProvider;
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.test.JobsTestConfiguration;
@@ -24,11 +24,16 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
+import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -45,23 +50,38 @@ public class TestConfiguration {
   private IBucketsManager bucketsManager;
 
   @Autowired
-  private TwTasksKafkaConfiguration kafkaConfiguration;
+  private KafkaProperties kafkaProperties;
 
   @PostConstruct
   public void init() {
     bucketsManager.registerBucketProperties("manualStart", new BucketProperties()
         .setAutoStartProcessing(false));
 
-    AdminClient adminClient = AdminClient.create(kafkaConfiguration.getKafkaProperties().buildAdminProperties());
+    AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties());
 
-    List<NewTopic> newTopics = Arrays.asList(new NewTopic("twTasks.test-mysql.executeTask.manualStart", 1, (short) 1),
-        new NewTopic("twTasks.test-mysql.executeTask.default", 1, (short) 1),
-        new NewTopic("ToKafkaTest", 100, (short) 1),
-        new NewTopic("toKafkaBatchTestTopic", 1, (short) 1),
-        new NewTopic("toKafkaBatchTestTopic5Partitions", 5, (short) 1));
+    short one = 1;
 
-    adminClient.createTopics(newTopics);
-    adminClient.close();
+    // Creating all used topics beforehand, can improve test suite latency quite considerably.
+    List<NewTopic> newTopics = Arrays.asList(
+        new NewTopic("twTasks.test-mysql.executeTask.manualStart", one, one),
+        new NewTopic("twTasks.test-mysql.executeTask.default", one, one),
+        new NewTopic("ToKafkaTest", 100, one),
+        new NewTopic("toKafkaBatchTestTopic", one, one),
+        new NewTopic("twTasks.test-postgres.executeTask.default", one, one),
+        new NewTopic("toKafkaBatchTestTopic5Partitions", 5, one),
+        new NewTopic("KafkaListenerTopicA", 5, one),
+        new NewTopic("KafkaListenerTopicB", one, one),
+        new NewTopic("toKafkaBatchTestTopic2", one, one),
+        new NewTopic("allMessagesWillBeReceivedOnceOnRebalancing", one, one),
+        new NewTopic("topicWithCorruptedMessages", one, one),
+        new NewTopic("myTopicA", one, one)
+    );
+
+    try {
+      adminClient.createTopics(newTopics);
+    } finally {
+      adminClient.close();
+    }
   }
 
   @Bean
@@ -128,6 +148,19 @@ public class TestConfiguration {
       public String getUniqueName() {
         return TEST_JOB_UNIQUE_NAME;
       }
+    };
+  }
+
+  @Bean
+  public IKafkaListenerConsumerPropertiesProvider twTasksKafkaListenerSpringKafkaConsumerPropertiesProvider() {
+    return shard -> {
+      var props = kafkaProperties.buildConsumerProperties();
+
+      // Having a separate group id can greatly reduce Kafka re-balancing times for tests.
+      props.put(CommonClientConfigs.GROUP_ID_CONFIG, props.get(CommonClientConfigs.GROUP_ID_CONFIG) + "kafka-listener-" + shard);
+      props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
+
+      return props;
     };
   }
 }

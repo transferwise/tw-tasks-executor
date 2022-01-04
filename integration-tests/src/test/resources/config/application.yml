@@ -41,6 +41,7 @@ tw-tasks:
             - ROLE_DEVEL
 
 logging.level.com.transferwise.tasks: DEBUG
+logging.level.com.transferwise.tasks.cleaning.TasksCleaner: INFO
 logging.level.kafka: WARN
 logging.level.org.apache.zookeeper: WARN
 logging.level.com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer: INFO

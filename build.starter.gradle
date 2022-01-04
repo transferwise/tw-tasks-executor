@@ -3,7 +3,6 @@ apply from: '../build.publish.gradle'
 
 dependencies {
     implementation libraries.springBootStarter
-    implementation libraries.springBootAutoconfigure
 
     // Avoid annotation related compilation warnings
     compileOnly libraries.jacksonAnnotations

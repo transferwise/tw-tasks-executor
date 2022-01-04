@@ -1,10 +1,12 @@
 package com.transferwise.tasks.helpers.kafka;
 
+import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.EntryPointsGroups;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
+import com.transferwise.tasks.triggering.SeekToDurationOnRebalanceListener;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.time.Duration;
 import java.util.HashMap;
@@ -17,6 +19,7 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -49,18 +52,37 @@ public class ConsistentKafkaConsumer<T> {
   private UnitOfWorkManager unitOfWorkManager;
   @Setter
   private IKafkaListenerMetricsTemplate kafkaListenerMetricsTemplate;
+  @Setter
+  private String autoResetOffsetTo = "-PT1H";
+  @Setter
+  private Long shard;
 
   public void consume() {
     MutableObject<Consumer<String, T>> consumerHolder = new MutableObject<>();
     try {
       while (!shouldFinishPredicate.get()) {
         try {
-          //TODO: Add Newrelic trace.
           if (consumerHolder.getValue() == null) {
             Map<String, Object> kafkaConsumerProps = new HashMap<>(kafkaPropertiesSupplier.get());
             kafkaConsumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-            consumerHolder.setValue(new KafkaConsumer<>(kafkaConsumerProps));
-            consumerHolder.getValue().subscribe(topics);
+            Duration autoResetOffsetToDuration = null;
+            if (StringUtils.equalsIgnoreCase(autoResetOffsetTo, "earliest") || StringUtils.equalsIgnoreCase(autoResetOffsetTo, "latest")) {
+              kafkaConsumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, autoResetOffsetTo);
+            } else if (autoResetOffsetTo != null) {
+              autoResetOffsetToDuration = ExceptionUtils.doUnchecked(() -> Duration.parse(autoResetOffsetTo));
+            }
+
+            Consumer<String, T> consumer = new KafkaConsumer<>(kafkaConsumerProps);
+            if (kafkaListenerMetricsTemplate != null) {
+              kafkaListenerMetricsTemplate.registerKafkaConsumer(consumer, shard == null ? 0 : shard);
+            }
+
+            consumerHolder.setValue(consumer);
+            if (autoResetOffsetToDuration == null) {
+              consumer.subscribe(topics);
+            } else {
+              consumer.subscribe(topics, new SeekToDurationOnRebalanceListener(consumerHolder.getValue(), autoResetOffsetToDuration));
+            }
           }
 
           boolean shouldPoll = shouldPollPredicate.get();

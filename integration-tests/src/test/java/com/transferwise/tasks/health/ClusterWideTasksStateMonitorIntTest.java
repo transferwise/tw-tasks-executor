@@ -170,9 +170,11 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
   @Test
   @SneakyThrows
   void metricsAreProbablyThreadSafe() {
-    final int T = 20;
-    final int N = 10000;
-    ExecutorService executor = Executors.newFixedThreadPool(T);
+    final int threads = 20;
+    final int iterations = 10000;
+    final int maxRuntimeSeconds = 1;
+    final long startTimeMs = System.currentTimeMillis();
+    ExecutorService executor = Executors.newFixedThreadPool(threads);
 
     AtomicInteger errorsCount = new AtomicInteger();
     AtomicInteger executionsCount = new AtomicInteger();
@@ -187,7 +189,7 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
       }
     };
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < iterations; i++) {
       if (i % 4 == 0) {
         executor.submit(() -> wrapper.accept(() -> {
           clusterWideTasksStateMonitor.resetState(true);
@@ -199,7 +201,9 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
     }
 
     executor.shutdown();
-    executor.awaitTermination(10, TimeUnit.SECONDS);
+    executor.awaitTermination(maxRuntimeSeconds, TimeUnit.SECONDS);
+
+    log.info("Running metricsAreProbablyThreadSafe took " + (System.currentTimeMillis() - startTimeMs) + " ms.");
 
     assertEquals(0, errorsCount.get());
   }

@@ -7,8 +7,8 @@ import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
-import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
-import com.transferwise.tasks.helpers.kafka.configuration.TwTasksKafkaConfiguration;
+import com.transferwise.tasks.helpers.kafka.IKafkaListenerConsumerPropertiesProvider;
+import com.transferwise.tasks.helpers.kafka.TwTasksKafkaListenerProperties;
 import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
 import com.transferwise.tasks.utils.WaitUtils;
 import java.util.ArrayList;
@@ -30,7 +30,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
 
   @Autowired
-  private TwTasksKafkaConfiguration kafkaConfiguration;
+  private IKafkaListenerConsumerPropertiesProvider consumerPropertiesProvider;
   @Autowired
   private IExecutorServicesProvider executorServicesProvider;
   @Autowired
@@ -38,13 +38,13 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   @Autowired
   private IKafkaMessageHandlerRegistry<T> kafkaMessageHandlerRegistry;
   @Autowired
-  private ITopicPartitionsManager topicPartitionsManager;
-  @Autowired
   private IErrorLoggingThrottler errorLoggingThrottler;
   @Autowired
   private UnitOfWorkManager unitOfWorkManager;
   @Autowired
   private IKafkaListenerMetricsTemplate kafkaListenerMetricsTemplate;
+  @Autowired
+  private TwTasksKafkaListenerProperties properties;
 
   private ExecutorService executorService;
   private boolean shuttingDown;
@@ -86,7 +86,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
   }
 
   public void poll(int shard, List<String> addresses) {
-    Map<String, Object> kafkaConsumerProps = kafkaConfiguration.getKafkaProperties().buildConsumerProperties();
+    Map<String, Object> kafkaConsumerProps = new HashMap<>(consumerPropertiesProvider.getProperties(shard));
     kafkaConsumerProps.put(
         ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".tw-tasks.core-listener." + shard);
 
@@ -106,6 +106,7 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
           .setKafkaListenerMetricsTemplate(kafkaListenerMetricsTemplate)
           .setErrorLoggingThrottler(errorLoggingThrottler)
           .setUnitOfWorkManager(unitOfWorkManager)
+          .setAutoResetOffsetTo(properties.getAutoResetOffsetTo())
           .consume();
     } finally {
       inProgressPollers.decrementAndGet();
