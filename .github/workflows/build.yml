@@ -71,11 +71,11 @@ jobs:
             ~/.gradle
           key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
       - name: "Assemble jar"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --no-daemon
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --stacktrace
       - name: "Run tests"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --no-daemon --stacktrace
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --stacktrace
       - name: "Test if publishing works"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --no-daemon --stacktrace
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --stacktrace
       - name: "Publish Test Report"
         uses: mikepenz/action-junit-report@v2
         if: always()
