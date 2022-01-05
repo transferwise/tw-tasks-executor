@@ -57,3 +57,7 @@ nexusPublishing {
         }
     }
 }
+
+tasks.findByName("initializeSonatypeStagingRepository").setOnlyIf {
+    System.getenv("OSS_SIGNING_KEY")
+}

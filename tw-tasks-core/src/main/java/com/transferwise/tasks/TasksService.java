@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.Ordered;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -251,7 +252,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   }
 
   @RequiredArgsConstructor
-  private class SynchronouslyTriggerTaskTxSyncAdapter implements TransactionSynchronization {
+  private class SynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
 
     private final BaseTask task;
 
@@ -267,7 +268,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   }
 
   @RequiredArgsConstructor
-  private class AsynchronouslyTriggerTaskTxSyncAdapter implements TransactionSynchronization {
+  private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
 
     private final IMdcService mdcService;
     private final UnitOfWorkManager unitOfWorkManager;
@@ -306,4 +307,45 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
     }
   }
 
+  /**
+   * This allows to work on Spring 4.x as well.
+   *
+   * <p>Spring 4.x does not have default methods in `TransactionSynchronization` interface.</p>
+   */
+  private static class TransactionSynchronizationAdapter implements TransactionSynchronization {
+
+    @Override
+    public int getOrder() {
+      return Ordered.LOWEST_PRECEDENCE;
+    }
+
+    @Override
+    public void suspend() {
+    }
+
+    @Override
+    public void resume() {
+    }
+
+    @Override
+    public void flush() {
+    }
+
+    @Override
+    public void beforeCommit(boolean readOnly) {
+    }
+
+    @Override
+    public void beforeCompletion() {
+    }
+
+    @Override
+    public void afterCommit() {
+    }
+
+
+    @Override
+    public void afterCompletion(int status) {
+    }
+  }
 }

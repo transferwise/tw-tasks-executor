@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#### 1.32.1 - 2021/01/05
+
+### Fixed
+
+- Spring's 4.x `TransactionSynchronization` does not have default methods implemented.
+  In order for tw-tasks to work on Spring 4.x, restored `TransactionSynchronizationAdapter` class.
+
 #### 1.32.0 - 2021/01/03
 
 ### Changed
