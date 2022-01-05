@@ -61,3 +61,11 @@ publishing {
         }
     }
 }
+
+tasks.findByName("publishMavenJavaPublicationToMavenRepository").setOnlyIf {
+    System.getenv("MAVEN_URL") && System.getenv("MAVEN_USER") && System.getenv("MAVEN_PASSWORD")
+}
+
+tasks.findByName("publishMavenJavaPublicationToSonatypeRepository").setOnlyIf {
+    System.getenv("OSS_SIGNING_KEY")
+}
