@@ -270,7 +270,7 @@ public class SampleCronRegistrar {
 		/*
 		 * This is fast no-OP when task with same UUID is already present.
 		 * We set runAfterTime value, so all nodes will have time to get SampleCronTaskHandler released.
-		 * Otherwise there is a chance that the task goes immediately to ERROR state, because the node choosen for execution
+		 * Otherwise there is a chance that the task goes immediately to ERROR state, because the node chosen for execution
 		 * does not have the handler released yet.
 		 */
 		tasksService.addTask(new ITasksService.AddTaskRequest()
@@ -526,7 +526,7 @@ coming from Kafka itself, but from the Zookeeper underneath it.
 
 One can write a system, where for example every task type and task priority has its own triggering topic, but this will not scale.
 
-So an approach where we have one triggering topic (per shard), but we fetch a lot from the queue into memory, was choosen.
+So an approach where we have one triggering topic (per shard), but we fetch a lot from the queue into memory, was chosen.
 We have of course an upper limit how far ahead can we look.
 
 This kind of look ahead fetch into memory allows us to "sort" tasks by priority, available processing power per type and so on.
