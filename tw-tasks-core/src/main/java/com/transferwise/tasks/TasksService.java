@@ -231,9 +231,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private void doTriggerTask(BaseTask task) {
     activeAfterCommitTasks.incrementAndGet();
     try {
-      // TODO: If trigger would not need a database connection or at least no new transaction, deadlock situation could be prevented.
-      // TODO: Do we want to mark NEW tasks immediately as SUBMITTED and then even remove the separate SUBMITTED state?
-      // TODO: We probably still need SUBMITTED to separate NEW and WAITING.
       tasksExecutionTriggerer.trigger(task);
       if (log.isDebugEnabled()) {
         log.debug("Task {} triggered. AfterCommit queue size is {}.", LogUtils.asParameter(task.getVersionId()), inProgressAfterCommitTasks.get());
@@ -267,6 +264,11 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
     }
   }
 
+  /**
+   * This system is not required for happy flows anymore, because we do not change database then, task is already in SUBMITTED state.
+   *
+   * However, for unhappy case, the task can move to ERROR and we need to modify database for that.
+   */
   @RequiredArgsConstructor
   private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {
 

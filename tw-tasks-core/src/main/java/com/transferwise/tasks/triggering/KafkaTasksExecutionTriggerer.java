@@ -129,6 +129,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     kafkaProducer = createKafkaProducer();
   }
 
+  // TODO: TaskHandler should be an input parameter and bucket check should be done outside of this method.
+  //       This change would allow to remove the async after commit logic, because we would know that no db operations will be done here.
   @Override
   public void trigger(BaseTask task) {
     if (tasksProperties.isAssertionsEnabled()) {
@@ -141,6 +143,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           LogUtils.asParameter(task.getVersionId()));
       coreMetricsTemplate.registerTaskMarkedAsError(null, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+        // TODO: add current status to BaseTask class.
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
         log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
@@ -154,6 +157,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           processingBucketId);
       coreMetricsTemplate.registerTaskMarkedAsError(processingBucketId, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+        // TODO: add current status to BaseTask class.
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
         log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
