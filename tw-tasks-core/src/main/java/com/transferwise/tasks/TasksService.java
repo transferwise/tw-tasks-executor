@@ -267,7 +267,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   /**
    * This system is not required for happy flows anymore, because we do not change database then, task is already in SUBMITTED state.
    *
-   * However, for unhappy case, the task can move to ERROR and we need to modify database for that.
+   * <p>However, for unhappy case, the task can move to ERROR and we need to modify database for that.
    */
   @RequiredArgsConstructor
   private class AsynchronouslyTriggerTaskTxSyncAdapter extends TransactionSynchronizationAdapter {

@@ -2,14 +2,17 @@ import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 
 buildscript {
     dependencies {
-        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.14.12"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.15.2"
+    }
+
+    dependencies {
+        classpath("org.springframework.boot:spring-boot-gradle-plugin:${System.getenv("SPRING_BOOT_VERSION") ?: '2.5.11'}")
     }
 }
 
 plugins {
-    id "com.github.spotbugs" version "5.0.3" apply false
+    id "com.github.spotbugs" version "5.0.6" apply false
     id "idea"
-    id 'org.springframework.boot' version '2.5.8' apply false
     id 'org.ajoberstar.grgit' version '4.1.1'
     id 'io.github.gradle-nexus.publish-plugin' version "1.1.0"
 }

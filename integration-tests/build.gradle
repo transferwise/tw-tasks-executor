@@ -40,7 +40,7 @@ test {
 }
 
 
-if (!Boolean.parseBoolean(System.getenv('IN_CI'))) {
+if (!Boolean.parseBoolean(System.getenv('RUNS_IN_CI'))) {
     dockerCompose.isRequiredBy(test)
 }
 

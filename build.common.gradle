@@ -15,16 +15,52 @@ repositories {
     mavenLocal()
 }
 
-dependencies {
-    implementation platform(libraries.springBootDependencies)
-    annotationProcessor platform(libraries.springBootDependencies)
-    testAnnotationProcessor platform(libraries.springBootDependencies)
-    compileOnly platform(libraries.springBootDependencies)
+configurations {
+    all {
+        exclude(group: 'junit', module: 'junit')
+        exclude(group: 'org.junit.vintage', module: 'junit-vintage-engine')
 
-    annotationProcessor libraries.lombok
+        resolutionStrategy {
+            failOnVersionConflict()
+            preferProjectModules()
+            if (System.getenv("RUNS_IN_CI") == "true") {
+                // This is faster, than using Gradle's `--refresh-dependencies`, which will refresh also all non-dynamic things.
+                cacheDynamicVersionsFor 10, 'minutes'
+                cacheChangingModulesFor 10, 'minutes'
+            }
+        }
+    }
+
+    local {
+        canBeResolved(false)
+        canBeConsumed(false)
+    }
+    compileClasspath {
+        extendsFrom(local)
+    }
+    runtimeClasspath {
+        extendsFrom(local)
+    }
+    testCompileClasspath {
+        extendsFrom(local)
+    }
+    testRuntimeClasspath {
+        extendsFrom(local)
+    }
+    annotationProcessor {
+        extendsFrom(local)
+    }
+    testAnnotationProcessor {
+        extendsFrom(local)
+    }
+}
+
+dependencies {
+    local platform(libraries.springBootDependencies + '!!')
+    local libraries.lombok
+
     annotationProcessor libraries.springBootConfigurationProcessor
 
-    compileOnly libraries.lombok
     compileOnly libraries.spotbugsAnnotations
     compileOnly libraries.jakartaValidationApi
 
@@ -34,24 +70,13 @@ dependencies {
     implementation libraries.guava
     implementation libraries.twBaseUtils
 
-    testAnnotationProcessor libraries.lombok
-
-    testCompileOnly libraries.lombok
     testCompileOnly libraries.spotbugsAnnotations
 
-    testImplementation libraries.lombok
     testImplementation libraries.junitApi
     testImplementation libraries.junitEngine
     testImplementation libraries.junitParams
     testImplementation libraries.junitMockito
     testImplementation libraries.assertJCore
-}
-
-configurations {
-    all {
-        exclude(group: 'junit', module: 'junit')
-        exclude(group: 'org.junit.vintage', module: 'junit-vintage-engine')
-    }
 }
 
 java {
