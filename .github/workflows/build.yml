@@ -93,6 +93,7 @@ jobs:
         uses: mikepenz/action-junit-report@v2
         if: always()
         with:
+          check_name: Test Report-(${{ matrix.spring_boot_version }})
           report_paths: '**/build/test-results/**/*.xml'
           github_token: ${{ secrets.GITHUB_TOKEN }}
           require_tests: true
@@ -100,22 +101,24 @@ jobs:
         if: always()
         uses: jwgmeligmeyling/checkstyle-github-action@master
         with:
+          name: Checkstyle Report-(${{ matrix.spring_boot_version }})
           path: '**/build/reports/**/*.xml'
       - name: Publish spotbugs report
         if: failure()
         uses: jwgmeligmeyling/spotbugs-github-action@master
         with:
+          name: Spotbugs Report-(${{ matrix.spring_boot_version }})
           path: '**/build/reports/**/*.xml'
       - name: "Collect test reports"
         run: |
-          tar -zcvf all-test-reports.tar.gz **/build/reports
+          tar -zcvf all-test-reports-${{ matrix.spring_boot_version }}.tar.gz **/build/reports
         if: always()
       - name: "Store test results"
         uses: actions/upload-artifact@v2
         if: always()
         with:
-          name: all-test-reports
-          path: all-test-reports.tar.gz
+          name: all-test-reports-${{ matrix.spring_boot_version }}
+          path: all-test-reports-${{ matrix.spring_boot_version }}.tar.gz
           retention-days: 7
       - name: "Tag release"
         if: github.ref == 'refs/heads/master'
