@@ -3,12 +3,16 @@ ext {
     twLeaderSelectorVersion = "1.6.0"
     libraries = [
             // version defined
-            springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:${System.getenv("SPRING_BOOT_VERSION") ?: '2.5.11'}",
+            awaitility                      : 'org.awaitility:awaitility:4.2.0',
+            gafferJta                       : 'com.transferwise.common:tw-gaffer-jta:1.4.0',
             apacheCuratorRecipies           : "org.apache.curator:curator-recipes:5.2.1",
             apacheCommonsCollections        : "org.apache.commons:commons-collections4:4.4",
             commonsIo                       : "commons-io:commons-io:2.11.0",
             guava                           : "com.google.guava:guava:31.1-jre",
+            newRelic                        : "com.newrelic.agent.java:newrelic-api:7.6.0",
             semver4j                        : "com.vdurmont:semver4j:3.1.0",
+            spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
+            springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:${System.getenv("SPRING_BOOT_VERSION") ?: '2.5.11'}",
             twGracefulShutdown              : "com.transferwise.common:tw-graceful-shutdown:2.3.0",
             twGracefulShutdownIntefaces     : "com.transferwise.common:tw-graceful-shutdown-interfaces:2.3.0",
             twContext                       : "com.transferwise.common:tw-context:${twContextVersion}",
@@ -17,11 +21,9 @@ ext {
             twLeaderSelector                : "com.transferwise.common:tw-leader-selector:${twLeaderSelectorVersion}",
             twLeaderSelectorStarter         : "com.transferwise.common:tw-leader-selector-starter:${twLeaderSelectorVersion}",
             twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.7.1",
-            spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
-            newRelic                        : "com.newrelic.agent.java:newrelic-api:7.6.0",
-            awaitility                      : 'org.awaitility:awaitility:4.2.0',
-            gafferJta                       : 'com.transferwise.common:tw-gaffer-jta:1.4.0',
             twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.7.1',
+            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.0-2',
+            lz4Java                         : 'org.lz4:lz4-java:1.7.1',
 
             // versions managed by spring-boot-dependencies platform
             flywayCore                      : "org.flywaydb:flyway-core",
