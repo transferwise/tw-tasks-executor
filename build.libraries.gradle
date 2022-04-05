@@ -21,7 +21,7 @@ ext {
             newRelic                        : "com.newrelic.agent.java:newrelic-api:7.6.0",
             awaitility                      : 'org.awaitility:awaitility:4.2.0',
             gafferJta                       : 'com.transferwise.common:tw-gaffer-jta:1.4.0',
-            twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.6.0',
+            twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.7.1',
 
             // versions managed by spring-boot-dependencies platform
             flywayCore                      : "org.flywaydb:flyway-core",

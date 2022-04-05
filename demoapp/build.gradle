@@ -40,7 +40,7 @@ dependencies {
 }
 
 springBoot {
-    mainClassName = 'com.transferwise.tasks.demoapp.Application'
+    mainClass = 'com.transferwise.tasks.demoapp.Application'
 }
 
 bootRun {
