@@ -22,6 +22,7 @@ import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
+import com.transferwise.tasks.utils.InefficientCode;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
@@ -129,6 +130,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     kafkaProducer = createKafkaProducer();
   }
 
+  // TODO: TaskHandler should be an input parameter and bucket check should be done outside of this method.
+  //       This change would allow to remove the async after commit logic, because we would know that no db operations will be done here.
   @Override
   public void trigger(BaseTask task) {
     if (tasksProperties.isAssertionsEnabled()) {
@@ -141,6 +144,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           LogUtils.asParameter(task.getVersionId()));
       coreMetricsTemplate.registerTaskMarkedAsError(null, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+        // TODO: add current status to BaseTask class.
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
         log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
@@ -154,6 +158,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           processingBucketId);
       coreMetricsTemplate.registerTaskMarkedAsError(processingBucketId, task.getType());
       if (!taskDao.setStatus(task.getId(), TaskStatus.ERROR, task.getVersion())) {
+        // TODO: add current status to BaseTask class.
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), TaskStatus.UNKNOWN.name(), TaskStatus.ERROR);
         log.error("Marking task {} as ERROR failed, version may have changed.", LogUtils.asParameter(task.getVersionId()), new Throwable());
       }
@@ -456,7 +461,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     configs.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
     configs.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
-    configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
+    configs.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000");
+    configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName());
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
@@ -506,6 +512,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     consumerBucket.setKafkaConsumer(null);
   }
 
+  @InefficientCode("Memory allocations.")
   private String getTopic(String bucketId) {
     String topic = triggerTopic;
     if (StringUtils.isNotEmpty(bucketId)) {

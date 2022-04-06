@@ -189,11 +189,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
       transferFromIntermediateBuffer(bucket, prioritySlot);
 
-      // TODO: Probably we can avoid the new ArrayList<> here.
-      for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
-        if (taskProcessed.isTrue()) {
-          break;
-        }
+      for (GlobalProcessingState.TypeTasks typeTasks : prioritySlot.getOrderedTypeTasks()) {
         String type = typeTasks.getType();
 
         if (noRoomMap.containsKey(type)) {
@@ -245,6 +241,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             bucket.increaseVersion();
           }
         });
+
+        if (taskProcessed.isTrue()) {
+          break;
+        }
       }
     }
 
@@ -456,7 +456,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
             TwContext currentContext = TwContext.current();
             UnitOfWork unitOfWork = unitOfWorkManager.getUnitOfWork(currentContext);
-            unitOfWork.setDeadline(deadline);
             unitOfWork.setCriticality(criticality);
             if (owner != null) {
               currentContext.setOwner(owner);
@@ -478,8 +477,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                     coreMetricsTemplate.registerTaskProcessingStart(bucketId, task.getType());
                     LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.add(Thread.currentThread()));
                     try {
+                      unitOfWork.setDeadline(deadline);
                       resultHolder.setValue(syncTaskProcessor.process(task));
                     } finally {
+                      // Avoid followup database operations to time out
+                      unitOfWork.setDeadline(null);
                       LockUtils.withLock(tasksProcessingThreadsLock, () -> tasksProcessingThreads.remove(Thread.currentThread()));
                     }
                   };
@@ -547,11 +549,24 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                 AtomicBoolean taskMarkedAsFinished = new AtomicBoolean(); // Buggy implementation could call our callbacks many times.
                 try {
                   coreMetricsTemplate.registerTaskProcessingStart(bucketId, task.getType());
-                  ((IAsyncTaskProcessor) taskProcessor).process(task,
-                      () -> markTaskAsDoneFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
-                          processingStartTimeMs),
-                      (t) -> setRetriesOrErrorFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
-                          processingStartTimeMs, taskHandler, t));
+                  // Even when it async, someone may implement it as sync.
+                  // So we need to set and remove deadline.
+                  unitOfWork.setDeadline(deadline);
+                  try {
+                    ((IAsyncTaskProcessor) taskProcessor).process(task,
+                        () -> {
+                          unitOfWork.setDeadline(null);
+                          markTaskAsDoneFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
+                              processingStartTimeMs);
+                        },
+                        (t) -> {
+                          unitOfWork.setDeadline(null);
+                          setRetriesOrErrorFromAsync(task, taskMarkedAsFinished.compareAndSet(false, true), bucketId, concurrencyPolicy,
+                              processingStartTimeMs, taskHandler, t);
+                        });
+                  } finally {
+                    unitOfWork.setDeadline(null);
+                  }
                 } catch (Throwable t) {
                   log.error("Processing task '" + task.getVersionId() + "' failed.", t);
                   if (taskMarkedAsFinished.compareAndSet(false, true)) {

@@ -16,7 +16,7 @@ public class SpringKafkaConsumerPropertiesProvider implements IKafkaListenerCons
   @Override
   public Map<String, Object> getProperties(int shard) {
     var props = kafkaProperties.buildConsumerProperties();
-    props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
+    props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName());
 
     return props;
   }

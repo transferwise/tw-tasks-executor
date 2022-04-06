@@ -64,11 +64,11 @@ Comment out `@Disabled` annotation in `integration-tests/src/test/java/com/trans
 
 Run
 ```shell
-IN_CI=true ./gradlew :integration-tests:test --tests "com.transferwise.tasks.demoapp.DemoAppRealTest.dbPerfTest"
+RUNS_IN_CI=true ./gradlew :integration-tests:test --tests "com.transferwise.tasks.demoapp.DemoAppRealTest.dbPerfTest"
 ```
 
 > This will basically run 1 million tasks through, executing `com.transferwise.tasks.demoapp.DemoAppRealTest.dbPerfTest`.
-> "IN_CI=true" prevents creating another local docker environment used for other local tests.
+> "RUNS_IN_CI=true" prevents creating another local docker environment used for other local tests.
 
 >You may want to truncate following tables at the beginning of each test to get more comparable results.
 >```postgresql
