@@ -27,7 +27,7 @@ jobs:
           - 2.4.13
     env:
       SPRING_BOOT_VERSION: ${{ matrix.spring_boot_version }}
-      GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=false"
+      GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
       RUNS_IN_CI: true
       MARIADB_TCP_3306: 3306
       MARIADB_TCP_HOST: mysql1
@@ -85,8 +85,11 @@ jobs:
           key: gradle-v1-${{ matrix.spring_boot_version }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
       - name: "Assemble jar"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --info --stacktrace
+      - name: "Run checks other than tests"
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check -x test --console=plain --info --stacktrace -Dorg.gradle.parallel=true
       - name: "Run tests"
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check --console=plain --info --stacktrace
+        # We will not run tests in parallel, so that the test output is easily understandable
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration test --console=plain --info --stacktrace -Dorg.gradle.parallel=false
       - name: "Test if publishing works"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --info --stacktrace
       - name: "Publish Test Report"
