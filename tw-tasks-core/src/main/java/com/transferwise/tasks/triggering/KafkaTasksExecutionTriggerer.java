@@ -460,7 +460,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     configs.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
     configs.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
-    configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
+    //configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
