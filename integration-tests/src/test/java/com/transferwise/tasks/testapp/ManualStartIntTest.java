@@ -83,7 +83,7 @@ class ManualStartIntTest extends BaseIntTest {
             .setTaskId(taskId)
             .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
     );
-    await().timeout(300, TimeUnit.SECONDS).until(() ->
+    await().timeout(30, TimeUnit.SECONDS).until(() ->
         testTasksService.getFinishedTasks("test", null).size() == 1
     );
 

@@ -90,8 +90,6 @@ jobs:
       - name: "Run tests"
         # We will not run tests in parallel, so that the test output is easily understandable
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration test --console=plain --info --stacktrace -Dorg.gradle.parallel=false
-      - name: "kafka logs"
-        run: docker logs kafka1
       - name: "Test if publishing works"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --info --stacktrace
       - name: "Publish Test Report"

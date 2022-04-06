@@ -158,8 +158,7 @@ public class TestConfiguration {
 
       // Having a separate group id can greatly reduce Kafka re-balancing times for tests.
       props.put(CommonClientConfigs.GROUP_ID_CONFIG, props.get(CommonClientConfigs.GROUP_ID_CONFIG) + "kafka-listener-" + shard);
-      props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, RangeAssignor.class.getName());
-      //props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
+      props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName());
 
       return props;
     };
