@@ -22,6 +22,7 @@ import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
+import com.transferwise.tasks.utils.InefficientCode;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
@@ -511,6 +512,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     consumerBucket.setKafkaConsumer(null);
   }
 
+  @InefficientCode("Memory allocations.")
   private String getTopic(String bucketId) {
     String topic = triggerTopic;
     if (StringUtils.isNotEmpty(bucketId)) {

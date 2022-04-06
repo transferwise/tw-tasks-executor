@@ -189,11 +189,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
       transferFromIntermediateBuffer(bucket, prioritySlot);
 
-      // TODO: Probably we can avoid the new ArrayList<> here.
-      for (GlobalProcessingState.TypeTasks typeTasks : new ArrayList<>(prioritySlot.getOrderedTypeTasks())) {
-        if (taskProcessed.isTrue()) {
-          break;
-        }
+      for (GlobalProcessingState.TypeTasks typeTasks : prioritySlot.getOrderedTypeTasks()) {
         String type = typeTasks.getType();
 
         if (noRoomMap.containsKey(type)) {
@@ -245,6 +241,10 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             bucket.increaseVersion();
           }
         });
+
+        if (taskProcessed.isTrue()) {
+          break;
+        }
       }
     }
 
