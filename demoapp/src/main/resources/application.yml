@@ -74,7 +74,7 @@ tw-tasks:
     additional-processing-buckets:
       - emails
     environment:
-      previousVersion: "1.21.1"
+      previousVersion: "1.32.0"
     triggering:
       kafka:
         bootstrap-servers: localhost:9092

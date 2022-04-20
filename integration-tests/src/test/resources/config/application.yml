@@ -29,7 +29,7 @@ tw-tasks:
       algorithm: random
       minSize: 0 # Pretty much forcing compression to always happen, so it will be tested through
     environment:
-      previousVersion: "1.21.1"
+      previousVersion: "1.32.0"
     triggering:
       kafka:
         bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}

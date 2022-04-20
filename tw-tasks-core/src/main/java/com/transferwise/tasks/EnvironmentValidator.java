@@ -17,7 +17,7 @@ public class EnvironmentValidator implements IEnvironmentValidator {
     }
 
     Semver previousSemver = new Semver(previousVersion);
-    Semver minimumRequiredPreviousSemver = new Semver("1.21.1");
+    Semver minimumRequiredPreviousSemver = new Semver("1.32.0");
 
     if (previousSemver.compareTo(minimumRequiredPreviousSemver) < 0) {
       throw new IllegalStateException("This version requires at least '" + minimumRequiredPreviousSemver + "' to be deployed first.");
