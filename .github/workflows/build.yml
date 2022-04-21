@@ -85,8 +85,8 @@ jobs:
           key: gradle-v1-${{ matrix.spring_boot_version }}-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
       - name: "Assemble jar"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew assemble --console=plain --info --stacktrace
-      ##- name: "Run checks other than tests"
-      ##  run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check -x test --console=plain --info --stacktrace -Dorg.gradle.parallel=true
+      - name: "Run checks other than tests"
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration check -x test --console=plain --info --stacktrace -Dorg.gradle.parallel=true
       - name: "Run tests"
         # We will not run tests in parallel, so that the test output is easily understandable
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew -Dspring.profiles.include=continuous-integration test --console=plain --info --stacktrace -Dorg.gradle.parallel=false
