@@ -26,6 +26,7 @@ import com.transferwise.tasks.utils.InefficientCode;
 import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
+import com.vdurmont.semver4j.Semver;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +55,6 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
-import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -65,6 +65,7 @@ import org.apache.kafka.common.errors.RetriableException;
 import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.apache.kafka.common.utils.AppInfoParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -451,28 +452,40 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       groupId += "." + tasksProperties.getClientId();
     }
 
-    Map<String, Object> configs = new HashMap<>();
-    configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
-    configs.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, bucketProperties.getTriggersFetchSize());
-    configs.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
-    configs.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
-    configs.put(ConsumerConfig.CLIENT_ID_CONFIG, tasksProperties.getClientId() + ".tw-tasks.bucket." + bucketId);
-    configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    configs.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
-    configs.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
-    configs.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000");
-    configs.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
+    Map<String, Object> props = new HashMap<>();
+    props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
+    props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, bucketProperties.getTriggersFetchSize());
+    props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
+    props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, tasksProperties.getClientId() + ".tw-tasks.bucket." + bucketId);
+    props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    props.put(ConsumerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
+    props.put(ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
+    props.put(ConsumerConfig.SESSION_TIMEOUT_MS_CONFIG, "10000");
 
-    configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
-
-    if (bucketProperties.getAutoResetOffsetToDuration() != null) {
-      configs.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
-    } else {
-      configs.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, tasksProperties.getAutoResetOffsetTo());
+    try {
+      String kafkaClientsVersion = AppInfoParser.getVersion();
+      var kafkaClientsSemver = new Semver(kafkaClientsVersion);
+      if (kafkaClientsSemver.isGreaterThanOrEqualTo("3.0.0")) {
+        props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName());
+      } else {
+        log.warn("`kafka-clients:3+` is highly recommended to minimize re-balancing pauses. Current `kafka-clients` version is `{}`.",
+            kafkaClientsVersion);
+      }
+    } catch (Exception e) {
+      log.error("Could not understand Kafka client version.", e);
     }
 
-    KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(configs);
+    props.putAll(tasksProperties.getTriggering().getKafka().getProperties());
+
+    if (bucketProperties.getAutoResetOffsetToDuration() != null) {
+      props.remove(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG);
+    } else {
+      props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, tasksProperties.getAutoResetOffsetTo());
+    }
+
+    KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(props);
     coreMetricsTemplate.registerKafkaConsumer(kafkaConsumer);
 
     List<String> topics = getTopics(bucketId);

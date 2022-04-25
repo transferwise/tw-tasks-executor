@@ -17,4 +17,5 @@ dependencies {
     implementation project(":tw-tasks-core")
     implementation libraries.jacksonDatabind
     implementation libraries.micrometerCore
+    implementation libraries.semver4j
 }
