@@ -123,9 +123,6 @@ jobs:
           name: all-test-reports-${{ matrix.spring_boot_version }}
           path: all-test-reports-${{ matrix.spring_boot_version }}.tar.gz
           retention-days: 7
-      - name: "Tag release"
-        if: github.ref == 'refs/heads/master'
-        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew tagRelease --console=plain --info --stacktrace
 
   build:
     name: "Build and Test"
@@ -133,5 +130,6 @@ jobs:
       - ubuntu-latest
     needs: matrix_build
     steps:
-      - name: "Do something"
-        run: echo 'Matrix build was successful'
+      - name: "Tag release"
+        if: github.ref == 'refs/heads/master'
+        run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew tagRelease --console=plain --info --stacktrace
