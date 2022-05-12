@@ -55,6 +55,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -468,7 +469,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       String kafkaClientsVersion = AppInfoParser.getVersion();
       var kafkaClientsSemver = new Semver(kafkaClientsVersion);
       if (kafkaClientsSemver.isGreaterThanOrEqualTo("3.0.0")) {
-        props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName());
+        props.put(ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG,
+            CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName());
       } else {
         log.warn("`kafka-clients:3+` is highly recommended to minimize re-balancing pauses. Current `kafka-clients` version is `{}`.",
             kafkaClientsVersion);

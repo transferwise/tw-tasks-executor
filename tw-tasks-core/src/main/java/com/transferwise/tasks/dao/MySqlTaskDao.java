@@ -275,8 +275,6 @@ public class MySqlTaskDao implements ITaskDao {
     return updatedCount == 1;
   }
 
-  @Override
-  @Transactional(rollbackFor = Exception.class)
   public Task grabForProcessing(BaseTask task, String clientId, Instant maxProcessingEndTime) {
     Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
 
@@ -404,7 +402,7 @@ public class MySqlTaskDao implements ITaskDao {
   @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
   @MonitoringQuery
   public Map<Pair<TaskStatus, String>, Integer> getStuckTasksCountByStatusAndType(ZonedDateTime age, int maxCount) {
-    Map<Pair<TaskStatus,String>, MutableInt> resultMap = new HashMap<>();
+    Map<Pair<TaskStatus, String>, MutableInt> resultMap = new HashMap<>();
     for (TaskStatus taskStatus : stuckStatuses) {
       jdbcTemplate.query(getStuckTasksCountGroupedSql, args(taskStatus, age, maxCount), rs -> {
         resultMap.computeIfAbsent(Pair.of(taskStatus, rs.getString(1)), k -> new MutableInt(0)).add(rs.getInt(2));
