@@ -130,6 +130,14 @@ jobs:
       - ubuntu-latest
     needs: matrix_build
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: "Gradle cache"
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.gradle
+          key: gradle-v1-${{ hashFiles('gradle/wrapper/gradle-wrapper.properties', '**/*.gradle*') }}
       - name: "Tag release"
         if: github.ref == 'refs/heads/master'
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew tagRelease --console=plain --info --stacktrace
