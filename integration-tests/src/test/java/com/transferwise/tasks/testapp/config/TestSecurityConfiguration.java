@@ -16,7 +16,7 @@ public class TestSecurityConfiguration extends WebSecurityConfigurerAdapter {
   public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
     auth.inMemoryAuthentication()
         .withUser("goodEngineer").password("q1w2e3r4")
-        .authorities("ROLE_DEVEL")
+        .authorities("ROLE_TW_TASK_MANAGEMENT")
         .and()
         .withUser("badEngineer").password("q1w2e3r4")
         .authorities("ROLE_CRACKER")

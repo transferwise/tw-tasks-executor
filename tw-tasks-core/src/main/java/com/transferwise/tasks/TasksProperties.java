@@ -360,7 +360,7 @@ public class TasksProperties {
      * Roles for all other task management endpoints.
      */
     @NotNull
-    private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_DEVEL"));
+    private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_TW_TASK_MANAGEMENT"));
 
     @NotNull
     @Valid

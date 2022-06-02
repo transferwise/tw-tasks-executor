@@ -38,7 +38,7 @@ tw-tasks:
         -
           task-type: "customType"
           view-task-data-roles:
-            - ROLE_DEVEL
+            - ROLE_TW_TASK_MANAGEMENT
 
 logging.level.com.transferwise.tasks: DEBUG
 logging.level.com.transferwise.tasks.cleaning.TasksCleaner: INFO
