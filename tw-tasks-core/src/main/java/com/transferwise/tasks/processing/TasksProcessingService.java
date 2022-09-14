@@ -495,9 +495,13 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                       process.run();
                     }
                     ISyncTaskProcessor.ProcessResult result = resultHolder.getValue();
-                    if (transactionsHelper.isRollbackOnly()) {
-                      log.debug("Task processor for task '{}' has crappy code. Fixing it with a rollback exception.", task.getVersionId());
-                      throw new SyncProcessingRolledbackException(result);
+                    try {
+                      if (transactionsHelper.isRollbackOnly()) {
+                        log.debug("Task processor for task '{}' has crappy code. Fixing it with a rollback exception.", task.getVersionId());
+                        throw new SyncProcessingRolledbackException(result);
+                      }
+                    } catch (NullPointerException e) {
+                      log.debug("transactionsHelper has issues determining if transaction isRollbackOnly", e);
                     }
                     if (result == null || result.getResultCode() == null
                         || result.getResultCode() == ISyncTaskProcessor.ProcessResult.ResultCode.DONE) {
