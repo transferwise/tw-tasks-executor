@@ -2,6 +2,7 @@ package com.transferwise.tasks.handler.interfaces;
 
 import com.transferwise.common.context.Criticality;
 import com.transferwise.tasks.domain.IBaseTask;
+import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.NonNull;

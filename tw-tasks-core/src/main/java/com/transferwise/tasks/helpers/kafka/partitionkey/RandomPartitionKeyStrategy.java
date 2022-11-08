@@ -1,7 +1,6 @@
-package com.transferwise.tasks.handler;
+package com.transferwise.tasks.helpers.kafka.partitionkey;
 
 import com.transferwise.tasks.domain.BaseTask;
-import com.transferwise.tasks.handler.interfaces.IPartitionKeyStrategy;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**

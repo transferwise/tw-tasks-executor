@@ -14,7 +14,7 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.IMdcService;
-import com.transferwise.tasks.handler.interfaces.IPartitionKeyStrategy;
+import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;

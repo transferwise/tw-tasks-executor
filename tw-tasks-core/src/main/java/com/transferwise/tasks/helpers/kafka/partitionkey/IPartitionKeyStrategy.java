@@ -1,4 +1,4 @@
-package com.transferwise.tasks.handler.interfaces;
+package com.transferwise.tasks.helpers.kafka.partitionkey;
 
 import com.transferwise.tasks.domain.BaseTask;
 
