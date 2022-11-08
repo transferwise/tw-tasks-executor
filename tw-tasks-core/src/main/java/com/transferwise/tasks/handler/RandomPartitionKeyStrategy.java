@@ -12,7 +12,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class RandomPartitionKeyStrategy implements IPartitionKeyStrategy {
 
   /**
-   * Provides a random {@link String} partition key to send messages to internal Kafka topic
+   * Provides a random {@link String} partition key to send messages to internal Kafka topic.
    *
    * @param task a Task
    * @return a {@link String} to be used as partition key
