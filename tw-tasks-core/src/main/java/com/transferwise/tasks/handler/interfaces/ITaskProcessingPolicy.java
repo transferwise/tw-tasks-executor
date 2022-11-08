@@ -49,4 +49,6 @@ public interface ITaskProcessingPolicy {
   default boolean canExecuteTaskOnThisNode(IBaseTask task) {
     return true;
   }
+
+  IPartitionKeyStrategy getPartitionKeyStrategy();
 }

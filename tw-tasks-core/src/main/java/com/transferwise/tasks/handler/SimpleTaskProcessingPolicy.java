@@ -4,6 +4,7 @@ import com.transferwise.common.context.Criticality;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.IBaseTask;
+import com.transferwise.tasks.handler.interfaces.IPartitionKeyStrategy;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import java.time.Duration;
@@ -36,6 +37,11 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   @Setter
   @Accessors(chain = true)
   private StuckTaskResolutionStrategy stuckTaskResolutionStrategy = StuckTaskResolutionStrategy.MARK_AS_ERROR;
+
+  @Getter
+  @Setter
+  @Accessors(chain = true)
+  private IPartitionKeyStrategy partitionKeyStrategy = new RandomPartitionKeyStrategy();
 
   @Override
   public String getProcessingBucket(IBaseTask task) {

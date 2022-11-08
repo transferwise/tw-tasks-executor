@@ -14,6 +14,7 @@ import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.IMdcService;
+import com.transferwise.tasks.handler.interfaces.IPartitionKeyStrategy;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
@@ -36,7 +37,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
@@ -181,12 +181,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     // TODO: Future improvement: try to also trigger in the same node, if there is room or more specifically if it is idle (for min latency)
     // TODO: Maybe needs another concurrency control for that. E.g. only trigger in node, when conc < 5, even max conc is 10.
 
-    // We need to give a non-null random key, so triggers will be evenly spread around partitions.
-    // With <null> key, the kafka client will start doing some kind of batch partitioning.
+    final IPartitionKeyStrategy partitionKeyStrategy = taskHandler.getProcessingPolicy(task).getPartitionKeyStrategy();
 
-    String key = String.valueOf((char) ThreadLocalRandom.current().nextInt(0xFFFF));
     kafkaProducer
-        .send(new ProducerRecord<>(getTopic(processingBucketId), key, taskSt),
+        .send(new ProducerRecord<>(getTopic(processingBucketId), partitionKeyStrategy.getPartitionKey(task), taskSt),
             (metadata, exception) -> {
               if (exception != null) {
                 if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {

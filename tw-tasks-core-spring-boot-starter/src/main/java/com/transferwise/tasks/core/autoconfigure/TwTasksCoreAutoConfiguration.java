@@ -27,7 +27,9 @@ import com.transferwise.tasks.entrypoints.EntryPointsService;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.entrypoints.MdcService;
+import com.transferwise.tasks.handler.RandomPartitionKeyStrategy;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
+import com.transferwise.tasks.handler.interfaces.IPartitionKeyStrategy;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
 import com.transferwise.tasks.health.ITasksStateMonitor;
@@ -236,5 +238,11 @@ public class TwTasksCoreAutoConfiguration {
   @ConditionalOnMissingBean(IEnvironmentValidator.class)
   public EnvironmentValidator twTasksEnvironmentValidator() {
     return new EnvironmentValidator();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(IPartitionKeyStrategy.class)
+  public IPartitionKeyStrategy twTasksPartitionKeyStrategy() {
+    return new RandomPartitionKeyStrategy();
   }
 }
