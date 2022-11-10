@@ -25,7 +25,7 @@ class RandomPartitionKeyStrategyTest {
         .setId(id)
         .setType("type")
         .setPriority(1)
-        .setKey("key")
+        .setPartitionKey("key")
         .setVersion(1L);
 
     final var keys = IntStream.range(0, 10)

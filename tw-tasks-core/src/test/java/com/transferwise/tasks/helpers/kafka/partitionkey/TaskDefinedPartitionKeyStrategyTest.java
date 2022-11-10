@@ -22,11 +22,11 @@ class TaskDefinedPartitionKeyStrategyTest {
         .setId(UUID.randomUUID())
         .setType("type")
         .setPriority(1)
-        .setKey(UUID.randomUUID().toString())
+        .setPartitionKey(UUID.randomUUID().toString())
         .setVersion(1L);
 
     final var partitionKey = subject.getPartitionKey(baseTask);
 
-    assertThat(partitionKey).isEqualTo(baseTask.getKey());
+    assertThat(partitionKey).isEqualTo(baseTask.getPartitionKey());
   }
 }

@@ -12,6 +12,6 @@ public class TaskDefinedPartitionKeyStrategy implements IPartitionKeyStrategy {
    */
   @Override
   public String getPartitionKey(BaseTask task) {
-    return task.getKey();
+    return task.getPartitionKey();
   }
 }

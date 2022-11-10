@@ -43,6 +43,7 @@ public interface ITasksService {
     private boolean warnWhenTaskExists;
     private Duration expectedQueueTime;
     private CompressionRequest compression;
+    private String partitionKey;
 
     @Data
     @Accessors(chain = true)
@@ -81,6 +82,7 @@ public interface ITasksService {
     private UUID taskId;
     private long version;
     private boolean force;
+    private String partitionKey;
   }
 
   void startTasksProcessing(String bucketId);

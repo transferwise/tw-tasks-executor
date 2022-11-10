@@ -12,7 +12,7 @@ public class BaseTask implements IBaseTask {
   private String type;
   private long version;
   private int priority;
-  private String key;
+  private String partitionKey;
 
   public ITaskVersionId getVersionId() {
     return new TaskVersionId(id, version);
