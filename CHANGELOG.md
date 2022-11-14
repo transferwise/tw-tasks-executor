@@ -9,7 +9,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-* Added IPartitionKeyStrategy interface and 2 basic implementations, RandomPartitionKeyStrategy and TaskDefinedPartitionKeyStrategy.
+* Added IPartitionKeyStrategy interface and a basic implementations, RandomPartitionKeyStrategy.
 * Included IPartitionKeyStrategy into SimpleTaskProcessingPolicy
 
 #### 1.35.0 - 2022/05/12

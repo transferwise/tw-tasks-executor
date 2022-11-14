@@ -7,6 +7,6 @@ import com.transferwise.tasks.domain.BaseTask;
  */
 public interface IPartitionKeyStrategy {
 
-  String getPartitionKey(BaseTask task);
+  String createPartitionKey(BaseTask task);
 
 }

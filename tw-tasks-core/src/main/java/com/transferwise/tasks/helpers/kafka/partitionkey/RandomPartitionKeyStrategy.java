@@ -17,7 +17,7 @@ public class RandomPartitionKeyStrategy implements IPartitionKeyStrategy {
    * @return a {@link String} to be used as partition key
    */
   @Override
-  public String getPartitionKey(BaseTask task) {
+  public String createPartitionKey(BaseTask task) {
     return String.valueOf((char) ThreadLocalRandom.current().nextInt(0xFFFF));
   }
 }

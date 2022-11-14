@@ -184,7 +184,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     final IPartitionKeyStrategy partitionKeyStrategy = taskHandler.getProcessingPolicy(task).getPartitionKeyStrategy();
 
     kafkaProducer
-        .send(new ProducerRecord<>(getTopic(processingBucketId), partitionKeyStrategy.getPartitionKey(task), taskSt),
+        .send(new ProducerRecord<>(getTopic(processingBucketId), partitionKeyStrategy.createPartitionKey(task), taskSt),
             (metadata, exception) -> {
               if (exception != null) {
                 if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {

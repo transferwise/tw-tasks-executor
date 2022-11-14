@@ -29,7 +29,7 @@ class RandomPartitionKeyStrategyTest {
         .setVersion(1L);
 
     final var keys = IntStream.range(0, 10)
-        .mapToObj(i -> subject.getPartitionKey(baseTask))
+        .mapToObj(i -> subject.createPartitionKey(baseTask))
         .collect(Collectors.toList());
 
     keys.forEach(k -> assertThat(keys).containsOnlyOnce(k));

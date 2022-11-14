@@ -20,7 +20,7 @@ class SimpleTaskProcessingPolicyTest {
   void shouldUseDefinedPartitionKeyStrategyWhenDifferentStrategyIsProvided() {
     final var overridenPartitionKeyStrategy = new IPartitionKeyStrategy() {
       @Override
-      public String getPartitionKey(BaseTask task) {
+      public String createPartitionKey(BaseTask task) {
         return "Key";
       }
     };

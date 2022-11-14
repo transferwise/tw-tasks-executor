@@ -127,7 +127,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
           mdcService.put(taskId, 0L);
           log.debug("Task '{}' created with status {}.", taskId, status);
           if (status == TaskStatus.SUBMITTED) {
-            triggerTask(new BaseTask().setId(taskId).setType(request.getType()).setPriority(priority).setPartitionKey(request.getPartitionKey()));
+            triggerTask(new BaseTask().setId(taskId).setType(request.getType()).setPriority(priority));
           }
 
           return new AddTaskResponse().setResult(AddTaskResponse.Result.OK).setTaskId(taskId);
@@ -184,7 +184,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
               return false;
             }
           }
-          triggerTask(task.toBaseTask().setVersion(version).setPartitionKey(request.getPartitionKey()));
+          triggerTask(task.toBaseTask().setVersion(version));
           return true;
         });
   }
