@@ -38,6 +38,7 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -422,6 +423,31 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
       return false;
     }));
+  }
+
+  @Test
+  void partitionKeyIsConsistent() {
+    final int submittingThreadsCount = 10;
+    final int taskProcessingConcurrency = 10;
+
+    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
+    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
+
+    // when
+    ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
+
+    executorService.submit(() -> {
+      try {
+        var taskRequest = new AddTaskRequest()
+            .setData(taskDataSerializer.serialize("Hello World!"))
+            .setType("test")
+            .setUniqueKey(UUID.randomUUID().toString());
+
+        tasksService.addTask(taskRequest);
+      } catch (Throwable t) {
+        log.error(t.getMessage(), t);
+      }
+    });
   }
 
   private int counterSum(String name) {
