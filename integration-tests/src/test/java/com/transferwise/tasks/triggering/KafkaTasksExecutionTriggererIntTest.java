@@ -87,9 +87,9 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   @Test
   void name() {
-//    BaseTask baseTask = new BaseTask().setId(UUID.randomUUID()).setVersion(1).setType("type").setPriority(2);
+    //    BaseTask baseTask = new BaseTask().setId(UUID.randomUUID()).setVersion(1).setType("type").setPriority(2);
 
-//    subject.trigger(baseTask);
+    //    subject.trigger(baseTask);
 
     final int submittingThreadsCount = 2;
     final int taskProcessingConcurrency = 2;
