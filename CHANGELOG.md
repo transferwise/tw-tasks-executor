@@ -7,12 +7,20 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 #### 1.36.0 - 2022/10/24
 
+### Added
+
+* Some initialization logs allowing to understand which lock keys are used.
+
 ### Changed
 
 * `ConsistentKafkaConsumer` is asynchronously commiting offsets now with an interval, by default once in 5 seconds per partition.
   Notice that tw-tasks-kafka-listener is deprecated.
 * `ConsistentKafkaConsumer` is doing a synchronous commit, during revoking of partitions.
   This would make it much less likely that a node getting those partitions assigned will find duplicates.
+
+### Fixed
+
+* Inserting unique key into database is more consistent.
 
 #### 1.35.0 - 2022/05/12
 
@@ -36,8 +44,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 * Putting back `ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName()`
-for Kafka consumers. Typically, the tw-tasks consumer group is shared with other kafka consumers in a service, so just `CooperativeStickyAssignor`
-would create issues on older kafka-clients.
+  for Kafka consumers. Typically, the tw-tasks consumer group is shared with other kafka consumers in a service, so just `CooperativeStickyAssignor`
+  would create issues on older kafka-clients.
 
 #### 1.33.0 - 2022/04/05
 

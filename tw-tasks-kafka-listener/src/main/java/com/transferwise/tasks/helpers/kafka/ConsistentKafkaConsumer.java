@@ -67,7 +67,9 @@ public class ConsistentKafkaConsumer<T> {
   private Map<TopicPartition, Long> nextAsyncCommitTimesMs = new ConcurrentHashMap<>();
   protected Consumer<String, T> consumer;
   private Map<TopicPartition, Long> committableOffsets = new ConcurrentHashMap<>();
+  // Optimization to avoid commits, when commitable offsets have not changed.
   private Map<TopicPartition, Long> lastSuccessfullyCommittedOffsets = new ConcurrentHashMap<>();
+
   private AutoCloseable consumerMetricsHandle;
 
   protected void createKafkaConsumer() {
@@ -109,7 +111,7 @@ public class ConsistentKafkaConsumer<T> {
           boolean shouldPoll = shouldPollPredicate == null || shouldPollPredicate.get();
           if (!shouldPoll) {
             // We expect `shouldPollPredicate` itself to avoid CPU burn from this continuous loop.
-            // It is mostly used for tests.
+            // It is mostly meant for tests.
             continue;
           }
 
@@ -322,6 +324,7 @@ public class ConsistentKafkaConsumer<T> {
       for (var partition : partitions) {
         lastSuccessfullyCommittedOffsets.remove(partition);
         committableOffsets.remove(partition);
+        nextAsyncCommitTimesMs.remove(partition);
       }
 
       if (delegate != null) {
