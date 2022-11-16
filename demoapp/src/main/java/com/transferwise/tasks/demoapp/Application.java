@@ -29,7 +29,7 @@ public class Application {
 
   private static void catchUncaughtExceptions() {
     Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
-      log.error("Uncaught exception occured in '" + t.getId() + "'. Contact developers immediately.", e);
+      log.error("Uncaught exception occurred in '" + t.getId() + "'. Contact developers immediately.", e);
       e.printStackTrace(); // In case logging system is messed up.
     });
   }

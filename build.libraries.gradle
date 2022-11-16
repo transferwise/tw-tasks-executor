@@ -67,5 +67,6 @@ ext {
             janino                          : 'org.codehaus.janino:janino',
             postgresql                      : 'org.postgresql:postgresql',
             mysqlConnectorJava              : 'mysql:mysql-connector-java',
+            logbackClassic                  : "ch.qos.logback:logback-classic",
     ]
 }

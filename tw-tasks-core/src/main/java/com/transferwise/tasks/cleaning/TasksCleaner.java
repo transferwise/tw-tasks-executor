@@ -87,6 +87,8 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
             log.info("Tasks cleaner stopped.");
           });
     }).build();
+
+    log.info("Tasks cleaner initialized with lock key '{}'.", nodePath);
   }
 
   @EntryPoint

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#### 1.36.0 - 2022/10/24
+
+### Changed
+
+* `ConsistentKafkaConsumer` is asynchronously commiting offsets now with an interval, by default once in 5 seconds per partition.
+  Notice that tw-tasks-kafka-listener is deprecated.
+* `ConsistentKafkaConsumer` is doing a synchronous commit, during revoking of partitions.
+  This would make it much less likely that a node getting those partitions assigned will find duplicates.
+
 #### 1.35.0 - 2022/05/12
 
 ### Changed

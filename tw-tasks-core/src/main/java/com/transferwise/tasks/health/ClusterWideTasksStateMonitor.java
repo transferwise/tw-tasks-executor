@@ -71,7 +71,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
 
   private List<Object> registeredMetricHandles;
   private Map<String, Object> taskInErrorStateHandles;
-  private Map<Pair<TaskStatus,String>, Object> stuckTasksStateHandles;
+  private Map<Pair<TaskStatus, String>, Object> stuckTasksStateHandles;
 
   private final Lock stateLock = new ReentrantLock();
   private boolean initialized;
@@ -107,6 +107,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     }).build();
 
     registerLibrary();
+
+    log.info("Cluster-wide tasks state monitor initialized with lock key '{}'.", nodePath);
   }
 
   /**
@@ -257,7 +259,7 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
       stuckTasksCount.set(stuckTasksCountValue);
     }
 
-    Set<Pair<TaskStatus,String>> stuckTasksByStatusAndType = new HashSet<>();
+    Set<Pair<TaskStatus, String>> stuckTasksByStatusAndType = new HashSet<>();
     stuckTasksCountByStatusAndType.forEach((statusAndType, count) -> {
       stuckTasksByStatusAndType.add(statusAndType);
       AtomicInteger typeCounter = stuckTasksCounts.computeIfAbsent(statusAndType, k -> {
@@ -271,8 +273,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
     });
 
     // make sure that we reset values for the tasks that are not stuck anymore
-    for (Iterator<Pair<TaskStatus,String>> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
-      Pair<TaskStatus,String> taskStatusAndType = it.next();
+    for (Iterator<Pair<TaskStatus, String>> it = stuckTasksCounts.keySet().iterator(); it.hasNext(); ) {
+      Pair<TaskStatus, String> taskStatusAndType = it.next();
       if (!stuckTasksByStatusAndType.contains(taskStatusAndType)) {
         Object handle = stuckTasksStateHandles.remove(taskStatusAndType);
         registeredMetricHandles.remove(handle);

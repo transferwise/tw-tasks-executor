@@ -228,7 +228,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       }
 
       if (consumerBucket.getKafkaConsumer() == null) {
-        consumerBucket.setKafkaConsumer(createKafkaConsumer(bucketId, bucketProperties));
+        var kafkaConsumer = createKafkaConsumer(bucketId, bucketProperties);
+        consumerBucket.setKafkaConsumer(kafkaConsumer);
+        consumerBucket.setConsumerMetricsHandle(coreMetricsTemplate.registerKafkaConsumer(kafkaConsumer));
       }
       return consumerBucket;
     });
@@ -410,7 +412,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     if (t instanceof RebalanceInProgressException || t instanceof ReassignmentInProgressException || t instanceof CommitFailedException
         || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
       coreMetricsTemplate.registerKafkaTasksExecutionTriggererFailedCommit(bucketId);
-      log.debug("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
+      if (log.isDebugEnabled()) {
+        log.debug("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
+      }
       return;
     }
 
@@ -448,7 +452,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private KafkaConsumer<String, String> createKafkaConsumer(String bucketId, BucketProperties bucketProperties) {
     String groupId = tasksProperties.getGroupId();
 
-    if (bucketProperties.getTriggerSameTaskInAllNodes()) {
+    if (Boolean.TRUE.equals(bucketProperties.getTriggerSameTaskInAllNodes())) {
       log.info("Using same task triggering on all nodes strategy for bucket '{}'.", bucketId);
       groupId += "." + tasksProperties.getClientId();
     }
@@ -488,7 +492,6 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     KafkaConsumer<String, String> kafkaConsumer = new KafkaConsumer<>(props);
-    coreMetricsTemplate.registerKafkaConsumer(kafkaConsumer);
 
     List<String> topics = getTopics(bucketId);
     log.info("Subscribing to Kafka topics '{}'", topics);
@@ -504,7 +507,18 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     if (consumerBucket == null) {
       return;
     }
+    var metricsHandle = consumerBucket.getConsumerMetricsHandle();
+    if (metricsHandle != null) {
+      try {
+        metricsHandle.close();
+      } catch (Throwable t) {
+        log.error("Closing Kafka consumer metrics handle failed.", t);
+      }
+      consumerBucket.setConsumerMetricsHandle(null);
+    }
+
     KafkaConsumer<String, String> kafkaConsumer = consumerBucket.getKafkaConsumer();
+
     if (kafkaConsumer == null) {
       return;
     }
@@ -647,6 +661,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     private String bucketId;
     private long lastCommitTime = System.currentTimeMillis();
     private KafkaConsumer<String, String> kafkaConsumer;
+    private AutoCloseable consumerMetricsHandle;
     private Map<TopicPartition, ConsumerTopicPartition> consumerTopicPartitions = new ConcurrentHashMap<>();
     private Lock offsetsStorageLock = new ReentrantLock();
     private Map<TopicPartition, OffsetAndMetadata> offsetsToBeCommited = new ConcurrentHashMap<>();

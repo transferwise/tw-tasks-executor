@@ -61,7 +61,6 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
 
     new ConsistentKafkaConsumer<String>().setTopics(topics)
         .setDelayTimeout(Duration.ofSeconds(5))
-        .setShouldPollPredicate(() -> true)
         .setShouldFinishPredicate(() -> shuttingDown)
         .setKafkaPropertiesSupplier(() -> kafkaConsumerProps)
         .setRecordConsumer((record) -> {
