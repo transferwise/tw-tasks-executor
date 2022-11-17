@@ -6,8 +6,8 @@ public interface IKafkaListenerMetricsTemplate {
 
   void registerKafkaCoreMessageProcessing(int shard, String topic);
 
-  void registerFailedCommit();
+  void registerCommit(long shard, String topic, int partition, boolean sync, boolean success);
 
   @SuppressWarnings("rawtypes")
-  void registerKafkaConsumer(Consumer consumer, long shard);
+  AutoCloseable registerKafkaConsumer(Consumer consumer, long shard);
 }

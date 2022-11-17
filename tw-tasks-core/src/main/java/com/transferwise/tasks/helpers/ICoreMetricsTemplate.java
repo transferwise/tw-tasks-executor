@@ -119,7 +119,7 @@ public interface ICoreMetricsTemplate {
   Object registerKafkaTasksExecutionTriggererOffsetsCount(String bucketId, Supplier<Number> countSupplier);
 
   @SuppressWarnings("rawtypes")
-  void registerKafkaConsumer(Consumer consumer);
+  AutoCloseable registerKafkaConsumer(Consumer consumer);
 
   @SuppressWarnings("rawtypes")
   void registerKafkaProducer(Producer producer);

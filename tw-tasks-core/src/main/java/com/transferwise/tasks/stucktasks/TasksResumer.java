@@ -133,6 +133,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
             log.info("Scheduled tasks executor stopped '" + tasksProperties.getGroupId() + "'.");
           });
     }).build();
+
+    log.info("Tasks resumer initialized with lock key '{}'.", nodePath);
   }
 
   /**

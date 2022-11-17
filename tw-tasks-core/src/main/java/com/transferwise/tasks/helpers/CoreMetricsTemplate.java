@@ -466,10 +466,11 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @SuppressWarnings("rawtypes")
-  public void registerKafkaConsumer(Consumer consumer) {
+  public AutoCloseable registerKafkaConsumer(Consumer consumer) {
     // Spring application are setting the tag `spring.id`, so we need to set it as well.
-    new KafkaClientMetrics(consumer, List.of(new ImmutableTag("spring.id", "tw-tasks-" + kafkaClientId.incrementAndGet())))
-        .bindTo(meterCache.getMeterRegistry());
+    var kafkaClientMetrics = new KafkaClientMetrics(consumer, List.of(new ImmutableTag("spring.id", "tw-tasks-" + kafkaClientId.incrementAndGet())));
+    kafkaClientMetrics.bindTo(meterCache.getMeterRegistry());
+    return kafkaClientMetrics;
   }
 
   @SuppressWarnings("rawtypes")

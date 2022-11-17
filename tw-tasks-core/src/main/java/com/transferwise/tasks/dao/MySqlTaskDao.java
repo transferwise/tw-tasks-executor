@@ -215,10 +215,32 @@ public class MySqlTaskDao implements ITaskDao {
 
       if (keyProvided) {
         Integer keyHash = key.hashCode();
-        int insertedCount = jdbcTemplate.update(insertUniqueTaskKeySql, args(taskId, keyHash, key));
-        if (insertedCount == 0) {
-          log.debug("Task with key '{}' and hash '{}' was not unique.", key, keyHash);
-          return new InsertTaskResponse().setInserted(false);
+
+        // TODO: We should check ignore result here as well.
+        Connection con = DataSourceUtils.getConnection(dataSource);
+        try {
+          try (PreparedStatement ps = con.prepareStatement(insertUniqueTaskKeySql)) {
+            args(taskId, keyHash, key).setValues(ps);
+
+            int insertedCount = ps.executeUpdate();
+
+            SQLWarning warnings = ps.getWarnings();
+
+            if (insertedCount == 0) {
+              if (!didInsertFailDueToDuplicateKeyConflict(warnings)) {
+                throw new IllegalStateException("Task insertion did not succeed. The warning code is unknown: " + warnings.getErrorCode());
+              }
+
+              log.debug("Task with key '{}' and hash '{}' was not unique.", key, keyHash);
+              return new InsertTaskResponse().setInserted(false);
+            } else if (warnings != null) {
+              // Notice, that INSERT IGNORE actually does ignore everything, even null checks or invalid data.
+              // For protecting sensitive data, we can only give out the error/vendor code.
+              throw new IllegalStateException("Task insertion succeeded, but with warnings. Error code: " + warnings.getErrorCode());
+            }
+          }
+        } finally {
+          DataSourceUtils.releaseConnection(con, dataSource);
         }
       }
 
