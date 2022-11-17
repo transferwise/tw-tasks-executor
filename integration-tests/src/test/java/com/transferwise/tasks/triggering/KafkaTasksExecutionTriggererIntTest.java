@@ -73,7 +73,6 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     kafkaConsumer = new KafkaConsumer<>(consumerProperties);
   }
 
-
   @AfterEach
   void cleanup() {
     cleanWithoutException(() -> {
@@ -87,18 +86,14 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   @Test
   void name() {
-    //    BaseTask baseTask = new BaseTask().setId(UUID.randomUUID()).setVersion(1).setType("type").setPriority(2);
-
-    //    subject.trigger(baseTask);
-
     final int submittingThreadsCount = 2;
     final int taskProcessingConcurrency = 2;
 
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy()
+        .setProcessingBucket(TOPIC)
         .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
-
 
     // when
     ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
@@ -116,7 +111,7 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
       }
     });
 
-    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer, Duration.ofDays(4).negated()));
+    kafkaConsumer.subscribe(Collections.singletonList(TOPIC));
 
     Set<String> keys = new HashSet<>();
     await().until(
