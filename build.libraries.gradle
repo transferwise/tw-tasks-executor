@@ -1,29 +1,31 @@
 ext {
     twContextVersion = "0.11.1"
     twLeaderSelectorVersion = "1.6.0"
+    springBootVersion = "${System.getenv("SPRING_BOOT_VERSION") ?: '2.7.5'}"
+
     libraries = [
             // version defined
             awaitility                      : 'org.awaitility:awaitility:4.2.0',
-            gafferJta                       : 'com.transferwise.common:tw-gaffer-jta:1.4.0',
-            apacheCuratorRecipies           : "org.apache.curator:curator-recipes:5.2.1",
+            gafferJta                       : 'com.transferwise.common:tw-gaffer-jta:1.5.0',
+            apacheCuratorRecipies           : "org.apache.curator:curator-recipes:5.4.0",
             apacheCommonsCollections        : "org.apache.commons:commons-collections4:4.4",
             commonsIo                       : "commons-io:commons-io:2.11.0",
             guava                           : "com.google.guava:guava:31.1-jre",
-            newRelic                        : "com.newrelic.agent.java:newrelic-api:7.6.0",
+            newRelic                        : "com.newrelic.agent.java:newrelic-api:7.11.1",
             semver4j                        : "com.vdurmont:semver4j:3.1.0",
             spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
-            springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:${System.getenv("SPRING_BOOT_VERSION") ?: '2.5.11'}",
-            twGracefulShutdown              : "com.transferwise.common:tw-graceful-shutdown:2.3.0",
-            twGracefulShutdownIntefaces     : "com.transferwise.common:tw-graceful-shutdown-interfaces:2.3.0",
+            springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:$springBootVersion",
+            twGracefulShutdown              : "com.transferwise.common:tw-graceful-shutdown:2.8.0",
+            twGracefulShutdownIntefaces     : "com.transferwise.common:tw-graceful-shutdown-interfaces:2.8.0",
             twContext                       : "com.transferwise.common:tw-context:${twContextVersion}",
             twContextStarter                : "com.transferwise.common:tw-context-starter:${twContextVersion}",
             twIncidents                     : 'com.transferwise.common:tw-incidents:1.1.1',
             twLeaderSelector                : "com.transferwise.common:tw-leader-selector:${twLeaderSelectorVersion}",
             twLeaderSelectorStarter         : "com.transferwise.common:tw-leader-selector-starter:${twLeaderSelectorVersion}",
-            twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.7.1",
+            twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.8.1",
             twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.7.1',
-            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.0-2',
-            lz4Java                         : 'org.lz4:lz4-java:1.7.1',
+            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.2-5',
+            lz4Java                         : 'org.lz4:lz4-java:1.8.0',
 
             // versions managed by spring-boot-dependencies platform
             flywayCore                      : "org.flywaydb:flyway-core",

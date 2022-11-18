@@ -432,12 +432,13 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     testClock.tick(Duration.ofMinutes(11));
     final DeleteFinishedOldTasksResult result = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);
 
-    assertEquals(117 - 60, taskDao.getTasksCountInStatus(1000, TaskStatus.DONE));
-    assertEquals(117 - 60, getUniqueTaskKeysCount());
-    assertEquals(117 - 60, getTaskDatasCount());
     assertEquals(60, result.getDeletedTasksCount());
     assertEquals(60, result.getDeletedUniqueKeysCount());
     assertEquals(60, result.getDeletedTaskDatasCount());
+
+    assertEquals(117 - 60, taskDao.getTasksCountInStatus(1000, TaskStatus.DONE));
+    assertEquals(117 - 60, getUniqueTaskKeysCount());
+    assertEquals(117 - 60, getTaskDatasCount());
     assertNotNull(result.getFirstDeletedTaskNextEventTime());
 
     final DeleteFinishedOldTasksResult result1 = taskDao.deleteOldTasks(TaskStatus.DONE, Duration.ofMinutes(10), 60);

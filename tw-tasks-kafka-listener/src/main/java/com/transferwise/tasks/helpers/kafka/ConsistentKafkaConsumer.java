@@ -256,30 +256,35 @@ public class ConsistentKafkaConsumer<T> {
 
     for (var entry : committableOffsets.entrySet()) {
       var partition = entry.getKey();
-      var commitableOffset = committableOffsets.get(partition);
+      var committableOffset = committableOffsets.get(partition);
 
       var nextAsyncCommitTimeMs = nextAsyncCommitTimesMs.get(partition);
 
       if (nextAsyncCommitTimeMs != null && nextAsyncCommitTimeMs >= TwContextClockHolder.getClock().millis()) {
+        log.debug("It is too soon to commit. nextAsyncCommitTimeMs: " + nextAsyncCommitTimeMs + ", currentTime: " + TwContextClockHolder.getClock()
+            .millis());
         continue;
       }
 
       var lastSuccessfullyCommittedOffset = lastSuccessfullyCommittedOffsets.get(partition);
-      if (lastSuccessfullyCommittedOffset != null && lastSuccessfullyCommittedOffset.equals(commitableOffset)) {
+      if (lastSuccessfullyCommittedOffset != null && lastSuccessfullyCommittedOffset.equals(committableOffset)) {
+        log.debug(
+            "Last successfully committed offset has not changed. committableOffset: " + committableOffset + ", lastSuccessfullyCommittedOffset: "
+                + lastSuccessfullyCommittedOffset);
         continue;
       }
 
       try {
-        var offsetsToCommit = Collections.singletonMap(partition, new OffsetAndMetadata(commitableOffset));
+        var offsetsToCommit = Collections.singletonMap(partition, new OffsetAndMetadata(committableOffset));
 
         try {
           log.debug("Executing async commit.");
 
           consumer.commitAsync(offsetsToCommit, (offsets, e) -> {
             if (e == null) {
-              log.debug("Successfully async-committed offset {} for partition '{}'.", commitableOffset, partition);
+              log.debug("Successfully async-committed offset {} for partition '{}'.", committableOffset, partition);
 
-              lastSuccessfullyCommittedOffsets.put(partition, commitableOffset);
+              lastSuccessfullyCommittedOffsets.put(partition, committableOffset);
             } else {
               registerCommitException(e);
             }

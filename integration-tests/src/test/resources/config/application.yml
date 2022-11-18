@@ -39,6 +39,7 @@ tw-tasks:
           task-type: "customType"
           view-task-data-roles:
             - ROLE_DEVEL
+    triggers-commit-interval: 50ms
 
 logging.level:
   com.transferwise.tasks: DEBUG
@@ -85,7 +86,7 @@ spring:
 
 spring:
   datasource:
-    url: jdbc:mariadb://${MARIADB_TCP_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test?maxAllowedPacket=1073741824&useSSL=false&rewriteBatchStatements=true
+    url: jdbc:mariadb://${MARIADB_TCP_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test?rewriteBatchStatements=false
     username: root
     password: example-password-change-me
   kafka:
