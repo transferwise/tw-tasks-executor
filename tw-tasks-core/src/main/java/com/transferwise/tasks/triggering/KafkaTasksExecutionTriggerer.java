@@ -274,10 +274,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
             coreMetricsTemplate.registerKafkaTasksExecutionTriggererTriggersReceive(bucketId);
 
+            log.debug("Adding task '{}' for processing.", task.getVersionId());
             while (!shuttingDown) {
               long processingStateVersion = bucket.getVersion().get();
 
-              log.debug("Adding task '{}' for processing.", task.getVersionId());
               ITasksProcessingService.AddTaskForProcessingResponse addTaskForProcessingResponse = tasksProcessingService
                   .addTaskForProcessing(taskTriggering);
 
@@ -377,7 +377,6 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     var bucketId = consumerBucket.getBucketId();
-    coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
 
     try {
       if (log.isDebugEnabled()) {
@@ -396,16 +395,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     var consumerBucket = getConsumerBucket(bucketId);
 
     var offsetsToCommit = new HashMap<TopicPartition, OffsetAndMetadata>();
-    consumerBucket.getOffsetsStorageLock().lock();
-    try {
-      for (var partition : partitions) {
-        var offsetToCommit = consumerBucket.getOffsetsToBeCommitted().remove(partition);
-        if (offsetToCommit != null) {
-          offsetsToCommit.put(partition, offsetToCommit);
-        }
+    for (var partition : partitions) {
+      var offsetToCommit = consumerBucket.getOffsetsToBeCommitted().remove(partition);
+      if (offsetToCommit != null) {
+        offsetsToCommit.put(partition, offsetToCommit);
       }
-    } finally {
-      consumerBucket.getOffsetsStorageLock().unlock();
     }
 
     commitSync(consumerBucket, offsetsToCommit);
@@ -419,32 +413,28 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     String bucketId = consumerBucket.getBucketId();
 
-    consumerBucket.getOffsetsStorageLock().lock();
-    try {
-      if (consumerBucket.getOffsetsToBeCommitted().isEmpty()) {
-        return;
-      }
-      try {
-        if (log.isDebugEnabled()) {
-          log.debug("Async-committing bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommitted().entrySet().stream()
-              .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
-        }
-        coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
-
-        consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommitted(), (map, e) -> {
-          if (e != null) {
-            registerCommitException(bucketId, e);
-          }
-        });
-
-      } catch (Throwable t) {
-        registerCommitException(bucketId, t);
-      }
-      // Notice, we even clear committable offsets on error.
-      consumerBucket.getOffsetsToBeCommitted().clear();
-    } finally {
-      consumerBucket.getOffsetsStorageLock().unlock();
+    if (consumerBucket.getOffsetsToBeCommitted().isEmpty()) {
+      return;
     }
+    try {
+      if (log.isDebugEnabled()) {
+        log.debug("Async-committing bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommitted().entrySet().stream()
+            .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
+      }
+      coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
+
+      consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommitted(), (map, e) -> {
+        if (e != null) {
+          registerCommitException(bucketId, e);
+        }
+      });
+
+    } catch (Throwable t) {
+      registerCommitException(bucketId, t);
+    }
+    // Notice, we even clear committable offsets on error.
+    consumerBucket.getOffsetsToBeCommitted().clear();
+
     consumerBucket.setLastCommitTime(System.currentTimeMillis());
   }
 
