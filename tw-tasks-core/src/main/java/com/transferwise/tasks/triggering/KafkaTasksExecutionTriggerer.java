@@ -385,6 +385,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
       }
       consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
+      success = true;
     } catch (Throwable t) {
       registerCommitException(bucketId, t);
     } finally {
