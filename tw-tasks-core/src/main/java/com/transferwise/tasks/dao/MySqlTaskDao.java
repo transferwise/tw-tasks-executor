@@ -30,7 +30,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,11 +42,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.support.DataAccessUtils;
-import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.datasource.DataSourceUtils;
@@ -69,6 +66,7 @@ public class MySqlTaskDao implements ITaskDao {
   private static final String DELETE_TASKS_BY_ID_BATCHES = "deleteTasksByIdBatchesSql";
   private static final String DELETE_UNIQUE_TASK_KEYS_BY_ID_BATCHES = "deleteUniqueTaskKeysByIdBatchesSql";
   private static final String DELETE_TASK_DATAS_BY_ID_BATCHES = "deleteTaskDatasByIdBatchesSql";
+  private static final String LOCK_TASKS_FOR_DELETE_SQL = "lockTasksForDeleteSql";
 
   @Autowired
   protected TasksProperties tasksProperties;
@@ -114,10 +112,10 @@ public class MySqlTaskDao implements ITaskDao {
   protected String deleteTaskSql;
   protected String deleteUniqueTaskKeySql;
   protected String deleteTaskDataSql;
-  protected String deleteFinishedOldTasksSql;
+  protected String lockTasksForDeleteBatchesSql;
   protected String deleteFinishedOldTasksSql1;
   protected String clearPayloadAndMarkDoneSql;
-  protected String getEarliesTaskNextEventTimeSql;
+  protected String getEarliestTaskNextEventTimeSql;
   protected String getTaskVersionSql;
   protected String deleteTasksByIdBatchesSql;
   protected String deleteUniqueTaskKeysByIdBatchesSql;
@@ -186,11 +184,12 @@ public class MySqlTaskDao implements ITaskDao {
     deleteTasksByIdBatchesSql = "delete from " + taskTable + " where id in (??)";
     deleteUniqueTaskKeysByIdBatchesSql = "delete from " + uniqueTaskKeyTable + " where task_id in (??)";
     deleteTaskDatasByIdBatchesSql = "delete from " + taskDataTable + " where task_id in (??)";
-    deleteFinishedOldTasksSql = "select id,version from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
+    // TODO: MariaDb 10.6+ could also support skip locked clause.
+    lockTasksForDeleteBatchesSql = "select id, version from " + taskTable + " where id in (??) for update";
     deleteFinishedOldTasksSql1 = "select next_event_time from " + taskTable + " where id=?";
-    deleteFinishedOldTasksSql2 = "select id from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
+    deleteFinishedOldTasksSql2 = "select id, version from " + taskTable + " where status=? and next_event_time<? order by next_event_time limit ?";
     clearPayloadAndMarkDoneSql = "update " + taskTable + " set data='',status=?,state_time=?,time_updated=?,version=? where id=? and version=?";
-    getEarliesTaskNextEventTimeSql = "select min(next_event_time) from " + taskTable + " where status=?";
+    getEarliestTaskNextEventTimeSql = "select min(next_event_time) from " + taskTable + " where status=?";
     getTaskVersionSql = "select version from " + taskTable + " where id=?";
     getApproximateTasksCountSql = getApproximateTableCountSql(false, tasksProperties.getTaskTableName());
     getApproximateTasksCountSql1 = getApproximateTableCountSql(true, tasksProperties.getTaskTableName());
@@ -343,7 +342,7 @@ public class MySqlTaskDao implements ITaskDao {
   @Transactional(rollbackFor = Exception.class, isolation = Isolation.READ_UNCOMMITTED)
   @MonitoringQuery
   public ZonedDateTime getEarliestTaskNextEventTime(TaskStatus status) {
-    return getFirst(jdbcTemplate.query(getEarliesTaskNextEventTimeSql, args(status), (rs, idx) ->
+    return getFirst(jdbcTemplate.query(getEarliestTaskNextEventTimeSql, args(status), (rs, idx) ->
         TimeUtils.toZonedDateTime(rs.getTimestamp(1))));
   }
 
@@ -476,22 +475,18 @@ public class MySqlTaskDao implements ITaskDao {
   @Override
   @Transactional(rollbackFor = Exception.class)
   public DeleteFinishedOldTasksResult deleteOldTasks(TaskStatus taskStatus, Duration age, int batchSize) {
-    if (tasksProperties.isParanoidTasksCleaning()) {
-      return deleteOldTasksParanoid(taskStatus, age, batchSize);
-    }
-
     DeleteFinishedOldTasksResult result = new DeleteFinishedOldTasksResult();
     Timestamp deletedBeforeTime = Timestamp.from(Instant.now(TwContextClockHolder.getClock()).minus(age));
 
-    List<Object> taskIds = jdbcTemplate.query(deleteFinishedOldTasksSql2,
-        args(taskStatus.name(), deletedBeforeTime, batchSize), (rs, rowNum) -> rs.getObject(1));
+    List<TaskVersionId> taskVersionIds = jdbcTemplate.query(deleteFinishedOldTasksSql2,
+        args(taskStatus.name(), deletedBeforeTime, batchSize),
+        (rs, rowNum) -> new TaskVersionId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)), rs.getLong(2)));
 
-    if (!taskIds.isEmpty()) {
-      UUID firstDeletedTaskId = sqlMapper.sqlTaskIdToUuid(taskIds.get(0));
+    if (!taskVersionIds.isEmpty()) {
+      UUID firstDeletedTaskId = taskVersionIds.get(0).getId();
       result.setFirstDeletedTaskId(firstDeletedTaskId);
       ZonedDateTime nextEventTime = getFirst(jdbcTemplate.query(deleteFinishedOldTasksSql1,
-          args(firstDeletedTaskId),
-          (rs, rowNum) -> TimeUtils.toZonedDateTime(rs.getTimestamp(1))));
+          args(firstDeletedTaskId), (rs, rowNum) -> TimeUtils.toZonedDateTime(rs.getTimestamp(1))));
 
       result.setFirstDeletedTaskNextEventTime(nextEventTime);
     }
@@ -502,20 +497,52 @@ public class MySqlTaskDao implements ITaskDao {
     int processedIdsCount = 0;
 
     for (int b = questionBuckets.length - 1; b >= 0; b--) {
-      int bucketSize = questionBuckets[b];
-      while (taskIds.size() - processedIdsCount >= bucketSize) {
+      var bucketSize = questionBuckets[b];
+
+      while (taskVersionIds.size() - processedIdsCount >= bucketSize) {
+        final int currentProcessedIdsCount = processedIdsCount;
+
+        if (tasksProperties.isParanoidTasksCleaning()) {
+          var tasksDeleteLockSql = sqlCache.computeIfAbsent(new CacheKey(LOCK_TASKS_FOR_DELETE_SQL, b),
+              k -> SqlHelper.expandParametersList(lockTasksForDeleteBatchesSql, bucketSize)
+          );
+
+          var lockedTaskVersionIdsList = jdbcTemplate.query(con -> {
+            PreparedStatement ps = con.prepareStatement(tasksDeleteLockSql);
+            try {
+              for (int i = 0; i < bucketSize; i++) {
+                ps.setObject(1 + i, sqlMapper.uuidToSqlTaskId(taskVersionIds.get(i + currentProcessedIdsCount).getId()));
+              }
+            } catch (Throwable t) {
+              ps.close();
+              throw t;
+            }
+            return ps;
+          }, (rs, rowNum) -> new TaskVersionId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)), rs.getLong(2)));
+
+          var lockedTaskVersionIdsMap = lockedTaskVersionIdsList.stream().collect(Collectors.toMap(TaskVersionId::getId, e -> e));
+
+          for (int i = 0; i < bucketSize; i++) {
+            var originalTaskVersionId = taskVersionIds.get(currentProcessedIdsCount + i);
+            var lockedTaskVersionId = lockedTaskVersionIdsMap.get(originalTaskVersionId.getId());
+            // If version has changed, we will skip the deletion in this cycle.
+            // It can be null, due to record having already deleted or skip locked applying.
+            if (lockedTaskVersionId == null || originalTaskVersionId.getVersion() != lockedTaskVersionId.getVersion()) {
+              taskVersionIds.get(currentProcessedIdsCount + i).setId(null);
+            }
+          }
+        }
 
         String tasksDeleteSql = sqlCache.computeIfAbsent(
             new CacheKey(DELETE_TASKS_BY_ID_BATCHES, b),
             k -> SqlHelper.expandParametersList(deleteTasksByIdBatchesSql, bucketSize)
         );
 
-        final int currentProcessedIdsCount = processedIdsCount;
         deletedTasksCount += jdbcTemplate.update(con -> {
           PreparedStatement ps = con.prepareStatement(tasksDeleteSql);
           try {
             for (int i = 0; i < bucketSize; i++) {
-              ps.setObject(1 + i, taskIds.get(i + currentProcessedIdsCount));
+              ps.setObject(1 + i, sqlMapper.uuidToSqlTaskId(taskVersionIds.get(i + currentProcessedIdsCount).getId()));
             }
           } catch (Throwable t) {
             ps.close();
@@ -524,7 +551,7 @@ public class MySqlTaskDao implements ITaskDao {
           return ps;
         });
 
-        String uniqueTaskKeysDeleteSql = sqlCache.computeIfAbsent(
+        var uniqueTaskKeysDeleteSql = sqlCache.computeIfAbsent(
             new CacheKey(DELETE_UNIQUE_TASK_KEYS_BY_ID_BATCHES, b),
             k -> SqlHelper.expandParametersList(deleteUniqueTaskKeysByIdBatchesSql, bucketSize)
         );
@@ -533,7 +560,7 @@ public class MySqlTaskDao implements ITaskDao {
           PreparedStatement ps = con.prepareStatement(uniqueTaskKeysDeleteSql);
           try {
             for (int i = 0; i < bucketSize; i++) {
-              ps.setObject(1 + i, taskIds.get(i + currentProcessedIdsCount));
+              ps.setObject(1 + i, sqlMapper.uuidToSqlTaskId(taskVersionIds.get(i + currentProcessedIdsCount).getId()));
             }
           } catch (Throwable t) {
             ps.close();
@@ -542,7 +569,7 @@ public class MySqlTaskDao implements ITaskDao {
           return ps;
         });
 
-        String taskDatasDeleteSql = sqlCache.computeIfAbsent(
+        var taskDatasDeleteSql = sqlCache.computeIfAbsent(
             new CacheKey(DELETE_TASK_DATAS_BY_ID_BATCHES, b),
             k -> SqlHelper.expandParametersList(deleteTaskDatasByIdBatchesSql, bucketSize)
         );
@@ -551,7 +578,7 @@ public class MySqlTaskDao implements ITaskDao {
           PreparedStatement ps = con.prepareStatement(taskDatasDeleteSql);
           try {
             for (int i = 0; i < bucketSize; i++) {
-              ps.setObject(1 + i, taskIds.get(i + currentProcessedIdsCount));
+              ps.setObject(1 + i, sqlMapper.uuidToSqlTaskId(taskVersionIds.get(i + currentProcessedIdsCount).getId()));
             }
           } catch (Throwable t) {
             ps.close();
@@ -562,86 +589,12 @@ public class MySqlTaskDao implements ITaskDao {
 
         processedIdsCount += bucketSize;
       }
-
     }
 
     result.setDeletedTasksCount(deletedTasksCount);
     result.setDeletedUniqueKeysCount(deletedUniqueTaskKeysCount);
     result.setDeletedTaskDatasCount(deleteTaskDatasCount);
-    result.setFoundTasksCount(taskIds.size());
-    result.setDeletedBeforeTime(TimeUtils.toZonedDateTime(deletedBeforeTime));
-
-    return result;
-  }
-
-  protected DeleteFinishedOldTasksResult deleteOldTasksParanoid(TaskStatus taskStatus, Duration age, int batchSize) {
-    DeleteFinishedOldTasksResult result = new DeleteFinishedOldTasksResult();
-    Timestamp deletedBeforeTime = Timestamp.from(Instant.now(TwContextClockHolder.getClock()).minus(age));
-
-    List<Pair<Object, Long>> taskVersionIds = jdbcTemplate.query(deleteFinishedOldTasksSql,
-        args(taskStatus.name(), deletedBeforeTime, batchSize),
-        (rs, rowNum) -> ImmutablePair.of(rs.getObject(1), rs.getLong(2)));
-
-    if (!taskVersionIds.isEmpty()) {
-      UUID firstDeletedTaskId = sqlMapper.sqlTaskIdToUuid(taskVersionIds.get(0).getLeft());
-      result.setFirstDeletedTaskId(firstDeletedTaskId);
-      ZonedDateTime nextEventTime = getFirst(jdbcTemplate.query(deleteFinishedOldTasksSql1,
-          args(firstDeletedTaskId),
-          (rs, rowNum) -> TimeUtils.toZonedDateTime(rs.getTimestamp(1))));
-
-      result.setFirstDeletedTaskNextEventTime(nextEventTime);
-    }
-
-    int tasksCount = 0;
-    int[] tasksDeleteResult = jdbcTemplate.batchUpdate(deleteTaskSql, new BatchPreparedStatementSetter() {
-      @Override
-      public void setValues(PreparedStatement ps, int i) throws SQLException {
-        ps.setObject(1, taskVersionIds.get(i).getLeft());
-        ps.setLong(2, taskVersionIds.get(i).getRight());
-      }
-
-      @Override
-      public int getBatchSize() {
-        return taskVersionIds.size();
-      }
-    });
-
-    List<Object> deletedIds = new ArrayList<>();
-    for (int i = 0; i < tasksDeleteResult.length; i++) {
-      if (tasksDeleteResult[i] > 0) {
-        deletedIds.add(taskVersionIds.get(i).getLeft());
-        tasksCount += tasksDeleteResult[i];
-      }
-    }
-
-    int uniqueTaskKeysCount = Arrays.stream(jdbcTemplate.batchUpdate(deleteUniqueTaskKeySql, new BatchPreparedStatementSetter() {
-      @Override
-      public void setValues(PreparedStatement ps, int i) throws SQLException {
-        ps.setObject(1, deletedIds.get(i));
-      }
-
-      @Override
-      public int getBatchSize() {
-        return deletedIds.size();
-      }
-    })).sum();
-
-    int taskDatasCount = Arrays.stream(jdbcTemplate.batchUpdate(deleteTaskDataSql, new BatchPreparedStatementSetter() {
-      @Override
-      public void setValues(PreparedStatement ps, int i) throws SQLException {
-        ps.setObject(1, deletedIds.get(i));
-      }
-
-      @Override
-      public int getBatchSize() {
-        return deletedIds.size();
-      }
-    })).sum();
-
-    result.setDeletedTasksCount(result.getDeletedTasksCount() + tasksCount);
-    result.setDeletedUniqueKeysCount(result.getDeletedUniqueKeysCount() + uniqueTaskKeysCount);
-    result.setDeletedTaskDatasCount(result.getDeletedTaskDatasCount() + taskDatasCount);
-    result.setFoundTasksCount(result.getFoundTasksCount() + taskVersionIds.size());
+    result.setFoundTasksCount(taskVersionIds.size());
     result.setDeletedBeforeTime(TimeUtils.toZonedDateTime(deletedBeforeTime));
 
     return result;

@@ -68,8 +68,6 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_RECEIVED_TRIGGERS_COUNT =
       METRIC_PREFIX + "kafkaTasksExecutionTriggerer.receivedTriggersCount";
   private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_COMMITS_COUNT = METRIC_PREFIX + "kafkaTasksExecutionTriggerer.commitsCount";
-  private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_FAILED_COMMITS_COUNT =
-      METRIC_PREFIX + "kafkaTasksExecutionTriggerer.failedCommitsCount";
   private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_OFFSET_ALREADY_COMMITTED =
       METRIC_PREFIX + "kafkaTasksExecutionTriggerer.offsetAlreadyCommitted";
   private static final String METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_OFFSETS_TO_BE_COMMITED_COUNT =
@@ -99,6 +97,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   private static final String TAG_TO_STATUS = "toStatus";
   private static final String TAG_TASK_STATUS = "taskStatus";
   private static final String TAG_BUCKET_ID = "bucketId";
+  private static final String TAG_SYNC = "sync";
+  private static final String TAG_SUCCESS = "success";
   private static final String TAG_TASK_TYPE = "taskType";
   private static final String TAG_SOURCE = "source";
   private static final String TAG_REASON = "reason";
@@ -327,14 +327,9 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public void registerKafkaTasksExecutionTriggererCommit(String bucketId) {
-    meterCache.counter(METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_COMMITS_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId)))
-        .increment();
-  }
-
-  @Override
-  public void registerKafkaTasksExecutionTriggererFailedCommit(String bucketId) {
-    meterCache.counter(METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_FAILED_COMMITS_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId)))
+  public void registerKafkaTasksExecutionTriggererCommit(String bucketId, boolean sync, boolean success) {
+    meterCache.counter(METRIC_KAFKA_TASKS_EXECUTION_TRIGGERER_COMMITS_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId),
+            TAG_SYNC, String.valueOf(sync), TAG_SUCCESS, String.valueOf(success)))
         .increment();
   }
 

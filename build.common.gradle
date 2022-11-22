@@ -126,7 +126,7 @@ test {
     // When you want to rerun tests without any changes made
     // outputs.upToDateWhen { false }
 
-    jvmArgs("-server", "-noverify", "-Djava.security.egd=file:/dev/./urandom", "-XX:+ExplicitGCInvokesConcurrent",
+    jvmArgs("-server", "-Djava.security.egd=file:/dev/./urandom", "-XX:+ExplicitGCInvokesConcurrent",
             "-Xmx1g", "-XX:+HeapDumpOnOutOfMemoryError")
     useJUnitPlatform()
 }
