@@ -74,9 +74,7 @@ public interface ICoreMetricsTemplate {
 
   void registerKafkaTasksExecutionTriggererTriggersReceive(String bucketId);
 
-  void registerKafkaTasksExecutionTriggererCommit(String bucketId);
-
-  void registerKafkaTasksExecutionTriggererFailedCommit(String bucketId);
+  void registerKafkaTasksExecutionTriggererCommit(String bucketId, boolean sync, boolean success);
 
   void registerKafkaTasksExecutionTriggererAlreadyCommitedOffset(String bucketId);
 

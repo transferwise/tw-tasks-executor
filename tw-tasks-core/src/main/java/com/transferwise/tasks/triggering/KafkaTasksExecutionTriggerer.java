@@ -377,17 +377,18 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     var bucketId = consumerBucket.getBucketId();
+    var success = false;
 
     try {
       if (log.isDebugEnabled()) {
         log.debug("Sync-committing bucket '" + bucketId + "' offsets to Kafka: " + offsetsToCommit.entrySet().stream()
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
       }
-      coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
-
       consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
     } catch (Throwable t) {
       registerCommitException(bucketId, t);
+    } finally {
+      coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, true, success);
     }
   }
 
@@ -421,11 +422,13 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         log.debug("Async-committing bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommitted().entrySet().stream()
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
       }
-      coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
 
       consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommitted(), (map, e) -> {
         if (e != null) {
+          coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, false, false);
           registerCommitException(bucketId, e);
+        } else {
+          coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, false, true);
         }
       });
 
@@ -441,7 +444,6 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   protected void registerCommitException(String bucketId, Throwable t) {
     if (t instanceof RebalanceInProgressException || t instanceof ReassignmentInProgressException || t instanceof CommitFailedException
         || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
-      coreMetricsTemplate.registerKafkaTasksExecutionTriggererFailedCommit(bucketId);
       if (log.isDebugEnabled()) {
         log.debug("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
       }

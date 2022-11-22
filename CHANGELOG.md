@@ -17,6 +17,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 * Removing support for Spring Boot 2.4
 
+### Removed
+
+* Metric `kafkaTasksExecutionTriggerer.failedCommitsCount` was removed.
+  `kafkaTasksExecutionTriggerer.commitsCount` got `sync` and `success` tags.
+
 #### 1.36.0 - 2022/10/24
 
 ### Added
