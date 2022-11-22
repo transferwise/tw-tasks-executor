@@ -28,6 +28,7 @@ import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
 import com.vdurmont.semver4j.Semver;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.CommitFailedException;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
@@ -252,7 +254,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           continue;
         }
 
-        commitOffsets(consumerBucket, false);
+        commitOffsetsWithLowFrequency(consumerBucket);
 
         consumerBucket.setUnprocessedFetchedRecordsCount(consumerRecords.count());
         for (ConsumerRecord<String, String> consumerRecord : consumerRecords) {
@@ -272,10 +274,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
             coreMetricsTemplate.registerKafkaTasksExecutionTriggererTriggersReceive(bucketId);
 
+            log.debug("Adding task '{}' for processing.", task.getVersionId());
             while (!shuttingDown) {
               long processingStateVersion = bucket.getVersion().get();
 
-              log.debug("Adding task '{}' for processing.", task.getVersionId());
               ITasksProcessingService.AddTaskForProcessingResponse addTaskForProcessingResponse = tasksProcessingService
                   .addTaskForProcessing(taskTriggering);
 
@@ -311,7 +313,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       }
     } finally {
       pollingBucketsCount.decrementAndGet();
-      // Notice, that now commits will not work anymore. However that is ok, we prefer to unsubscribe,
+      // Notice, that now commits will not work anymore. However, that is ok, we prefer to unsubscribe,
       // so other nodes can take the partitions to themselves asap.
       closeKafkaConsumer(consumerBuckets.get(bucketId));
     }
@@ -356,7 +358,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           if (consumerTopicPartition.isDone(firstOffset)) {
             // From Kafka Docs
             // Note: The committed offset should always be the offset of the next message that your application will read.
-            consumerBucket.getOffsetsToBeCommited().put(topicPartition, new OffsetAndMetadata(firstOffset + 1));
+            consumerBucket.getOffsetsToBeCommitted().put(topicPartition, new OffsetAndMetadata(firstOffset + 1));
             offsets.pollFirst();
             consumerTopicPartition.getOffsetsCompleted().remove(firstOffset);
           } else {
@@ -369,49 +371,80 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
   }
 
-  private void commitOffsets(ConsumerBucket consumerBucket, boolean finalize) {
+  private void commitSync(ConsumerBucket consumerBucket, Map<TopicPartition, OffsetAndMetadata> offsetsToCommit) {
+    if (offsetsToCommit.isEmpty()) {
+      return;
+    }
+
+    var bucketId = consumerBucket.getBucketId();
+    var success = false;
+
+    try {
+      if (log.isDebugEnabled()) {
+        log.debug("Sync-committing bucket '" + bucketId + "' offsets to Kafka: " + offsetsToCommit.entrySet().stream()
+            .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
+      }
+      consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
+      success = true;
+    } catch (Throwable t) {
+      registerCommitException(bucketId, t);
+    } finally {
+      coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, true, success);
+    }
+  }
+
+  private void commitSyncOnPartitionsRevoked(String bucketId, Collection<TopicPartition> partitions) {
+    var consumerBucket = getConsumerBucket(bucketId);
+
+    var offsetsToCommit = new HashMap<TopicPartition, OffsetAndMetadata>();
+    for (var partition : partitions) {
+      var offsetToCommit = consumerBucket.getOffsetsToBeCommitted().remove(partition);
+      if (offsetToCommit != null) {
+        offsetsToCommit.put(partition, offsetToCommit);
+      }
+    }
+
+    commitSync(consumerBucket, offsetsToCommit);
+  }
+
+  private void commitOffsetsWithLowFrequency(ConsumerBucket consumerBucket) {
     // No need to commit after every fast poll.
-    if (!finalize && (System.currentTimeMillis() - consumerBucket.getLastCommitTime() < tasksProperties.getGenericMediumDelay().toMillis())) {
+    if (System.currentTimeMillis() - consumerBucket.getLastCommitTime() < tasksProperties.getTriggersCommitInterval().toMillis()) {
       return;
     }
 
     String bucketId = consumerBucket.getBucketId();
-    consumerBucket.getOffsetsStorageLock().lock();
-    try {
-      if (consumerBucket.getOffsetsToBeCommited().isEmpty()) {
-        return;
-      }
-      try {
-        if (log.isDebugEnabled()) {
-          log.debug("Commiting bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommited().entrySet().stream()
-              .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
-        }
-        coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId);
 
-        if (finalize) {
-          consumerBucket.getKafkaConsumer().commitSync(consumerBucket.getOffsetsToBeCommited());
-        } else {
-          consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommited(), (map, e) -> {
-            if (e != null) {
-              registerCommitException(bucketId, e);
-            }
-          });
-        }
-      } catch (Throwable t) {
-        registerCommitException(bucketId, t);
-      }
-      // Notice, we even clear commitable offsets on error.
-      consumerBucket.getOffsetsToBeCommited().clear();
-    } finally {
-      consumerBucket.getOffsetsStorageLock().unlock();
+    if (consumerBucket.getOffsetsToBeCommitted().isEmpty()) {
+      return;
     }
+    try {
+      if (log.isDebugEnabled()) {
+        log.debug("Async-committing bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommitted().entrySet().stream()
+            .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
+      }
+
+      consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommitted(), (map, e) -> {
+        if (e != null) {
+          coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, false, false);
+          registerCommitException(bucketId, e);
+        } else {
+          coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, false, true);
+        }
+      });
+
+    } catch (Throwable t) {
+      registerCommitException(bucketId, t);
+    }
+    // Notice, we even clear committable offsets on error.
+    consumerBucket.getOffsetsToBeCommitted().clear();
+
     consumerBucket.setLastCommitTime(System.currentTimeMillis());
   }
 
   protected void registerCommitException(String bucketId, Throwable t) {
     if (t instanceof RebalanceInProgressException || t instanceof ReassignmentInProgressException || t instanceof CommitFailedException
         || t instanceof RetriableException) { // Topic got rebalanced on shutdown.
-      coreMetricsTemplate.registerKafkaTasksExecutionTriggererFailedCommit(bucketId);
       if (log.isDebugEnabled()) {
         log.debug("Committing Kafka offset failed for bucket '" + bucketId + "'.", t);
       }
@@ -496,9 +529,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     List<String> topics = getTopics(bucketId);
     log.info("Subscribing to Kafka topics '{}'", topics);
     if (bucketProperties.getAutoResetOffsetToDuration() == null) {
-      kafkaConsumer.subscribe(topics);
+      kafkaConsumer.subscribe(topics, new CommittingRebalanceListener(bucketId, null));
     } else {
-      kafkaConsumer.subscribe(topics, new SeekToDurationOnRebalanceListener(kafkaConsumer, bucketProperties.getAutoResetOffsetToDuration()));
+      kafkaConsumer.subscribe(topics,
+          new CommittingRebalanceListener(bucketId,
+              new SeekToDurationOnRebalanceListener(kafkaConsumer, bucketProperties.getAutoResetOffsetToDuration())));
     }
     return kafkaConsumer;
   }
@@ -523,12 +558,12 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       return;
     }
 
-    commitOffsets(consumerBucket, true);
+    commitOffsetsWithLowFrequency(consumerBucket);
 
     try {
       kafkaConsumer.unsubscribe();
     } catch (Throwable t) {
-      log.error(t.getMessage(), t);
+      log.error("Unsubscribing kafka consumer failed.", t);
     }
 
     try {
@@ -664,12 +699,12 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     private AutoCloseable consumerMetricsHandle;
     private Map<TopicPartition, ConsumerTopicPartition> consumerTopicPartitions = new ConcurrentHashMap<>();
     private Lock offsetsStorageLock = new ReentrantLock();
-    private Map<TopicPartition, OffsetAndMetadata> offsetsToBeCommited = new ConcurrentHashMap<>();
+    private Map<TopicPartition, OffsetAndMetadata> offsetsToBeCommitted = new ConcurrentHashMap<>();
     private int unprocessedFetchedRecordsCount;
     private boolean topicConfigured;
 
     public int getOffsetsToBeCommitedCount() {
-      return offsetsToBeCommited.size();
+      return offsetsToBeCommitted.size();
     }
 
     public int getUnprocessedFetchedRecordsCount() {
@@ -712,5 +747,32 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     private ITasksService.TasksProcessingState state = ITasksService.TasksProcessingState.STOPPED;
     private CompletableFuture<Void> stopFuture;
+  }
+
+  private class CommittingRebalanceListener implements ConsumerRebalanceListener {
+
+    private ConsumerRebalanceListener delegate;
+    private String bucketId;
+
+    private CommittingRebalanceListener(String bucketId, ConsumerRebalanceListener delegate) {
+      this.bucketId = bucketId;
+      this.delegate = delegate;
+    }
+
+    @Override
+    public void onPartitionsRevoked(Collection<TopicPartition> partitions) {
+      commitSyncOnPartitionsRevoked(bucketId, partitions);
+
+      if (delegate != null) {
+        delegate.onPartitionsRevoked(partitions);
+      }
+    }
+
+    @Override
+    public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
+      if (delegate != null) {
+        delegate.onPartitionsAssigned(partitions);
+      }
+    }
   }
 }

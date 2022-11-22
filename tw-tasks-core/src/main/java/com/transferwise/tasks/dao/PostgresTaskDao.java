@@ -30,6 +30,8 @@ public class PostgresTaskDao extends MySqlTaskDao {
         + "(?,?,?,?,?,?,?,?,?,?,?,?) on conflict do nothing";
     insertUniqueTaskKeySql = "insert into " + uniqueTaskKeyTable + "(task_id,key_hash,key) values"
         + "(?, ?, ?) on conflict (key_hash, key) do nothing";
+
+    lockTasksForDeleteBatchesSql = "select id, version from " + taskTable + " where id in (??) for update skip locked";
   }
 
   @Override

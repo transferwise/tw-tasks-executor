@@ -12,8 +12,7 @@ public class ExecutorThreadFactory implements ThreadFactory {
   public ExecutorThreadFactory(String groupName) {
     this.groupName = groupName;
 
-    SecurityManager s = System.getSecurityManager();
-    group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
+    group = Thread.currentThread().getThreadGroup();
 
   }
 

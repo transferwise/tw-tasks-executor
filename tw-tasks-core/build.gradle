@@ -32,5 +32,6 @@ dependencies {
     implementation libraries.springBeans
     implementation libraries.springBoot // (used by TwTasksApplicationListener)
     implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
-    //
+
+    testImplementation libraries.logbackClassic
 }

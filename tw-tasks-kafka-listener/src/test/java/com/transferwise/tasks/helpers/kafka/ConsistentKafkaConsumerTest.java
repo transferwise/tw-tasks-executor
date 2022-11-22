@@ -12,6 +12,7 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.helpers.kafka.meters.KafkaListenerMetricsTemplate;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -36,7 +37,7 @@ public class ConsistentKafkaConsumerTest {
   @Test
   @SneakyThrows
   void testCommitLogic() {
-    var testClock = new TestClock();
+    var testClock = new TestClock(Instant.now());
     TwContextClockHolder.setClock(testClock);
 
     final var meterRegistry = new SimpleMeterRegistry();
@@ -84,7 +85,7 @@ public class ConsistentKafkaConsumerTest {
         .setUnitOfWorkManager(unitOfWorkManager)
         .setShouldFinishPredicate(() -> shouldFinish.get())
         .setAutoResetOffsetTo("earliest")
-        .setAsyncCommitInterval(Duration.ofSeconds(4))
+        .setAsyncCommitInterval(Duration.ofSeconds(1))
         .setDelayTimeout(Duration.ofMillis(100))
         .setKafkaListenerMetricsTemplate(kafkaListenerMetricsTemplate)
         .setRecordConsumer(consumerRecord -> {
@@ -101,8 +102,10 @@ public class ConsistentKafkaConsumerTest {
         }
     );
 
-    testClock.tick(Duration.ofSeconds(5));
-    mockConsumer.schedulePollTask(() -> mockConsumer.addRecord(new ConsumerRecord<>(testTopic, 0, 1, "testKey", "testValue1")));
+    mockConsumer.schedulePollTask(() -> {
+      testClock.tick(Duration.ofSeconds(5));
+      mockConsumer.addRecord(new ConsumerRecord<>(testTopic, 0, 1, "testKey", "testValue1"));
+    });
 
     await().until(() -> {
           var offsetAndMetaData = mockConsumer.committed(Set.of(partition0)).get(partition0);
