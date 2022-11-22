@@ -130,6 +130,12 @@ jobs:
       - ubuntu-latest
     needs: matrix_build
     steps:
+      # Needed hacks to properly fail the build when one matrix build fails.
+      - name: Do something so that GHA is happy
+        run: echo "Be happy!"
+      - name: Verify matrix jobs succeeded
+        if: ${{ needs.matrix_build.result != 'success' }}
+        run: exit 1
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: "Gradle cache"
