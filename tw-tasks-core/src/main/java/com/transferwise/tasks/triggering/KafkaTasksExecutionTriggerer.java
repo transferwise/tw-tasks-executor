@@ -320,7 +320,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   }
 
   private String triggerTopicNameRoot() {
-    String topic = tasksProperties.getTriggering().getKafka().getTopicName();
+    String topic = tasksProperties.getTriggering().getKafka().getTopicPrefix();
     if (topic != null) {
       return topic;
     } else {

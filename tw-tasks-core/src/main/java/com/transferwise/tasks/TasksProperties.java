@@ -347,7 +347,7 @@ public class TasksProperties {
       private String bootstrapServers;
 
       @ResolvedValue
-      private String topicName;
+      private String topicPrefix;
 
       /**
        * Allows to override configuration properties for both Kafka Consumers. and Producers.
