@@ -111,7 +111,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   @PostConstruct
   public void init() {
     executorService = executorsHelper.newCachedExecutor("ktet");
-    triggerTopic = "twTasks." + tasksProperties.getGroupId() + ".executeTask";
+    triggerTopic = triggerTopicNameRoot();
 
     tasksProcessingService.addTaskTriggeringFinishedListener(taskTriggering -> {
       if (taskTriggering.isSameProcessTrigger()) {
@@ -316,6 +316,15 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       // Notice, that now commits will not work anymore. However, that is ok, we prefer to unsubscribe,
       // so other nodes can take the partitions to themselves asap.
       closeKafkaConsumer(consumerBuckets.get(bucketId));
+    }
+  }
+
+  private String triggerTopicNameRoot() {
+    String topic = tasksProperties.getTriggering().getKafka().getTopicName();
+    if (topic != null) {
+      return topic;
+    } else {
+      return "twTasks." + tasksProperties.getGroupId() + ".executeTask";
     }
   }
 
