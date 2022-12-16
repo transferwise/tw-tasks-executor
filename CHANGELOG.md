@@ -5,12 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### 1.36.0 - 2022/11/14
+#### 1.38.0 - 2022/12/16
 
 ### Changed
 
 * Added IPartitionKeyStrategy interface and a basic implementation, RandomPartitionKeyStrategy.
 * Included IPartitionKeyStrategy into SimpleTaskProcessingPolicy
+
+#### 1.37.1 - 2022/11/28
+
+### Changed
+
+* The Spring Boot Version from which the library dependencies are derived, was moved from 2.7 to 2.6.
+  This should give better compatibility, as backward compatibility is usually better than forward one.
+
+#### 1.37.0 - 2022/11/17
+
+### Changed
+
+* Tasks' triggers' offset is committed synchronously, when partitions are revoked.
+
+* Reworked paranoid tasks cleaner to work with latest mariadb drivers.
+
+* Made it compatible with Spring Boot 2.7
+
+* Removing support for Spring Boot 2.4
+
+### Removed
+
+* Metric `kafkaTasksExecutionTriggerer.failedCommitsCount` was removed.
+  `kafkaTasksExecutionTriggerer.commitsCount` got `sync` and `success` tags.
+
+#### 1.36.0 - 2022/10/24
+
+### Added
+
+* Some initialization logs allowing to understand which lock keys are used.
+
+### Changed
+
+* `ConsistentKafkaConsumer` is asynchronously commiting offsets now with an interval, by default once in 5 seconds per partition.
+  Notice that tw-tasks-kafka-listener is deprecated.
+* `ConsistentKafkaConsumer` is doing a synchronous commit, during revoking of partitions.
+  This would make it much less likely that a node getting those partitions assigned will find duplicates.
+
+### Fixed
+
+* Inserting unique key into database is more consistent.
 
 #### 1.35.0 - 2022/05/12
 
@@ -34,8 +75,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Fixed
 
 * Putting back `ConsumerConfig.PARTITION_ASSIGNMENT_STRATEGY_CONFIG, CooperativeStickyAssignor.class.getName() + "," + RangeAssignor.class.getName()`
-for Kafka consumers. Typically, the tw-tasks consumer group is shared with other kafka consumers in a service, so just `CooperativeStickyAssignor`
-would create issues on older kafka-clients.
+  for Kafka consumers. Typically, the tw-tasks consumer group is shared with other kafka consumers in a service, so just `CooperativeStickyAssignor`
+  would create issues on older kafka-clients.
 
 #### 1.33.0 - 2022/04/05
 

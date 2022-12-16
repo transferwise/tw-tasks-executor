@@ -20,5 +20,7 @@ dependencies {
     implementation libraries.kafkaClients
     implementation libraries.micrometerCore
 
+    testImplementation libraries.awaitility
     testImplementation libraries.springBootAutoconfigure
+    testImplementation libraries.logbackClassic
 }

@@ -1,6 +1,7 @@
 package com.transferwise.tasks.ext.kafkalistener.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.common.baseutils.meters.cache.IMeterCache;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.helpers.kafka.IKafkaListenerConsumerPropertiesProvider;
 import com.transferwise.tasks.helpers.kafka.TwTasksKafkaListenerProperties;
@@ -45,8 +46,8 @@ public class TwTasksExtKafkaListenerAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(IKafkaListenerMetricsTemplate.class)
-  public KafkaListenerMetricsTemplate twTasksKafkaListenerMetricsTemplate() {
-    return new KafkaListenerMetricsTemplate();
+  public KafkaListenerMetricsTemplate twTasksKafkaListenerMetricsTemplate(IMeterCache meterCache) {
+    return new KafkaListenerMetricsTemplate(meterCache);
   }
 
   @Bean
