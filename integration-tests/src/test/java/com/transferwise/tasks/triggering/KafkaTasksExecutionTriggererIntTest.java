@@ -7,6 +7,7 @@ import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
@@ -18,8 +19,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -37,14 +36,17 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
-public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
+class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private static final String TOPIC = "KafkaTestExecutionTriggerIntTest" + RandomStringUtils.randomAlphanumeric(5);
+  public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
 
   private KafkaConsumer<String, String> kafkaConsumer;
   private AdminClient adminClient;
   @Autowired
   protected ITasksService tasksService;
+  @Autowired
+  private ITaskDao taskDao;
   @Autowired
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
@@ -86,30 +88,29 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   @Test
   void name() {
-    final int submittingThreadsCount = 2;
-    final int taskProcessingConcurrency = 2;
-
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
+    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(1));
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy()
         .setProcessingBucket(TOPIC)
         .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
 
     // when
-    ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
+    var taskRequest = new AddTaskRequest()
+        .setData(taskDataSerializer.serialize("Hello World!"))
+        .setType("KafkaTasksExecutionTriggererIntTest")
+        .setUniqueKey(UUID.randomUUID().toString());
 
-    executorService.submit(() -> {
-      try {
-        var taskRequest = new AddTaskRequest()
-            .setData(taskDataSerializer.serialize("Hello World!"))
-            .setType("test")
-            .setUniqueKey(UUID.randomUUID().toString());
+    final var taskId = transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest)).getTaskId();
 
-        tasksService.addTask(taskRequest);
-      } catch (Throwable t) {
-        log.error(t.getMessage(), t);
-      }
-    });
+    testTasksService.startTasksProcessing(TOPIC);
+    testTasksService.resumeTask(
+        new ITasksService.ResumeTaskRequest()
+            .setTaskId(taskId)
+            .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
+    );
+    await().timeout(30, TimeUnit.SECONDS).until(() ->
+        testTasksService.getFinishedTasks("KafkaTasksExecutionTriggererIntTest", null).size() == 1
+    );
 
     kafkaConsumer.subscribe(Collections.singletonList(TOPIC));
 
@@ -124,11 +125,12 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     );
 
     Assertions.assertThat(keys).hasSize(1);
+    Assertions.assertThat(keys.iterator().next()).isEqualTo(PARTITION_KEY);
 
   }
 
   static class TestPartitionKeyStrategy implements IPartitionKeyStrategy {
-    private static final UUID key = UUID.fromString("7a1a43c9-35af-4bea-9349-a1f344c8185c");
+    private static final UUID key = UUID.fromString(PARTITION_KEY);
     @Override
     public String createPartitionKey(BaseTask task) {
       return key.toString();
