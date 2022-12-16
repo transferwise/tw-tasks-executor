@@ -66,7 +66,7 @@ public class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     adminClient.createTopics(Collections.singletonList(topic)).all().get(5, TimeUnit.SECONDS);
 
     Map<String, Object> consumerProperties = new HashMap<>(configs);
-    consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
+    consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "EARLIEST");
     consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "KafkaTestExecutionTriggerIntTest");
     consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
