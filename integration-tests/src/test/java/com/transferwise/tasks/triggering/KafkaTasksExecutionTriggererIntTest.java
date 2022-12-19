@@ -1,5 +1,6 @@
 package com.transferwise.tasks.triggering;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.transferwise.tasks.BaseIntTest;
@@ -9,9 +10,14 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
+import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
+import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
+import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
+import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +46,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private static final String TOPIC = "KafkaTestExecutionTriggerIntTest" + RandomStringUtils.randomAlphanumeric(5);
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
+  private static final String BUCKET_ID = "KafkaTasksExecutionTriggerer";
 
   private KafkaConsumer<String, String> kafkaConsumer;
   private AdminClient adminClient;
@@ -88,28 +95,35 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   @Test
   void name() {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(1));
+    String data = "Hello World!";
+    String taskType = "KafkaTasksExecutionTriggererIntTest";
+    //    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
+      return new ProcessResult().setResultCode(ResultCode.DONE);
+    });
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy()
-        .setProcessingBucket(TOPIC)
+        .setProcessingBucket(BUCKET_ID)
         .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
 
     // when
     var taskRequest = new AddTaskRequest()
-        .setData(taskDataSerializer.serialize("Hello World!"))
-        .setType("KafkaTasksExecutionTriggererIntTest")
+        .setData(taskDataSerializer.serialize(data))
+        .setType(taskType)
         .setUniqueKey(UUID.randomUUID().toString());
 
     final var taskId = transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest)).getTaskId();
 
-    testTasksService.startTasksProcessing(TOPIC);
+    //    taskDao.setStatus(taskId, TaskStatus.SUBMITTED, 0);
+
+    testTasksService.startTasksProcessing(BUCKET_ID);
     testTasksService.resumeTask(
         new ITasksService.ResumeTaskRequest()
             .setTaskId(taskId)
             .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
     );
     await().timeout(30, TimeUnit.SECONDS).until(() ->
-        testTasksService.getFinishedTasks("KafkaTasksExecutionTriggererIntTest", null).size() == 1
+        testTasksService.getFinishedTasks(taskType, null).size() == 1
     );
 
     kafkaConsumer.subscribe(Collections.singletonList(TOPIC));
