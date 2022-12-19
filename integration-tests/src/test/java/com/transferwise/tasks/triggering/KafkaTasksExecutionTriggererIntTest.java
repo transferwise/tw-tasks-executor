@@ -95,7 +95,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   @Test
   void name() {
     String data = "Hello World!";
-    String taskType = "KafkaTasksExecutionTriggererIntTest";
+    String taskType = "test";
     //    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
       assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
