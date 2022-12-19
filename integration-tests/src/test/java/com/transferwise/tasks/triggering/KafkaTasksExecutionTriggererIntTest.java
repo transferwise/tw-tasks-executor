@@ -10,8 +10,6 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
-import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.handler.SimpleTaskConcurrencyPolicy;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
@@ -50,22 +48,22 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private KafkaConsumer<String, String> kafkaConsumer;
   private AdminClient adminClient;
-  @Autowired
-  protected ITasksService tasksService;
+  //  @Autowired
+  //  protected ITasksService tasksService;
   @Autowired
   private ITaskDao taskDao;
   @Autowired
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
   private TasksProperties tasksProperties;
-  @Autowired
-  protected ITasksExecutionTriggerer tasksExecutionTriggerer;
-  private KafkaTasksExecutionTriggerer subject;
+  //  @Autowired
+  //  protected ITasksExecutionTriggerer tasksExecutionTriggerer;
+  //  private KafkaTasksExecutionTriggerer subject;
 
   @BeforeEach
   @SneakyThrows
   void setup() {
-    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
+    //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
     Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
@@ -107,12 +105,14 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
         .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
 
     // when
+    UUID uniqueKey = UUID.fromString("323efb9c-341e-47a6-a1fe-b38c62c25b37");
     var taskRequest = new AddTaskRequest()
         .setData(taskDataSerializer.serialize(data))
         .setType(taskType)
-        .setUniqueKey(UUID.randomUUID().toString());
+        .setUniqueKey(uniqueKey.toString());
 
     final var taskId = transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest)).getTaskId();
+    log.info("Added task with id {}", taskId);
 
     //    taskDao.setStatus(taskId, TaskStatus.SUBMITTED, 0);
 
