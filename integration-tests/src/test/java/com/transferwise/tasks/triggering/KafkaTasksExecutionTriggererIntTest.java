@@ -10,6 +10,7 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
+import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
 import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
@@ -114,7 +115,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     final var taskId = transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest)).getTaskId();
     log.info("Added task with id {}", taskId);
 
-    //    taskDao.setStatus(taskId, TaskStatus.SUBMITTED, 0);
+    taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0);
 
     testTasksService.startTasksProcessing(BUCKET_ID);
     testTasksService.resumeTask(
