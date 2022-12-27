@@ -47,7 +47,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private static final String TOPIC = "KafkaTestExecutionTriggerIntTest" + RandomStringUtils.randomAlphanumeric(5);
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
-  private static final String BUCKET_ID = "KafkaTasksExecutionTriggerer";
+  private static final String BUCKET_ID = "manualStart";
 
   private KafkaConsumer<String, String> kafkaConsumer;
   private AdminClient adminClient;
