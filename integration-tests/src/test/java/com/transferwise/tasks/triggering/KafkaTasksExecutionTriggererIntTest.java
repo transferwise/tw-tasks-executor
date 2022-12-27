@@ -44,8 +44,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private String topic;
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
-//  private static final String BUCKET_ID = "manualStart";
-  private static final String BUCKET_ID = "tasksExecutionTriggerer";
+  private static final String BUCKET_ID = "manualStart";
+//  private static final String BUCKET_ID = "tasksExecutionTriggerer";
 
   private KafkaConsumer<String, String> kafkaConsumer;
   private AdminClient adminClient;
@@ -68,7 +68,9 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   void setup() {
     bucketsManager.registerBucketProperties(BUCKET_ID, new BucketProperties().setAutoStartProcessing(true));
 
+    tasksProperties.setGroupId(this.getClass().getSimpleName());
     topic = "twTasks." + tasksProperties.getGroupId() + ".executeTask" + "." + BUCKET_ID;
+    log.info("topic = {}", topic);
     //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
     transactionsHelper.withTransaction().asNew().call(() -> {
