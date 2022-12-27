@@ -57,8 +57,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
   private TasksProperties tasksProperties;
-  @Autowired
-  private IBucketsManager bucketsManager;
+//  @Autowired
+//  private IBucketsManager bucketsManager;
   //  @Autowired
   //  protected ITasksExecutionTriggerer tasksExecutionTriggerer;
   //  private KafkaTasksExecutionTriggerer subject;
@@ -66,11 +66,10 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   @BeforeEach
   @SneakyThrows
   void setup() {
-    bucketsManager.registerBucketProperties(BUCKET_ID, new BucketProperties().setAutoStartProcessing(true));
+//    bucketsManager.registerBucketProperties(BUCKET_ID, new BucketProperties().setAutoStartProcessing(true));
 
     tasksProperties.setGroupId(this.getClass().getSimpleName());
     topic = "twTasks." + tasksProperties.getGroupId() + ".executeTask" + "." + BUCKET_ID;
-    log.info("topic = {}", topic);
     //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
     transactionsHelper.withTransaction().asNew().call(() -> {
@@ -106,6 +105,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   @Test
   void name() {
+    log.info("topic = {}", topic);
     String data = "Hello World!";
     String taskType = "test";
     UUID taskId = UuidUtils.generatePrefixCombUuid();
