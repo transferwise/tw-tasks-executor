@@ -21,6 +21,7 @@ import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,6 +70,11 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   void setup() {
     //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
+    transactionsHelper.withTransaction().asNew().call(() -> {
+      testTasksService.reset();
+      return null;
+    });
+
     Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
 
@@ -100,13 +106,15 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     String data = "Hello World!";
     String taskType = "test";
     UUID taskId = UuidUtils.generatePrefixCombUuid();
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
 //    testTaskHandlerAdapter.setProcessor(testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
 //      assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
 //      return new ProcessResult().setResultCode(ResultCode.DONE);
 //    });
-    testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy()
+
+    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor)
+        .setProcessingPolicy(new SimpleTaskProcessingPolicy()
         .setProcessingBucket(BUCKET_ID)
+        .setMaxProcessingDuration(Duration.of(1, ChronoUnit.HOURS))
         .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
 
     // when
@@ -126,6 +134,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(0))
     ));
+
+
     await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
 
 
@@ -168,6 +178,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     private static final UUID key = UUID.fromString(PARTITION_KEY);
     @Override
     public String createPartitionKey(BaseTask task) {
+      log.info("{} created kafka message key {}", this.getClass().getSimpleName(), key);
       return key.toString();
     }
   }
