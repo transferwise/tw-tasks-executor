@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
@@ -98,6 +99,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   void name() {
     String data = "Hello World!";
     String taskType = "test";
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
 //    testTaskHandlerAdapter.setProcessor(testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
 //      assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
@@ -110,15 +112,17 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     // when
     UUID uniqueKey = UUID.fromString("323efb9c-341e-47a6-a1fe-b38c62c25b37");
     var taskRequest = new AddTaskRequest()
+        .setTaskId(taskId)
         .setData(taskDataSerializer.serialize(data))
         .setType(taskType)
         .setUniqueKey(uniqueKey.toString())
         .setRunAfterTime(ZonedDateTime.now().plusHours(1));
 
-    final var taskId = transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest)).getTaskId();
+    transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest));
     log.info("Added task with id {}", taskId);
-    await().until(() -> testTasksService.getWaitingTasks("test", null).size() > 0);
+    await().until(() -> testTasksService.getWaitingTasks(taskType, null).size() > 0);
 
+    log.info("Resuming task with id {}", taskId);
     assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(0))
     ));
