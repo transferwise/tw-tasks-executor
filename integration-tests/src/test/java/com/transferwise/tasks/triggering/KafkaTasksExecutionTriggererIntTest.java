@@ -1,6 +1,5 @@
 package com.transferwise.tasks.triggering;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -12,13 +11,8 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
-import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
-import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor;
-import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult;
-import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResult.ResultCode;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -31,7 +25,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -47,7 +40,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
-  private static final String TOPIC = "KafkaTestExecutionTriggerIntTest" + RandomStringUtils.randomAlphanumeric(5);
+  private String topic;
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
   private static final String BUCKET_ID = "manualStart";
 
@@ -68,6 +61,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   @BeforeEach
   @SneakyThrows
   void setup() {
+    topic = "twTasks." + tasksProperties.getGroupId() + ".executeTask" + "." + BUCKET_ID;
     //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
     transactionsHelper.withTransaction().asNew().call(() -> {
@@ -79,8 +73,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
 
     adminClient = AdminClient.create(configs);
-    NewTopic topic = new NewTopic(TOPIC, 1, (short) 1);
-    adminClient.createTopics(Collections.singletonList(topic)).all().get(5, TimeUnit.SECONDS);
+    NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
+    adminClient.createTopics(Collections.singletonList(newTopic)).all().get(5, TimeUnit.SECONDS);
 
     Map<String, Object> consumerProperties = new HashMap<>(configs);
     consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
@@ -96,7 +90,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
       kafkaConsumer.close();
     });
     cleanWithoutException(() -> {
-      adminClient.deleteTopics(Collections.singletonList(TOPIC));
+      adminClient.deleteTopics(Collections.singletonList(topic));
       adminClient.close();
     });
   }
@@ -157,7 +151,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     //    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
 
 
-    kafkaConsumer.subscribe(Collections.singletonList(TOPIC));
+    kafkaConsumer.subscribe(Collections.singletonList(topic));
 
     Set<String> keys = new HashSet<>();
     await().until(
