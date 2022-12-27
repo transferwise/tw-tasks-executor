@@ -136,7 +136,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     ));
 
 
-    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
+//    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
 
 
     //    taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0);
