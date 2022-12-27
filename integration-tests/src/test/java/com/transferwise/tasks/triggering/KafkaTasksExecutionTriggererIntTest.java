@@ -21,6 +21,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -32,6 +33,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -89,7 +91,15 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "KafkaTestExecutionTriggerIntTest");
     consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-    kafkaConsumer = new KafkaConsumer<>(consumerProperties);
+    kafkaConsumer = new KafkaConsumer<>(consumerProperties, new StringDeserializer(), new StringDeserializer());
+
+    // One partition is assumed. We assign our consumer to it as we want to skip past any existing records.
+    TopicPartition topicPartition = new TopicPartition(topic, 0);
+    kafkaConsumer.assign(List.of(topicPartition));
+    kafkaConsumer.seekToEnd(List.of(topicPartition));
+    // seekToEnd is lazy: poll() or position() will actually move us to the end of the partition.
+    kafkaConsumer.position(topicPartition);
+
   }
 
   @AfterEach
