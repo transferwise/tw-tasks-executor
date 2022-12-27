@@ -9,6 +9,8 @@ import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.buckets.BucketProperties;
+import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
@@ -42,7 +44,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private String topic;
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
-  private static final String BUCKET_ID = "manualStart";
+//  private static final String BUCKET_ID = "manualStart";
+  private static final String BUCKET_ID = "tasksExecutionTriggerer";
 
   private KafkaConsumer<String, String> kafkaConsumer;
   private AdminClient adminClient;
@@ -54,6 +57,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
   private TasksProperties tasksProperties;
+  @Autowired
+  private IBucketsManager bucketsManager;
   //  @Autowired
   //  protected ITasksExecutionTriggerer tasksExecutionTriggerer;
   //  private KafkaTasksExecutionTriggerer subject;
@@ -61,6 +66,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   @BeforeEach
   @SneakyThrows
   void setup() {
+    bucketsManager.registerBucketProperties(BUCKET_ID, new BucketProperties().setAutoStartProcessing(true));
+
     topic = "twTasks." + tasksProperties.getGroupId() + ".executeTask" + "." + BUCKET_ID;
     //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
