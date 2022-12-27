@@ -118,6 +118,9 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0);
 
     testTasksService.startTasksProcessing(BUCKET_ID);
+
+    testTasksService.resumeProcessing();
+
     testTasksService.resumeTask(
         new ITasksService.ResumeTaskRequest()
             .setTaskId(taskId)
