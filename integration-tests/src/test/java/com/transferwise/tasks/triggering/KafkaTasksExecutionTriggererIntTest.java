@@ -2,6 +2,7 @@ package com.transferwise.tasks.triggering;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
@@ -18,6 +19,7 @@ import com.transferwise.tasks.handler.interfaces.ISyncTaskProcessor.ProcessResul
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -96,11 +98,11 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   void name() {
     String data = "Hello World!";
     String taskType = "test";
-    //    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
-      return new ProcessResult().setResultCode(ResultCode.DONE);
-    });
+    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
+//    testTaskHandlerAdapter.setProcessor(testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+//      assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
+//      return new ProcessResult().setResultCode(ResultCode.DONE);
+//    });
     testTaskHandlerAdapter.setProcessingPolicy(new SimpleTaskProcessingPolicy()
         .setProcessingBucket(BUCKET_ID)
         .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
@@ -110,25 +112,36 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     var taskRequest = new AddTaskRequest()
         .setData(taskDataSerializer.serialize(data))
         .setType(taskType)
-        .setUniqueKey(uniqueKey.toString());
+        .setUniqueKey(uniqueKey.toString())
+        .setRunAfterTime(ZonedDateTime.now().plusHours(1));
 
     final var taskId = transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest)).getTaskId();
     log.info("Added task with id {}", taskId);
+    await().until(() -> testTasksService.getWaitingTasks("test", null).size() > 0);
 
-    taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0);
+    assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
+        testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(0))
+    ));
+    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
 
-    testTasksService.startTasksProcessing(BUCKET_ID);
 
-    testTasksService.resumeProcessing();
+    //    taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0);
 
-    testTasksService.resumeTask(
-        new ITasksService.ResumeTaskRequest()
-            .setTaskId(taskId)
-            .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
-    );
-    await().timeout(30, TimeUnit.SECONDS).until(() ->
-        testTasksService.getFinishedTasks(taskType, null).size() == 1
-    );
+    //    testTasksService.startTasksProcessing(BUCKET_ID);
+
+    //    testTasksService.resumeProcessing();
+
+    //    testTasksService.resumeTask(
+    //        new ITasksService.ResumeTaskRequest()
+    //            .setTaskId(taskId)
+    //            .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
+    //    );
+    //    await().timeout(30, TimeUnit.SECONDS).until(() ->
+    //        testTasksService.getFinishedTasks(taskType, null).size() == 1
+    //    );
+
+    //    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
+
 
     kafkaConsumer.subscribe(Collections.singletonList(TOPIC));
 
