@@ -94,11 +94,11 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     kafkaConsumer = new KafkaConsumer<>(consumerProperties, new StringDeserializer(), new StringDeserializer());
 
     // One partition is assumed. We assign our consumer to it as we want to skip past any existing records.
-    TopicPartition topicPartition = new TopicPartition(topic, 0);
-    kafkaConsumer.assign(List.of(topicPartition));
-    kafkaConsumer.seekToEnd(List.of(topicPartition));
+//    TopicPartition topicPartition = new TopicPartition(topic, 0);
+//    kafkaConsumer.assign(List.of(topicPartition));
+//    kafkaConsumer.seekToEnd(List.of(topicPartition));
     // seekToEnd is lazy: poll() or position() will actually move us to the end of the partition.
-    kafkaConsumer.position(topicPartition);
+//    kafkaConsumer.position(topicPartition);
 
   }
 
