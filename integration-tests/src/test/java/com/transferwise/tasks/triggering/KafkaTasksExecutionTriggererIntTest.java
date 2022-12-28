@@ -70,7 +70,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   void setup() {
 //    bucketsManager.registerBucketProperties(BUCKET_ID, new BucketProperties().setAutoStartProcessing(true));
 
-    tasksProperties.setGroupId(this.getClass().getSimpleName());
+//    tasksProperties.setGroupId(this.getClass().getSimpleName());
     topic = "twTasks." + tasksProperties.getGroupId() + ".executeTask" + "." + BUCKET_ID;
     //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
@@ -100,6 +100,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     // seekToEnd is lazy: poll() or position() will actually move us to the end of the partition.
 //    kafkaConsumer.position(topicPartition);
 
+    kafkaConsumer.subscribe(Collections.singletonList(topic));
   }
 
   @AfterEach
@@ -170,7 +171,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     //    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
 
 
-    kafkaConsumer.subscribe(Collections.singletonList(topic));
+
 
     Set<String> keys = new HashSet<>();
     await().until(
