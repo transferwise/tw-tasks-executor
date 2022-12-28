@@ -82,9 +82,9 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
 
-    adminClient = AdminClient.create(configs);
-    NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
-    adminClient.createTopics(Collections.singletonList(newTopic)).all().get(5, TimeUnit.SECONDS);
+//    adminClient = AdminClient.create(configs);
+//    NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
+//    adminClient.createTopics(Collections.singletonList(newTopic)).all().get(5, TimeUnit.SECONDS);
 
     Map<String, Object> consumerProperties = new HashMap<>(configs);
     consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
