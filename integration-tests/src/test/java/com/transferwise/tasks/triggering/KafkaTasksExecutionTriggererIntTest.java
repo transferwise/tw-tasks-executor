@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import lombok.SneakyThrows;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -33,7 +32,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-@Slf4j
 class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   private String topic;
@@ -78,7 +76,6 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   @Test
   void name() {
-    log.info("topic = {}", topic);
     String data = "Hello World!";
     String taskType = "test";
     UUID taskId = UuidUtils.generatePrefixCombUuid();
@@ -99,10 +96,8 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
         .setRunAfterTime(ZonedDateTime.now().plusHours(1));
 
     transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest));
-    log.info("Added task with id {}", taskId);
     await().until(() -> testTasksService.getWaitingTasks(taskType, null).size() > 0);
 
-    log.info("Resuming task with id {}", taskId);
     assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(0))
     ));
@@ -124,7 +119,6 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     private static final UUID key = UUID.fromString(PARTITION_KEY);
     @Override
     public String createPartitionKey(BaseTask task) {
-      log.info("{} created kafka message key {}", this.getClass().getSimpleName(), key);
       return key.toString();
     }
   }
