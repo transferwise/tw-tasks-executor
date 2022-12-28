@@ -430,7 +430,11 @@ public class TaskProcessingIntTest extends BaseIntTest {
     final int submittingThreadsCount = 10;
     final int taskProcessingConcurrency = 10;
 
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
+    String st = "Hello World!";
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      assertThat(task.getData()).isEqualTo(st.getBytes(StandardCharsets.UTF_8));
+      return new ProcessResult().setResultCode(ResultCode.DONE);
+    });
     testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
 
     // when
@@ -439,7 +443,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     executorService.submit(() -> {
       try {
         var taskRequest = new AddTaskRequest()
-            .setData(taskDataSerializer.serialize("Hello World!"))
+            .setData(taskDataSerializer.serialize(st))
             .setType("test")
             .setUniqueKey(UUID.randomUUID().toString());
 
