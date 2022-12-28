@@ -440,22 +440,36 @@ public class TaskProcessingIntTest extends BaseIntTest {
     // when
     ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
 
-    executorService.submit(() -> {
-      try {
-        var taskRequest = new AddTaskRequest()
-            .setData(taskDataSerializer.serialize(st))
-            .setType("test")
-            .setUniqueKey(UUID.randomUUID().toString());
+//    executorService.submit(() -> {
+//      try {
+//        var taskRequest = new AddTaskRequest()
+//            .setData(taskDataSerializer.serialize(st))
+//            .setType("test")
+//            .setUniqueKey(UUID.randomUUID().toString());
+//
+//        tasksService.addTask(taskRequest);
+//      } catch (Throwable t) {
+//        log.error(t.getMessage(), t);
+//      }
+//    });
 
-        tasksService.addTask(taskRequest);
-      } catch (Throwable t) {
-        log.error(t.getMessage(), t);
-      }
-    });
+//    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
+//      try {
+//        return testTasksService.getFinishedTasks("test", null).size() == 10;
+//      } catch (Throwable t) {
+//        log.error(t.getMessage(), t);
+//      }
+//      return false;
+//    }));
+
+    transactionsHelper.withTransaction().asNew().call(() ->
+        executorService.submit(() ->
+          tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize(st)))
+        ).get());
 
     await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
       try {
-        return testTasksService.getFinishedTasks("test", null).size() == 10;
+        return testTasksService.getFinishedTasks("test", null).size() > 1;
       } catch (Throwable t) {
         log.error(t.getMessage(), t);
       }
