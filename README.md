@@ -270,7 +270,7 @@ public class SampleCronRegistrar {
 		/*
 		 * This is fast no-OP when task with same UUID is already present.
 		 * We set runAfterTime value, so all nodes will have time to get SampleCronTaskHandler released.
-		 * Otherwise there is a chance that the task goes immediately to ERROR state, because the node choosed for execution
+		 * Otherwise there is a chance that the task goes immediately to ERROR state, because the node chosen for execution
 		 * does not have the handler released yet.
 		 */
 		tasksService.addTask(new ITasksService.AddTaskRequest()

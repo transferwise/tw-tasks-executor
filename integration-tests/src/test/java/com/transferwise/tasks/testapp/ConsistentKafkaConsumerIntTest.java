@@ -6,9 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.helpers.kafka.ConsistentKafkaConsumer;
+import com.transferwise.tasks.helpers.kafka.meters.IKafkaListenerMetricsTemplate;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +35,8 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
   private UnitOfWorkManager unitOfWorkManager;
   @Autowired
   private KafkaProperties kafkaProperties;
+  @Autowired
+  private IKafkaListenerMetricsTemplate kafkaListenerMetricsTemplate;
 
   private final Duration delayTimeout = Duration.ofMillis(5);
 
@@ -46,7 +48,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     // the expensive rebalancing.
     String groupId = "allMessagesWillBeReceivedOnceOnRebalancing";
 
-    Map<String, AtomicInteger> messagesReceivedCounts = new HashMap<>();
+    Map<String, AtomicInteger> messagesReceivedCounts = new ConcurrentHashMap<>();
 
     for (int i = 0; i < n; i++) {
       String message = "Message" + i;
@@ -62,10 +64,12 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
         .setKafkaPropertiesSupplier(() -> consumerProps)
         .setTopics(Collections.singletonList(testTopic))
         .setShouldFinishPredicate(shouldFinish::get)
-        .setShouldPollPredicate(() -> !shouldFinish.get())
+        // Turn off async commits. ConsistentKafkaConsumerTest is already testing those
+        .setAsyncCommitInterval(null)
         .setUnitOfWorkManager(unitOfWorkManager)
         .setDelayTimeout(delayTimeout)
         .setAutoResetOffsetTo("earliest")
+        .setKafkaListenerMetricsTemplate(kafkaListenerMetricsTemplate)
         .setRecordConsumer(consumerRecord -> log
             .info("Received message '{}': {}.", consumerRecord.value(), messagesReceivedCounts.get(consumerRecord.value()).incrementAndGet()));
 
@@ -78,6 +82,12 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
 
     shouldFinish.set(true);
     consumerThread.join();
+
+    var syncCommitsCount = metricsTestHelper.getCount("twTasks.consistentKafkaConsumer.commitsCount", "shard", "0", "topic", testTopic, "partition",
+        "0", "sync", "true", "success", "true");
+
+    // Sync commit was done on partitions revoking.
+    assertEquals(1, syncCommitsCount);
 
     // we received all messages and only once
     for (AtomicInteger value : messagesReceivedCounts.values()) {
@@ -108,6 +118,12 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     for (int i = 0; i < n + 1; i++) {
       assertEquals(1, messagesReceivedCounts.get("Message" + i).get());
     }
+
+    syncCommitsCount = metricsTestHelper.getCount("twTasks.consistentKafkaConsumer.commitsCount", "shard", "0", "topic", testTopic, "partition", "0",
+        "sync", "true", "success", "true");
+
+    // Second sync commit was done for one more message which was sent meanwhile.
+    assertEquals(2, syncCommitsCount);
   }
 
   @ParameterizedTest(name = "flaky messages accepter will not stop the processing, iteration {0}")
@@ -141,7 +157,6 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     new ConsistentKafkaConsumer<String>()
         .setTopics(Collections.singletonList(topic))
         .setDelayTimeout(delayTimeout)
-        .setShouldPollPredicate(() -> true)
         .setShouldFinishPredicate(
             () -> messagesMap.values().stream().noneMatch(v -> v.get() != 1) || System.currentTimeMillis() - start > 30000
         )

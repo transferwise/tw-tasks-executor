@@ -22,9 +22,9 @@ jobs:
       max-parallel: 100
       matrix:
         spring_boot_version:
-          - 2.6.5
-          - 2.5.11
-          - 2.4.13
+          - 2.7.5
+          - 2.6.13
+          - 2.5.14
     env:
       SPRING_BOOT_VERSION: ${{ matrix.spring_boot_version }}
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
@@ -76,9 +76,9 @@ jobs:
       - name: "Install packages"
         run: apt-get update && apt-get install -y git
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "Gradle cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.gradle
@@ -93,7 +93,7 @@ jobs:
       - name: "Test if publishing works"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --info --stacktrace
       - name: "Publish Test Report"
-        uses: mikepenz/action-junit-report@v2
+        uses: mikepenz/action-junit-report@v3
         if: always()
         with:
           check_name: Test Report-(${{ matrix.spring_boot_version }})
@@ -117,7 +117,7 @@ jobs:
           tar -zcvf all-test-reports-${{ matrix.spring_boot_version }}.tar.gz **/build/reports
         if: always()
       - name: "Store test results"
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         if: always()
         with:
           name: all-test-reports-${{ matrix.spring_boot_version }}
@@ -130,10 +130,16 @@ jobs:
       - ubuntu-latest
     needs: matrix_build
     steps:
+      # Needed hacks to properly fail the build when one matrix build fails.
+      - name: Do something so that GHA is happy
+        run: echo "Be happy!"
+      - name: Verify matrix jobs succeeded
+        if: ${{ needs.matrix_build.result != 'success' }}
+        run: exit 1
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: "Gradle cache"
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: |
             ~/.gradle

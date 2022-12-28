@@ -4,6 +4,7 @@ import com.transferwise.common.baseutils.meters.cache.IMeterCache;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.test.ITestTasksService;
+import com.transferwise.tasks.test.MetricsTestHelper;
 import com.transferwise.tasks.testapp.IResultRegisteringSyncTaskProcessor;
 import com.transferwise.tasks.testapp.TestTaskHandler;
 import com.transferwise.tasks.testapp.config.TestApplication;
@@ -49,6 +50,8 @@ public abstract class BaseIntTest {
   protected MeterRegistry meterRegistry;
   @Autowired
   protected IMeterCache meterCache;
+  @Autowired
+  protected MetricsTestHelper metricsTestHelper;
 
   @Autowired
   void setApplicationContext(ApplicationContext applicationContext) {

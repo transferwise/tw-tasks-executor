@@ -34,8 +34,8 @@ public class KafkaMessageHandlerFactory {
   }
 
   /**
-   * Creates a resilient handler, every corrupted message will be wrapped and processed separately as described in {@link
-   * CorruptedMessageRecoveryStrategy}.
+   * Creates a resilient handler, every corrupted message will be wrapped and processed separately as described in
+   * {@link CorruptedMessageRecoveryStrategy}.
    *
    * @see ResilientKafkaMessageHandler
    */
@@ -53,8 +53,8 @@ public class KafkaMessageHandlerFactory {
   }
 
   /**
-   * Creates a resilient handler, every corrupted message will be wrapped and processed separately as described in {@link
-   * CorruptedMessageRecoveryStrategy}.
+   * Creates a resilient handler, every corrupted message will be wrapped and processed separately as described in
+   * {@link CorruptedMessageRecoveryStrategy}.
    *
    * @see ResilientKafkaMessageHandler
    */

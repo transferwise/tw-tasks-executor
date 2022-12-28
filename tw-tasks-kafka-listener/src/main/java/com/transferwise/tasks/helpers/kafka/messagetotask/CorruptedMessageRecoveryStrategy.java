@@ -3,8 +3,8 @@ package com.transferwise.tasks.helpers.kafka.messagetotask;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 
 /**
- * The strategy used to recover corrupted message (the one that cannot be deserialized) while processing it with {@link
- * ResilientKafkaMessageHandler}.
+ * The strategy used to recover corrupted message (the one that cannot be deserialized) while processing it with
+ * {@link ResilientKafkaMessageHandler}.
  */
 public interface CorruptedMessageRecoveryStrategy {
 

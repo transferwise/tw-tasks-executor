@@ -56,6 +56,12 @@ public class TasksProperties {
   @NotNull
   private Duration genericMediumDelay = Duration.ofSeconds(5);
   /**
+   * How often do we async commit Kafka triggers offsets.
+   */
+  @NotNull
+  private Duration triggersCommitInterval = Duration.ofSeconds(5);
+
+  /**
    * By default, how long should we expect a task to remain in any state, before we consider it as stuck.
    *
    * <p>Notice, that it is not used for PROCESSING state, where the maximum time is asked from task handler itself.
@@ -283,7 +289,7 @@ public class TasksProperties {
   /**
    * If true, the task cleaning will also handle those cases consistently where just-to-be deleted tasks may change.
    *
-   * <p>It makes the cleaning process a bit less efficient and it is almost never needed.
+   * <p>It makes the cleaning process a bit less efficient, and it is almost never needed.
    */
   private boolean paranoidTasksCleaning = false;
 
