@@ -23,8 +23,7 @@ services:
     ports:
       - "9092"
     environment:
-      #      PORT_COMMAND: "docker port $$(head -2 /proc/self/cgroup | cut -d/ -f3 | sort -r | head -1) 9092/tcp | cut -d: -f2"
-      PORT_COMMAND: "docker port $$(docker ps | grep rfa-kafka | cut -d ' ' -f1) 9092/tcp | cut -d: -f2"
+      PORT_COMMAND: "docker port $$(head -2 /proc/self/cgroup | cut -d/ -f3 | sort -r | head -1) 9092/tcp | cut -d: -f2"
       KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://localhost:_{PORT_COMMAND},INTERNAL://kafka:9093"
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: kafka-zk:2181
