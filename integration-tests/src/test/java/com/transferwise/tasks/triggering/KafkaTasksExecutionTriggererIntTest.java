@@ -117,6 +117,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   static class TestPartitionKeyStrategy implements IPartitionKeyStrategy {
     private static final UUID key = UUID.fromString(PARTITION_KEY);
+    
     @Override
     public String createPartitionKey(BaseTask task) {
       return key.toString();
