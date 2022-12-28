@@ -108,10 +108,10 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     cleanWithoutException(() -> {
       kafkaConsumer.close();
     });
-    cleanWithoutException(() -> {
-      adminClient.deleteTopics(Collections.singletonList(topic));
-      adminClient.close();
-    });
+//    cleanWithoutException(() -> {
+//      adminClient.deleteTopics(Collections.singletonList(topic));
+//      adminClient.close();
+//    });
   }
 
   @Test
@@ -183,9 +183,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
         }
     );
 
-    Assertions.assertThat(keys).hasSize(1);
-    Assertions.assertThat(keys.iterator().next()).isEqualTo(PARTITION_KEY);
-
+    Assertions.assertThat(keys).containsOnlyOnce(PARTITION_KEY);
   }
 
   static class TestPartitionKeyStrategy implements IPartitionKeyStrategy {
