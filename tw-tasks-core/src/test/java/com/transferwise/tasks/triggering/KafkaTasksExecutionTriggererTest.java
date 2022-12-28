@@ -2,10 +2,8 @@ package com.transferwise.tasks.triggering;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer.ConsumerBucket;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer.ConsumerTopicPartition;
-import java.util.UUID;
 import org.apache.kafka.common.TopicPartition;
 import org.junit.jupiter.api.Test;
 
@@ -41,15 +39,5 @@ class KafkaTasksExecutionTriggererTest {
     // can commit 2nd and 3rd message
     assertEquals(2, consumerTopicPartition.getOffsets().size());
     assertEquals(0, consumerBucket.getOffsetsCompletedCount());
-  }
-
-  @Test
-  void name() {
-    KafkaTasksExecutionTriggerer triggerer = new KafkaTasksExecutionTriggerer();
-
-
-    BaseTask baseTask = new BaseTask().setId(UUID.randomUUID()).setVersion(1).setType("type").setPriority(2);
-
-    triggerer.trigger(baseTask);
   }
 }

@@ -9,9 +9,6 @@ import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.TasksProperties;
-import com.transferwise.tasks.buckets.BucketProperties;
-import com.transferwise.tasks.buckets.IBucketsManager;
-import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.handler.SimpleTaskProcessingPolicy;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
@@ -21,19 +18,14 @@ import java.time.temporal.ChronoUnit;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.kafka.clients.admin.AdminClient;
-import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
@@ -47,32 +39,17 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   private String topic;
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
   private static final String BUCKET_ID = "manualStart";
-//  private static final String BUCKET_ID = "tasksExecutionTriggerer";
 
   private KafkaConsumer<String, String> kafkaConsumer;
-  private AdminClient adminClient;
-  //  @Autowired
-  //  protected ITasksService tasksService;
-  @Autowired
-  private ITaskDao taskDao;
   @Autowired
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
   private TasksProperties tasksProperties;
-//  @Autowired
-//  private IBucketsManager bucketsManager;
-  //  @Autowired
-  //  protected ITasksExecutionTriggerer tasksExecutionTriggerer;
-  //  private KafkaTasksExecutionTriggerer subject;
 
   @BeforeEach
   @SneakyThrows
   void setup() {
-//    bucketsManager.registerBucketProperties(BUCKET_ID, new BucketProperties().setAutoStartProcessing(true));
-
-//    tasksProperties.setGroupId(this.getClass().getSimpleName());
     topic = "twTasks." + tasksProperties.getGroupId() + ".executeTask" + "." + BUCKET_ID;
-    //    subject = (KafkaTasksExecutionTriggerer) tasksExecutionTriggerer;
 
     transactionsHelper.withTransaction().asNew().call(() -> {
       testTasksService.reset();
@@ -82,23 +59,12 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     Map<String, Object> configs = new HashMap<>();
     configs.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
 
-//    adminClient = AdminClient.create(configs);
-//    NewTopic newTopic = new NewTopic(topic, 1, (short) 1);
-//    adminClient.createTopics(Collections.singletonList(newTopic)).all().get(5, TimeUnit.SECONDS);
-
     Map<String, Object> consumerProperties = new HashMap<>(configs);
     consumerProperties.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
     consumerProperties.put(ConsumerConfig.GROUP_ID_CONFIG, "KafkaTestExecutionTriggerIntTest");
     consumerProperties.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     kafkaConsumer = new KafkaConsumer<>(consumerProperties, new StringDeserializer(), new StringDeserializer());
-
-    // One partition is assumed. We assign our consumer to it as we want to skip past any existing records.
-//    TopicPartition topicPartition = new TopicPartition(topic, 0);
-//    kafkaConsumer.assign(List.of(topicPartition));
-//    kafkaConsumer.seekToEnd(List.of(topicPartition));
-    // seekToEnd is lazy: poll() or position() will actually move us to the end of the partition.
-//    kafkaConsumer.position(topicPartition);
 
     kafkaConsumer.subscribe(Collections.singletonList(topic));
   }
@@ -108,10 +74,6 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     cleanWithoutException(() -> {
       kafkaConsumer.close();
     });
-//    cleanWithoutException(() -> {
-//      adminClient.deleteTopics(Collections.singletonList(topic));
-//      adminClient.close();
-//    });
   }
 
   @Test
@@ -120,10 +82,6 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     String data = "Hello World!";
     String taskType = "test";
     UUID taskId = UuidUtils.generatePrefixCombUuid();
-//    testTaskHandlerAdapter.setProcessor(testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-//      assertThat(task.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
-//      return new ProcessResult().setResultCode(ResultCode.DONE);
-//    });
 
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor)
         .setProcessingPolicy(new SimpleTaskProcessingPolicy()
@@ -148,30 +106,6 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(0))
     ));
-
-
-//    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
-
-
-    //    taskDao.setStatus(taskId, TaskStatus.PROCESSING, 0);
-
-    //    testTasksService.startTasksProcessing(BUCKET_ID);
-
-    //    testTasksService.resumeProcessing();
-
-    //    testTasksService.resumeTask(
-    //        new ITasksService.ResumeTaskRequest()
-    //            .setTaskId(taskId)
-    //            .setVersion(taskDao.getTaskVersion(taskId)).setForce(true)
-    //    );
-    //    await().timeout(30, TimeUnit.SECONDS).until(() ->
-    //        testTasksService.getFinishedTasks(taskType, null).size() == 1
-    //    );
-
-    //    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
-
-
-
 
     Set<String> keys = new HashSet<>();
     await().until(
