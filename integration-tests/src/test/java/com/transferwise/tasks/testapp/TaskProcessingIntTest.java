@@ -425,30 +425,30 @@ public class TaskProcessingIntTest extends BaseIntTest {
     }));
   }
 
-  @Test
-  void partitionKeyIsConsistent() {
-    final int submittingThreadsCount = 10;
-    final int taskProcessingConcurrency = 10;
-
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
-
-    // when
-    ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
-
-    executorService.submit(() -> {
-      try {
-        var taskRequest = new AddTaskRequest()
-            .setData(taskDataSerializer.serialize("Hello World!"))
-            .setType("test")
-            .setUniqueKey(UUID.randomUUID().toString());
-
-        tasksService.addTask(taskRequest);
-      } catch (Throwable t) {
-        log.error(t.getMessage(), t);
-      }
-    });
-  }
+//  @Test
+//  void partitionKeyIsConsistent() {
+//    final int submittingThreadsCount = 10;
+//    final int taskProcessingConcurrency = 10;
+//
+//    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
+//    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
+//
+//    // when
+//    ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
+//
+//    executorService.submit(() -> {
+//      try {
+//        var taskRequest = new AddTaskRequest()
+//            .setData(taskDataSerializer.serialize("Hello World!"))
+//            .setType("test")
+//            .setUniqueKey(UUID.randomUUID().toString());
+//
+//        tasksService.addTask(taskRequest);
+//      } catch (Throwable t) {
+//        log.error(t.getMessage(), t);
+//      }
+//    });
+//  }
 
   private int counterSum(String name) {
     return meterRegistry.find(name)
