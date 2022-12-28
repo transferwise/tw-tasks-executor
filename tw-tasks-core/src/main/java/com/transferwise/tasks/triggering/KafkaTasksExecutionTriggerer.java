@@ -583,6 +583,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     if (StringUtils.isNotEmpty(tasksProperties.getKafkaTopicsNamespace())) {
       topic = tasksProperties.getKafkaTopicsNamespace() + "." + topic;
     }
+    log.info("About to send message message to topic {}", topic);
     return topic;
   }
 

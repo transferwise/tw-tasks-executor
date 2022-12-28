@@ -2,12 +2,14 @@ package com.transferwise.tasks.helpers.kafka.partitionkey;
 
 import com.transferwise.tasks.domain.BaseTask;
 import java.util.concurrent.ThreadLocalRandom;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Provides a non-null random key, so triggers will be evenly spread around partitions.
  * Otherwise, with a null key, the Kafka client would start doing some kind of batch partitioning.
  *
  */
+@Slf4j
 public class RandomPartitionKeyStrategy implements IPartitionKeyStrategy {
 
   /**
@@ -18,6 +20,8 @@ public class RandomPartitionKeyStrategy implements IPartitionKeyStrategy {
    */
   @Override
   public String createPartitionKey(BaseTask task) {
-    return String.valueOf((char) ThreadLocalRandom.current().nextInt(0xFFFF));
+    String key = String.valueOf((char) ThreadLocalRandom.current().nextInt(0xFFFF));
+    log.info("{} created kafka message key {}", this.getClass().getSimpleName(), key);
+    return key;
   }
 }
