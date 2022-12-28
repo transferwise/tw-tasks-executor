@@ -38,7 +38,6 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -418,58 +417,6 @@ public class TaskProcessingIntTest extends BaseIntTest {
     await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
       try {
         return testTasksService.getFinishedTasks("test", null).size() == 1;
-      } catch (Throwable t) {
-        log.error(t.getMessage(), t);
-      }
-      return false;
-    }));
-  }
-
-  @Test
-  void partitionKeyIsConsistent() {
-    final int submittingThreadsCount = 10;
-    final int taskProcessingConcurrency = 10;
-
-    String st = "Hello World!";
-    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
-      assertThat(task.getData()).isEqualTo(st.getBytes(StandardCharsets.UTF_8));
-      return new ProcessResult().setResultCode(ResultCode.DONE);
-    });
-    testTaskHandlerAdapter.setConcurrencyPolicy(new SimpleTaskConcurrencyPolicy(taskProcessingConcurrency));
-
-    // when
-    ExecutorService executorService = Executors.newFixedThreadPool(submittingThreadsCount);
-
-//    executorService.submit(() -> {
-//      try {
-//        var taskRequest = new AddTaskRequest()
-//            .setData(taskDataSerializer.serialize(st))
-//            .setType("test")
-//            .setUniqueKey(UUID.randomUUID().toString());
-//
-//        tasksService.addTask(taskRequest);
-//      } catch (Throwable t) {
-//        log.error(t.getMessage(), t);
-//      }
-//    });
-
-//    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
-//      try {
-//        return testTasksService.getFinishedTasks("test", null).size() == 10;
-//      } catch (Throwable t) {
-//        log.error(t.getMessage(), t);
-//      }
-//      return false;
-//    }));
-
-    transactionsHelper.withTransaction().asNew().call(() ->
-        executorService.submit(() ->
-          tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize(st)))
-        ).get());
-
-    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
-      try {
-        return testTasksService.getFinishedTasks("test", null).size() > 1;
       } catch (Throwable t) {
         log.error(t.getMessage(), t);
       }
