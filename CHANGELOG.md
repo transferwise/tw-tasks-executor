@@ -9,8 +9,13 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-* Added IPartitionKeyStrategy interface and a basic implementation, RandomPartitionKeyStrategy.
-* Included IPartitionKeyStrategy into SimpleTaskProcessingPolicy
+* Added IPartitionKeyStrategy interface. This interface allows for custom strategies to be implemented by clients
+  that want more control over the partition key generation.
+
+* Add a basic implementation to IPartitionKeyStrategy: RandomPartitionKeyStrategy. This strategy always generates a
+  random partition key (like the previous behaviour).
+
+* Included IPartitionKeyStrategy into SimpleTaskProcessingPolicy.
 
 #### 1.37.1 - 2022/11/28
 
