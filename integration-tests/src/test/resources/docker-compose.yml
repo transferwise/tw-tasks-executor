@@ -43,7 +43,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   mariadb:
-    image: mariadb:10.4
+    image: mariadb:10.6
     ports:
       - "3306"
     environment:
