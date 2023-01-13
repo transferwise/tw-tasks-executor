@@ -41,7 +41,7 @@ jobs:
       image: azul/zulu-openjdk:11
     services:
       mysql1:
-        image: mariadb:10.4
+        image: mariadb:10.6
         env:
           MYSQL_ROOT_PASSWORD: example-password-change-me
           MYSQL_DATABASE: tw-tasks-test

@@ -3,6 +3,9 @@
 ![Apache 2](https://img.shields.io/hexpm/l/plug.svg)
 ![Java 11](https://img.shields.io/badge/Java-11-blue.svg)
 ![Maven Central](https://badgen.net/maven/v/maven-central/com.transferwise.tasks/tw-tasks-core)
+[![Owners](https://img.shields.io/badge/team-AppEng-blueviolet.svg?logo=wise)](https://transferwise.atlassian.net/wiki/spaces/EKB/pages/2520812116/Application+Engineering+Team) [![Slack](https://img.shields.io/badge/slack-tw--task--exec-blue.svg?logo=slack)](https://wise.slack.com/archives/C7P9L0B6Z)
+> Use the `@application-engineering-on-call` handle on Slack for help.
+---
 
 Service cluster-wide asynchronous tasks executor.
 
