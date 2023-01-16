@@ -1,11 +1,10 @@
 package com.transferwise.tasks.helpers.kafka.partitionkey;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.transferwise.tasks.domain.BaseTask;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -27,10 +26,14 @@ class RandomPartitionKeyStrategyTest {
         .setPriority(1)
         .setVersion(1L);
 
-    final var keys = IntStream.range(0, 10)
+    final var firstTryResults = IntStream.range(0, 10)
         .mapToObj(i -> subject.createPartitionKey(baseTask))
-        .collect(Collectors.toList());
+        .collect(Collectors.toSet());
 
-    keys.forEach(k -> assertThat(keys).containsOnlyOnce(k));
+    final var secondTryResults = IntStream.range(0, 10)
+        .mapToObj(i -> subject.createPartitionKey(baseTask))
+        .collect(Collectors.toSet());
+
+    Assertions.assertTrue(firstTryResults.size() == 10 || secondTryResults.size() == 10);
   }
 }

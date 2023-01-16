@@ -16,11 +16,13 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
+import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
+import com.transferwise.tasks.helpers.kafka.partitionkey.RandomPartitionKeyStrategy;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.utils.InefficientCode;
@@ -33,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -97,6 +100,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private IMdcService mdcService;
   @Autowired
   private ICoreMetricsTemplate coreMetricsTemplate;
+  @Autowired
+  private IPartitionKeyStrategy partitionKeyStrategy;
 
   private ObjectMapper objectMapper;
   private KafkaProducer<String, String> kafkaProducer;
@@ -182,11 +187,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     // TODO: Future improvement: try to also trigger in the same node, if there is room or more specifically if it is idle (for min latency)
     // TODO: Maybe needs another concurrency control for that. E.g. only trigger in node, when conc < 5, even max conc is 10.
-
-    final IPartitionKeyStrategy partitionKeyStrategy = taskHandler.getProcessingPolicy(task).getPartitionKeyStrategy();
-
     kafkaProducer
-        .send(new ProducerRecord<>(getTopic(processingBucketId), partitionKeyStrategy.createPartitionKey(task), taskSt),
+        .send(new ProducerRecord<>(getTopic(processingBucketId), getPartitionKeyStrategy(taskHandler, task).createPartitionKey(task), taskSt),
             (metadata, exception) -> {
               if (exception != null) {
                 if (log.isDebugEnabled() || errorLoggingThrottler.canLogError()) {
@@ -204,6 +206,16 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                 }
               }
             });
+  }
+
+  public IPartitionKeyStrategy getPartitionKeyStrategy(ITaskHandler taskHandler, BaseTask task) {
+    final ITaskProcessingPolicy processingPolicy = taskHandler.getProcessingPolicy(task);
+
+    if (processingPolicy == null || processingPolicy.getPartitionKeyStrategy() == null) {
+      return partitionKeyStrategy;
+    }
+
+    return processingPolicy.getPartitionKeyStrategy();
   }
 
   public ConsumerBucket getConsumerBucket(String bucketId) {

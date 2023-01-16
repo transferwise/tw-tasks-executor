@@ -7,7 +7,6 @@ import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.handler.interfaces.ITaskProcessingPolicy;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
-import com.transferwise.tasks.helpers.kafka.partitionkey.RandomPartitionKeyStrategy;
 import java.time.Duration;
 import java.time.Instant;
 import lombok.Getter;
@@ -42,7 +41,7 @@ public class SimpleTaskProcessingPolicy implements ITaskProcessingPolicy {
   @Getter
   @Setter
   @Accessors(chain = true)
-  private IPartitionKeyStrategy partitionKeyStrategy = new RandomPartitionKeyStrategy();
+  private IPartitionKeyStrategy partitionKeyStrategy = null;
 
   @Override
   public String getProcessingBucket(IBaseTask task) {
