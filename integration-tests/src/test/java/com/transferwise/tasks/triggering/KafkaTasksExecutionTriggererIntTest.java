@@ -67,7 +67,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   }
 
   @Test
-  void shouldUsePartitionKeyStrategyWhenCustomStrategyDefinedInProcessor () {
+  void shouldUsePartitionKeyStrategyWhenCustomStrategyDefinedInProcessor() {
     final var data = "Hello World!";
     final var taskType = "test";
     final var taskId = UuidUtils.generatePrefixCombUuid();
