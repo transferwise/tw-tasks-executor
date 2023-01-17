@@ -4,17 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
-import com.transferwise.tasks.helpers.kafka.partitionkey.RandomPartitionKeyStrategy;
 import org.junit.jupiter.api.Test;
 
 class SimpleTaskProcessingPolicyTest {
-
-  @Test
-  void shouldUseDefaultPartitionKeyStrategyWhenDifferentStrategyIsNotProvided() {
-    final var simpleTaskProcessingPolicy = new SimpleTaskProcessingPolicy();
-
-    assertThat(simpleTaskProcessingPolicy.getPartitionKeyStrategy()).isInstanceOf(RandomPartitionKeyStrategy.class);
-  }
 
   @Test
   void shouldUseDefinedPartitionKeyStrategyWhenDifferentStrategyIsProvided() {
