@@ -39,6 +39,8 @@ import com.transferwise.tasks.helpers.executors.ExecutorsHelper;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.NoOpTopicPartitionsManager;
+import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
+import com.transferwise.tasks.helpers.kafka.partitionkey.RandomPartitionKeyStrategy;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.processing.TasksProcessingService;
@@ -236,5 +238,11 @@ public class TwTasksCoreAutoConfiguration {
   @ConditionalOnMissingBean(IEnvironmentValidator.class)
   public EnvironmentValidator twTasksEnvironmentValidator() {
     return new EnvironmentValidator();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(IPartitionKeyStrategy.class)
+  public IPartitionKeyStrategy twTasksPartitionKeyStrategy() {
+    return new RandomPartitionKeyStrategy();
   }
 }

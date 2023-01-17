@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#### 1.38.0 - 2023/01/17
+
+### Changed
+
+* Added IPartitionKeyStrategy interface. This interface allows for custom strategies to be implemented by clients
+  that want more control over the partition key generation.
+
+* Add a basic implementation to IPartitionKeyStrategy: RandomPartitionKeyStrategy. This strategy always generates a
+  random partition key (like the previous behaviour).
+
+* Included IPartitionKeyStrategy into SimpleTaskProcessingPolicy.
+
 #### 1.37.1 - 2022/11/28
 
 ### Changed
