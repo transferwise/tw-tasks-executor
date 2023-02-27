@@ -12,7 +12,6 @@
 * [Infrastructure](infrastructure.md)
 * [Usage](usage.md)
 * [Examples](examples.md)
-* [Additional Configuration](additional-configuration.md)
 * [Algorithms Used](algorithms.md)
 * [Rate Limiting](rate-limiting.md)
 * [Database performance tests](db-perf-tests.md)

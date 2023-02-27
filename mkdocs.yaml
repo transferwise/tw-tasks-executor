@@ -3,7 +3,11 @@ repo_url: https://github.com/transferwise/tw-tasks-executor
 edit_uri: blob/master/docs/
 nav:
   - Overview: index.md
-  - Configuration: configuration.md
+  - Infrastructure: infrastructure.md
   - Usage: usage.md
+  - Examples: examples.md
+  - Algorithm Used: algorithms.md
+  - Rate Limiting: rate-limiting.md
+  - Database performance tests: db-perf-tests.md
   - Database Performance Tests: db-perf-tests.md
-  - Contributing: contributing.md
+  - Contribution Guide: contributing.md
