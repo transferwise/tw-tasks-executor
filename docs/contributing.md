@@ -1,0 +1,3 @@
+# Contribution Guide
+To contribute to the library, you can either open an issue or create a pull request. Please ensure that you create unit tests for any new features you introduce and ensure that all tests are passing.
+Finally, please remember to update the [project's version](https://github.com/transferwise/tw-tasks-executor/blob/master/gradle.properties) following [semantic versioning](https://semver.org/), and update the [CHANGELOG](https://github.com/transferwise/tw-tasks-executor/blob/master/CHANGELOG.md) accordingly.

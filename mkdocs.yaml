@@ -1,0 +1,12 @@
+site_name: Tw-Curator Documentation
+repo_url: https://github.com/transferwise/tw-tasks-executor
+edit_uri: blob/master/docs/
+nav:
+  - Overview: index.md
+  - Infrastructure: infrastructure.md
+  - Usage: usage.md
+  - Examples: examples.md
+  - Algorithm Used: algorithms.md
+  - Rate Limiting: rate-limiting.md
+  - Database performance tests: db-perf-tests.md
+  - Contribution Guide: contributing.md
