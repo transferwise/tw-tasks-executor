@@ -9,5 +9,4 @@ nav:
   - Algorithm Used: algorithms.md
   - Rate Limiting: rate-limiting.md
   - Database performance tests: db-perf-tests.md
-  - Database Performance Tests: db-perf-tests.md
   - Contribution Guide: contributing.md

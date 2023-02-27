@@ -2,7 +2,6 @@
 
 ## Table of Contents
 * [Introduction](#intro)
-  * [What TwTask is not for](#what-twtask-is-not-for)
   * [Tasks in production, Best Practices](#tasks-in-production-best-practices)
   * [A Task](#a-task)
   * [A Task Handler](#a-task-handler)
