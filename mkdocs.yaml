@@ -1,0 +1,9 @@
+site_name: Tw-Curator Documentation
+repo_url: https://github.com/transferwise/tw-tasks-executor
+edit_uri: blob/master/docs/
+nav:
+  - Overview: index.md
+  - Configuration: configuration.md
+  - Usage: usage.md
+  - Database Performance Tests: db-perf-tests.md
+  - Contributing: contributing.md
