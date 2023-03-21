@@ -19,6 +19,13 @@ tw-tasks:
   core:
     group-id: MyFancyServiceName # Use only symbols suitable for Kafka topic!
     db-type: MYSQL
+    zookeeperConnectString: ${VALUE_HERE}
+    triggering:
+      kafka:
+        bootstrapServers: ${VALUE_HERE}
+    environment:
+      previousVersion: "1.37.1" # put current version if you just added the lib
+
 ```
 
 ##### Create Kafka topic
