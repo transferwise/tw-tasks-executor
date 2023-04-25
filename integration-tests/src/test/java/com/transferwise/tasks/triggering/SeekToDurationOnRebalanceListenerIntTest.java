@@ -101,7 +101,7 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
     sendKafkaMessage(TOPIC, 2, now.minus(Duration.ofHours(1)).toEpochMilli(), "key", "9");
     sendKafkaMessage(TOPIC, 2, now.minus(Duration.ofHours(1)).toEpochMilli(), "key", "10");
 
-    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer, Duration.ofDays(4).negated()));
+    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer, Duration.ofDays(4)));
 
     Set<String> values = new HashSet<>();
     await().until(
@@ -116,7 +116,7 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
     kafkaConsumer.close();
 
     // Second consumer to test the duration passed as negative number
-    kafkaConsumer2.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer2, Duration.ofDays(-4).negated()));
+    kafkaConsumer2.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer2, Duration.ofDays(-4)));
 
     Set<String> values2 = new HashSet<>();
     await().until(
