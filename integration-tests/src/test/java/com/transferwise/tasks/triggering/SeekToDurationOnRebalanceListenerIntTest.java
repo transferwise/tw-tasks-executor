@@ -37,9 +37,9 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
 
   private AdminClient adminClient;
   private KafkaConsumer<String, String> kafkaConsumer;
-
   // Second consumer to test the duration passed as negative number
   private KafkaConsumer<String, String> kafkaConsumer2;
+
   private KafkaProducer<String, String> kafkaProducer;
 
   @BeforeEach
