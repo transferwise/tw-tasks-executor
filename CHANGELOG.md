@@ -12,6 +12,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Replaced `@Validated` annotation with custom call to validator.
   `@Validated` annotation based approach made services startup slow.
 - Improved the graceful shutdown speed to be less than medium delay interval (by default 5s).
+- Changed `MySqlTaskDao` to `JdbcTaskDao`, because some Postgres users got confused/spooked having "mysql" in their stack trace.
 
 ## 1.38.0 - 2023/01/17
 

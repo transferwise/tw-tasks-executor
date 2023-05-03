@@ -20,7 +20,6 @@ import com.transferwise.tasks.cleaning.ITasksCleaner;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
-import com.transferwise.tasks.dao.JdbcTaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
 import com.transferwise.tasks.dao.TaskDaoDataSerializer;
@@ -116,7 +115,7 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public JdbcTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider) {
+  public MySqlTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider) {
     return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource());
   }
 
