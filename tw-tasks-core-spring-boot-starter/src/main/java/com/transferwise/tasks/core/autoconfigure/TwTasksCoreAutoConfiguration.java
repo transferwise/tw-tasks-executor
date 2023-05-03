@@ -20,6 +20,7 @@ import com.transferwise.tasks.cleaning.ITasksCleaner;
 import com.transferwise.tasks.cleaning.TasksCleaner;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
+import com.transferwise.tasks.dao.JdbcTaskDao;
 import com.transferwise.tasks.dao.MySqlTaskDao;
 import com.transferwise.tasks.dao.PostgresTaskDao;
 import com.transferwise.tasks.dao.TaskDaoDataSerializer;
@@ -60,7 +61,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.validation.annotation.Validated;
 
 @Configuration
 @Slf4j
@@ -73,7 +73,6 @@ public class TwTasksCoreAutoConfiguration {
   private GracefulShutdowner gracefulShutdowner;
 
   @Bean
-  @Validated
   @ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)
   public TasksProperties twTasksProperties() {
     return new TasksProperties();
@@ -117,7 +116,7 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(ITaskDao.class)
   @ConditionalOnProperty(value = "tw-tasks.core.db-type", havingValue = "MYSQL")
-  public MySqlTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider) {
+  public JdbcTaskDao twTasksMysqlTaskDao(ITwTasksDataSourceProvider twTasksDataSourceProvider) {
     return new MySqlTaskDao(twTasksDataSourceProvider.getDataSource());
   }
 

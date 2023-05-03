@@ -699,6 +699,11 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     shutdownStartTime = Instant.now(TwContextClockHolder.getClock());
     shuttingDown = true;
     tasksProcessingExecutor.shutdown();
+    for (var bucketId : bucketsManager.getBucketIds()) {
+      var bucket = globalProcessingState.getBuckets().get(bucketId);
+      // Wakes up waiting threads.
+      bucket.increaseVersion();
+    }
   }
 
   @Override

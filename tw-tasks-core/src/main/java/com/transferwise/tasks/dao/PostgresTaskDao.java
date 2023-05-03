@@ -5,7 +5,7 @@ import java.sql.SQLWarning;
 import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 
-public class PostgresTaskDao extends MySqlTaskDao {
+public class PostgresTaskDao extends JdbcTaskDao {
 
   public PostgresTaskDao(DataSource dataSource) {
     super(dataSource, new PostgresTaskSqlMapper());

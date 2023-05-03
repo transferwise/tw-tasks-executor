@@ -18,7 +18,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.validation.annotation.Validated;
 
 @EnableConfigurationProperties
 @Configuration
@@ -51,7 +50,6 @@ public class TwTasksExtKafkaListenerAutoConfiguration {
   }
 
   @Bean
-  @Validated
   @ConfigurationProperties(prefix = "tw-tasks.impl.kafka.listener", ignoreUnknownFields = false)
   @ConditionalOnMissingBean
   public TwTasksKafkaListenerProperties twTasksKafkaListenerProperties() {

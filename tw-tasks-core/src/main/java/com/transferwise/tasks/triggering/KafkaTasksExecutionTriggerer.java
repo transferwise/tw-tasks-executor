@@ -22,7 +22,6 @@ import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
-import com.transferwise.tasks.helpers.kafka.partitionkey.RandomPartitionKeyStrategy;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.utils.InefficientCode;
@@ -35,7 +34,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -691,6 +689,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   @Override
   public void prepareForShutdown() {
     shuttingDown = true;
+    for (String bucketId : bucketsManager.getBucketIds()) {
+      stopTasksProcessing(bucketId);
+    }
     executorService.shutdown();
   }
 
