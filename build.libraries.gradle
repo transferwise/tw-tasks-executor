@@ -1,6 +1,4 @@
 ext {
-    springBootVersion = "${System.getenv("SPRING_BOOT_VERSION") ?: '3.0.6'}"
-
     libraries = [
             // version defined
             awaitility                      : 'org.awaitility:awaitility:4.2.0',
