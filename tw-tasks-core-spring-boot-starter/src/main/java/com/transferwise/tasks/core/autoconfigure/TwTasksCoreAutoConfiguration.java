@@ -9,6 +9,7 @@ import com.transferwise.tasks.IEnvironmentValidator;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.LegacyEnvironmentValidator;
 import com.transferwise.tasks.PriorityManager;
 import com.transferwise.tasks.TaskDataSerializer;
 import com.transferwise.tasks.TasksProperties;
@@ -53,18 +54,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.boot.autoconfigure.AutoConfigureAfter;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.core.env.Environment;
 
 @Configuration
 @Slf4j
 @Import(TransactionsConfiguration.class)
 @EnableConfigurationProperties
+@AutoConfigureAfter({ValidationAutoConfiguration.class})
 public class TwTasksCoreAutoConfiguration {
 
   // Following is not used by the code, but makes sure, that someone has not turned graceful shutdown completely off.
@@ -234,8 +242,18 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(IEnvironmentValidator.class)
-  public EnvironmentValidator twTasksEnvironmentValidator() {
+  @ConditionalOnClass(name = "jakarta.validation.Validator")
+  @ConditionalOnBean(type = "jakarta.validation.Validator")
+  public EnvironmentValidator twTasksEnvironmentValidator(Environment env, ApplicationContext applicationContext) {
     return new EnvironmentValidator();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(IEnvironmentValidator.class)
+  @ConditionalOnClass(name = "javax.validation.Validator")
+  @ConditionalOnBean(type = "javax.validation.Validator")
+  public LegacyEnvironmentValidator twTasksLegacyEnvironmentValidator() {
+    return new LegacyEnvironmentValidator();
   }
 
   @Bean

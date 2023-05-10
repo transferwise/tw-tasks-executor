@@ -1,10 +1,10 @@
 package com.transferwise.tasks;
 
-import jakarta.validation.ConstraintViolationException;
-import jakarta.validation.Validator;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class EnvironmentValidator extends BaseEnvironmentValidator {
+public class LegacyEnvironmentValidator extends BaseEnvironmentValidator {
 
   @Autowired
   private Validator validator;

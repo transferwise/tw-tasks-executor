@@ -30,7 +30,7 @@ class CoreKafkaListenerTest {
   void topicPrefixesAreCorrectlyRemoved(String namespace, String topic, String nakedTopic) {
     when(tasksProperties.getKafkaTopicsNamespace()).thenReturn(namespace);
     when(tasksProperties.getKafkaDataCenterPrefixes()).thenReturn("aws.,fra.");
-    coreKafkaListener.init();
+    coreKafkaListener.afterPropertiesSet();
 
     String result = coreKafkaListener.removeTopicPrefixes(topic);
 

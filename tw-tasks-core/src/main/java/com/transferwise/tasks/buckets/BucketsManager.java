@@ -11,10 +11,10 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import javax.annotation.PostConstruct;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class BucketsManager implements IBucketsManager {
+public class BucketsManager implements IBucketsManager, InitializingBean {
 
   @Autowired
   private TasksProperties tasksProperties;
@@ -28,8 +28,8 @@ public class BucketsManager implements IBucketsManager {
   private final Map<String, BucketProperties> bucketsProperties = new ConcurrentHashMap<>();
   private List<String> bucketIds;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     ExceptionUtils.doUnchecked(() -> {
       add(IBucketsManager.DEFAULT_ID, new BucketProperties()
           .setMaxTriggersInMemory(tasksProperties.getMaxTriggersInMemory())

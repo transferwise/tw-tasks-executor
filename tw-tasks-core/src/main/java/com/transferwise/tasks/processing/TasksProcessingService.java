@@ -56,7 +56,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import javax.annotation.PostConstruct;
 import javax.annotation.concurrent.GuardedBy;
 import lombok.Data;
 import lombok.Getter;
@@ -64,11 +63,12 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
-public class TasksProcessingService implements GracefulShutdownStrategy, ITasksProcessingService {
+public class TasksProcessingService implements GracefulShutdownStrategy, ITasksProcessingService, InitializingBean {
 
   @Autowired
   private ITaskDao taskDao;
@@ -118,8 +118,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
   @GuardedBy("lifecycleLock")
   private boolean processingStarted;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     taskExecutor = executorsHelper.newCachedExecutor("taskExecutor");
     tasksProcessingExecutor = executorsHelper.newCachedExecutor("tasksProcessing");
     tasksGrabbingExecutor = executorsHelper.newCachedExecutor("tasksGrabbing");

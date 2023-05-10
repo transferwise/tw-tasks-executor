@@ -38,7 +38,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.Accessors;
@@ -46,11 +45,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.curator.framework.CuratorFramework;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
 @RequiredArgsConstructor
-public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
+public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private ITasksExecutionTriggerer tasksExecutionTriggerer;
@@ -81,8 +81,8 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy {
   // For tests.
   private volatile boolean paused;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_resumer";
     ExecutorService executorService = new ThreadNamingExecutorServiceWrapper("tw-tasks-resumer", executorServicesProvider.getGlobalExecutorService());
 

@@ -13,8 +13,6 @@ apply from: '../build.ext.gradle'
 
 dependencies {
     implementation libraries.springBeans
-    implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
-    implementation libraries.newRelic
     implementation libraries.jacksonDatabind
     implementation libraries.twContext
     implementation libraries.kafkaClients

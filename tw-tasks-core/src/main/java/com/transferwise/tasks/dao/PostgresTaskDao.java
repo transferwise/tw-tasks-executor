@@ -2,10 +2,10 @@ package com.transferwise.tasks.dao;
 
 import com.transferwise.tasks.TasksProperties;
 import java.sql.SQLWarning;
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
+import org.springframework.beans.factory.InitializingBean;
 
-public class PostgresTaskDao extends JdbcTaskDao {
+public class PostgresTaskDao extends JdbcTaskDao implements InitializingBean {
 
   public PostgresTaskDao(DataSource dataSource) {
     super(dataSource, new PostgresTaskSqlMapper());
@@ -16,10 +16,9 @@ public class PostgresTaskDao extends JdbcTaskDao {
     return new PostgresTaskTables(tasksProperties);
   }
 
-  @PostConstruct
   @Override
-  public void init() {
-    super.init();
+  public void afterPropertiesSet() {
+    super.afterPropertiesSet();
 
     ITwTaskTables tables = twTaskTables(tasksProperties);
     String taskTable = tables.getTaskTableIdentifier();

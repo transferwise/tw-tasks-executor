@@ -12,10 +12,10 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,7 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 @Controller
 @Slf4j
-public class TasksManagementPortController implements ITasksManagementPort {
+public class TasksManagementPortController implements ITasksManagementPort, InitializingBean {
 
   private static final int DEFAULT_MAX_COUNT = 10;
 
@@ -41,8 +41,8 @@ public class TasksManagementPortController implements ITasksManagementPort {
 
   private Map<String, Set<String>> allowedRolesByTaskType;
 
-  @PostConstruct
-  protected void init() {
+  @Override
+  public void afterPropertiesSet() {
     allowedRolesByTaskType = tasksProperties.getTasksManagement()
         .getTypeSpecific()
         .stream()

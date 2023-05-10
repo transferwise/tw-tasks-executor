@@ -36,13 +36,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.support.DataAccessUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -61,7 +61,7 @@ import org.springframework.transaction.annotation.Transactional;
 //TODO: Separate interface methods to Engine, Management and Tests and annotate them.
 //TODO: We should allow to set "data" field to null, to have better performance on Postgres.
 @Slf4j
-public abstract class JdbcTaskDao implements ITaskDao {
+public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
 
   private static final String DELETE_TASKS_BY_ID_BATCHES = "deleteTasksByIdBatchesSql";
   private static final String DELETE_UNIQUE_TASK_KEYS_BY_ID_BATCHES = "deleteUniqueTaskKeysByIdBatchesSql";
@@ -136,8 +136,8 @@ public abstract class JdbcTaskDao implements ITaskDao {
     return new MySqlTaskTables(tasksProperties);
   }
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     ITwTaskTables tables = twTaskTables(tasksProperties);
     String taskTable = tables.getTaskTableIdentifier();
     String uniqueTaskKeyTable = tables.getUniqueTaskKeyTableIdentifier();

@@ -44,7 +44,7 @@ public class NoOpTopicPartitionsManager implements ITopicPartitionsManager {
         DescribeTopicsResult describeTopicsResult = adminClient.describeTopics(Collections.singletonList(topic));
         TopicDescription topicDescription = null;
         try {
-          topicDescription = describeTopicsResult.all().get(COMMANDS_TIMEOUT_S, TimeUnit.SECONDS).get(topic);
+          topicDescription = describeTopicsResult.allTopicNames().get(COMMANDS_TIMEOUT_S, TimeUnit.SECONDS).get(topic);
         } catch (ExecutionException e) {
           if (e.getCause() == null || !(e.getCause() instanceof UnknownTopicOrPartitionException)) {
             throw e;

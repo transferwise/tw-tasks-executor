@@ -17,16 +17,16 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 
 @Slf4j
-public class JobsService implements IJobsService, GracefulShutdownStrategy {
+public class JobsService implements IJobsService, GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private ITasksService tasksService;
@@ -45,8 +45,8 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy {
     nonBeanJobs.add(job);
   }
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     if (meterRegistry != null) {
       // Don't need concurrent list or anything here until we don't modify it's contents.
       Gauge.builder("twTasks.jobs.registrationsCount", null, (n) -> jobContainers.size()).register(meterRegistry);

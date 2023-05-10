@@ -154,7 +154,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.processingsCount"));
     assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.processedCount"));
     if (!stuck) {
-      assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.duplicatesCount"));
+      await().until(() -> uniqueTasksCount == counterSum("twTasks.tasks.duplicatesCount"));
     }
     assertEquals(uniqueTasksCount, timerSum("twTasks.tasks.processingTime"));
 
