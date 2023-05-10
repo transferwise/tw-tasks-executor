@@ -105,12 +105,6 @@ public class CoreKafkaListenerIntTest extends BaseIntTest {
   }
 
   private void sendDirectMessage(String topic, String value) {
-    kafkaTemplate.send(topic, value).whenComplete((result, t) -> {
-      if (t != null) {
-        log.error("Message sending failed.", t);
-      } else {
-        log.debug("Message sending succeeded: {}", value);
-      }
-    });
+    kafkaTemplate.send(topic, value);
   }
 }
