@@ -4,7 +4,7 @@ import javax.validation.ConstraintViolationException;
 import javax.validation.Validator;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class LegacyEnvironmentValidator extends BaseEnvironmentValidator {
+public class JavaxEnvironmentValidator extends BaseEnvironmentValidator {
 
   @Autowired
   private Validator validator;
