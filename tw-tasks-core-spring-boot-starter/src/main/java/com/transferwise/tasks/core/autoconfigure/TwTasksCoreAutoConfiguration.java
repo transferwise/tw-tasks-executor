@@ -9,7 +9,7 @@ import com.transferwise.tasks.IEnvironmentValidator;
 import com.transferwise.tasks.IPriorityManager;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
-import com.transferwise.tasks.JavaxEnvironmentValidator;
+import com.transferwise.tasks.JavaxValidationEnvironmentValidator;
 import com.transferwise.tasks.PriorityManager;
 import com.transferwise.tasks.TaskDataSerializer;
 import com.transferwise.tasks.TasksProperties;
@@ -247,8 +247,8 @@ public class TwTasksCoreAutoConfiguration {
   @Bean
   @ConditionalOnMissingBean(IEnvironmentValidator.class)
   @ConditionalOnBean(type = "javax.validation.Validator")
-  public JavaxEnvironmentValidator twTasksJavaxEnvironmentValidator() {
-    return new JavaxEnvironmentValidator();
+  public JavaxValidationEnvironmentValidator twTasksJavaxValidationEnvironmentValidator() {
+    return new JavaxValidationEnvironmentValidator();
   }
 
   @Bean
