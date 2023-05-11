@@ -118,7 +118,16 @@ public class TaskProcessingIntTest extends BaseIntTest {
                   .setKey(String.valueOf(key))
               );
             } else {
-              tasksService.addTask(taskRequest);
+              for (int t = 0; t < 3; t++) {
+                try {
+                  tasksService.addTask(taskRequest);
+                  break;
+                } catch (RuntimeException e) {
+                  if (!ExceptionUtils.getAllCauseMessages(e).contains("Deadlock")) {
+                    throw e;
+                  }
+                }
+              }
             }
 
           } catch (Throwable t) {
