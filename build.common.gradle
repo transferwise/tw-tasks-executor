@@ -63,12 +63,13 @@ dependencies {
 
     compileOnly libraries.spotbugsAnnotations
     compileOnly libraries.springBootConfigurationProcessor
+    compileOnly libraries.jakartaValidationApi
+    compileOnly libraries.javaxValidationApi
 
     implementation libraries.slf4j
     implementation libraries.apacheCommonsCollections
     implementation libraries.apacheCommonsLang
-    implementation libraries.jakartaValidationApi
-    implementation libraries.javaxValidationApi
+
     implementation libraries.guava
     implementation libraries.twBaseUtils
 
@@ -79,6 +80,8 @@ dependencies {
     testImplementation libraries.junitParams
     testImplementation libraries.junitMockito
     testImplementation libraries.assertJCore
+
+    testRuntimeOnly libraries.javaxValidationApi
 }
 
 java {
