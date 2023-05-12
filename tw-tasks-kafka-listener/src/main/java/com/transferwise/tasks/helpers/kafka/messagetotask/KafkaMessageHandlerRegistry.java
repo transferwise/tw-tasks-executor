@@ -13,8 +13,13 @@ public class KafkaMessageHandlerRegistry<T> implements IKafkaMessageHandlerRegis
   @Autowired(required = false)
   private List<IKafkaMessageHandler<T>> kafkaMessageHandlers;
 
+  @Autowired
+  private IEnvironmentValidator environmentValidator;
+
   @Override
   public void afterPropertiesSet() {
+    environmentValidator.validate();
+
     if (!isEmpty()) {
       for (IKafkaMessageHandler<T> kafkaMessageHandler : kafkaMessageHandlers) {
         log.info("Registering Kafka message handler '" + kafkaMessageHandler + "'.");
