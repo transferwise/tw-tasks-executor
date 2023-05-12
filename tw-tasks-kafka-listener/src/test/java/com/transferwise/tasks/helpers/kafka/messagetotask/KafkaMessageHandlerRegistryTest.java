@@ -49,13 +49,19 @@ class KafkaMessageHandlerRegistryTest {
   static class KafkaMessageHandlerConfiguration {
 
     @Bean
+    IEnvironmentValidator twTasksKafkaListenerEnvironmentValidator() {
+      return () -> {
+      };
+    }
+
+    @Bean
     KafkaMessageHandlerRegistry<?> twTasksKafkaMessageHandlerRegistry() {
       return new KafkaMessageHandlerRegistry<>();
     }
 
     @Bean
     IKafkaMessageHandler<String> handlerForTopicA() {
-      return new IKafkaMessageHandler<String>() {
+      return new IKafkaMessageHandler<>() {
 
         @Override
         public List<Topic> getTopics() {
@@ -75,7 +81,7 @@ class KafkaMessageHandlerRegistryTest {
 
     @Bean
     IKafkaMessageHandler<String> secondHandlerForTopicA() {
-      return new IKafkaMessageHandler<String>() {
+      return new IKafkaMessageHandler<>() {
 
         @Override
         public List<IKafkaMessageHandler.Topic> getTopics() {
