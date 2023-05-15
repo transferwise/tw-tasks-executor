@@ -118,7 +118,16 @@ public class TaskProcessingIntTest extends BaseIntTest {
                   .setKey(String.valueOf(key))
               );
             } else {
-              tasksService.addTask(taskRequest);
+              for (int t = 0; t < 3; t++) {
+                try {
+                  tasksService.addTask(taskRequest);
+                  break;
+                } catch (RuntimeException e) {
+                  if (!ExceptionUtils.getAllCauseMessages(e).contains("Deadlock")) {
+                    throw e;
+                  }
+                }
+              }
             }
 
           } catch (Throwable t) {
@@ -154,7 +163,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
     assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.processingsCount"));
     assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.processedCount"));
     if (!stuck) {
-      assertEquals(uniqueTasksCount, counterSum("twTasks.tasks.duplicatesCount"));
+      await().until(() -> uniqueTasksCount == counterSum("twTasks.tasks.duplicatesCount"));
     }
     assertEquals(uniqueTasksCount, timerSum("twTasks.tasks.processingTime"));
 

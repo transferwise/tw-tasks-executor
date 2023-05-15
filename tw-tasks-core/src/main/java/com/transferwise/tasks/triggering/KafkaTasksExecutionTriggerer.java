@@ -22,7 +22,6 @@ import com.transferwise.tasks.helpers.IErrorLoggingThrottler;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
 import com.transferwise.tasks.helpers.kafka.ITopicPartitionsManager;
 import com.transferwise.tasks.helpers.kafka.partitionkey.IPartitionKeyStrategy;
-import com.transferwise.tasks.helpers.kafka.partitionkey.RandomPartitionKeyStrategy;
 import com.transferwise.tasks.processing.GlobalProcessingState;
 import com.transferwise.tasks.processing.ITasksProcessingService;
 import com.transferwise.tasks.utils.InefficientCode;
@@ -35,7 +34,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,7 +44,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -72,11 +69,12 @@ import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.apache.kafka.common.utils.AppInfoParser;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
-public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy {
+public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private ITasksProcessingService tasksProcessingService;
@@ -113,8 +111,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private final AtomicInteger pollingBucketsCount = new AtomicInteger();
   private final Lock lifecycleLock = new ReentrantLock();
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     executorService = executorsHelper.newCachedExecutor("ktet");
     triggerTopic = "twTasks." + tasksProperties.getGroupId() + ".executeTask";
 
@@ -691,6 +689,9 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   @Override
   public void prepareForShutdown() {
     shuttingDown = true;
+    for (String bucketId : bucketsManager.getBucketIds()) {
+      stopTasksProcessing(bucketId);
+    }
     executorService.shutdown();
   }
 

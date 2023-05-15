@@ -3,6 +3,7 @@ package com.transferwise.tasks;
 import com.transferwise.common.baseutils.meters.cache.IMeterCache;
 import com.transferwise.common.baseutils.transactionsmanagement.ITransactionsHelper;
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.tasks.test.BaseExtension;
 import com.transferwise.tasks.test.ITestTasksService;
 import com.transferwise.tasks.test.MetricsTestHelper;
 import com.transferwise.tasks.testapp.IResultRegisteringSyncTaskProcessor;
@@ -17,6 +18,7 @@ import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootContextLoader;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +31,7 @@ import org.springframework.test.context.ContextConfiguration;
 @SpringBootTest(classes = {TestConfiguration.class, TestApplication.class}, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ContextConfiguration(loader = SpringBootContextLoader.class)
 @Slf4j
+@ExtendWith(BaseExtension.class)
 public abstract class BaseIntTest {
 
   static {
@@ -58,13 +61,8 @@ public abstract class BaseIntTest {
     TestApplicationContextHolder.setApplicationContext(applicationContext);
   }
 
-  private long startTimeMs = System.currentTimeMillis();
-
   @BeforeEach
-  void setupBaseTest(TestInfo testInfo) {
-    startTimeMs = System.currentTimeMillis();
-    testInfo.getTestMethod().ifPresent(name -> log.info("Setting up for '{}'", name));
-
+  void setupBaseTest() {
     transactionsHelper.withTransaction().asNew().call(() -> {
       testTasksService.reset();
       return null;
@@ -79,7 +77,7 @@ public abstract class BaseIntTest {
   }
 
   @AfterEach
-  void cleanupBaseTest(TestInfo testInfo) {
+  void cleanupBaseTest() {
     TwContextClockHolder.reset();
     transactionsHelper.withTransaction().asNew().call(() -> {
       testTasksService.reset();
@@ -90,10 +88,6 @@ public abstract class BaseIntTest {
 
     // Cheap when it's already running.
     testTasksService.resumeProcessing();
-
-    testInfo.getTestMethod().ifPresent(name ->
-        log.info("Cleaning up for '{}' It took {} ms", name, System.currentTimeMillis() - startTimeMs)
-    );
   }
 
   protected void cleanWithoutException(Runnable runnable) {

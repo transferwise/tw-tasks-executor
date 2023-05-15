@@ -1,6 +1,5 @@
 package com.transferwise.tasks.entrypoints;
 
-import com.newrelic.api.agent.NewRelic;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.context.TwContext;
 import com.transferwise.tasks.TasksProperties;
@@ -67,7 +66,6 @@ public class MdcService implements IMdcService {
     } else {
       TwContext.putCurrentMdc(key, value);
     }
-    NewRelic.addCustomParameter(key, value);
   }
 
   @Override

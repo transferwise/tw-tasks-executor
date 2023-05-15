@@ -6,14 +6,11 @@ apply from: '../build.ext.gradle'
 
 dependencies {
     implementation libraries.springSecurityWeb
-    implementation libraries.newRelic
     implementation libraries.springJdbc
     implementation libraries.springTx
     implementation libraries.springContext
     implementation libraries.twContext
-    implementation libraries.javaxAnnotationApi
 
     compileOnly libraries.springWeb
-    compileOnly libraries.jakartaValidationApi
     compileOnly libraries.jacksonDatabind
 }

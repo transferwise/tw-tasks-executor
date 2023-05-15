@@ -18,16 +18,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.PostConstruct;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
-public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
+public class CoreKafkaListener<T> implements GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private IKafkaListenerConsumerPropertiesProvider consumerPropertiesProvider;
@@ -58,8 +58,8 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy {
    *
    * <p>Actually it needs to be tested, if automatic config can be sped up or is it only slow on first time.
    */
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     if (kafkaMessageHandlerRegistry.isEmpty()) {
       return;
     }

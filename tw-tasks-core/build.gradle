@@ -6,9 +6,6 @@ apply from: '../build.common.gradle'
 apply from: '../build.publish.gradle'
 
 dependencies {
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-    compileOnly 'org.springframework.boot:spring-boot-configuration-processor'
-
     api libraries.twGracefulShutdownIntefaces
 
     implementation libraries.apacheCuratorRecipies
@@ -16,10 +13,8 @@ dependencies {
     implementation libraries.twLeaderSelector
     implementation libraries.twContext
     implementation libraries.micrometerCore
-    implementation libraries.newRelic
     implementation libraries.jacksonDatabind
     implementation libraries.semver4j
-    implementation libraries.jakartaValidationApi
     implementation libraries.kafkaClients
     implementation libraries.lubenZstd
     implementation libraries.lz4Java
@@ -31,7 +26,6 @@ dependencies {
     implementation libraries.springContext
     implementation libraries.springBeans
     implementation libraries.springBoot // (used by TwTasksApplicationListener)
-    implementation libraries.javaxAnnotationApi // (@PostConstruct, make sure lib can start ioc independent way)
 
     testImplementation libraries.logbackClassic
 }

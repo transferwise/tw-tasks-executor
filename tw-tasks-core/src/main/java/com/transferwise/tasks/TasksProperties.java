@@ -1,6 +1,7 @@
 package com.transferwise.tasks;
 
-import com.transferwise.tasks.config.ResolvedValue;
+import com.transferwise.common.baseutils.validation.LegacyResolvedValue;
+import com.transferwise.common.baseutils.validation.ResolvedValue;
 import com.transferwise.tasks.utils.ClientIdUtils;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -26,39 +27,48 @@ public class TasksProperties {
    * Unique id for service in the whole Company infrastructure.
    */
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String groupId;
   /**
    * Unique node id in the service cluster. It helps to make crash recovery for a node very fast, but also is good for logging and tracking reasons.
    */
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String clientId = ClientIdUtils.clientIdFromHostname();
   /**
    * How often do we check if any task is stuck.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration stuckTasksPollingInterval = Duration.ofMinutes(1);
   /**
    * How often do we try to clean very old tasks from the database.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration tasksCleaningInterval = Duration.ofSeconds(1);
   /**
    * How often do we check if any scheduled task should be executed now.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration waitingTasksPollingInterval = Duration.ofSeconds(5);
   /**
    * Generic maximum time to wait for any lock, event or polling. It helps to make the system more robust and better debuggable. Usually you will
    * never want to change this.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration genericMediumDelay = Duration.ofSeconds(5);
   /**
    * How often do we async commit Kafka triggers offsets.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration triggersCommitInterval = Duration.ofSeconds(5);
 
   /**
@@ -67,16 +77,19 @@ public class TasksProperties {
    * <p>Notice, that it is not used for PROCESSING state, where the maximum time is asked from task handler itself.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration taskStuckTimeout = Duration.ofMinutes(30);
   /**
    * How much do we load triggers from triggering topic into memory, aka look-ahead amount.
    */
   @Min(1L)
+  @jakarta.validation.constraints.Min(1L)
   private int maxTriggersInMemory = 100000;
   /**
    * How many triggers maximum do we retrieve from Kafka with one polling loop.
    */
   @Min(1L)
+  @jakarta.validation.constraints.Min(1L)
   private int triggerFetchSize = 100;
   /**
    * How many nodes do we expect to be in the cluster.
@@ -99,7 +112,9 @@ public class TasksProperties {
    * Connection string to Zookeeper. Used to set partition sizes for different topics.
    */
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String zookeeperConnectString;
   /**
    * Topic replication factor for listened topics and task triggering topics.
@@ -109,12 +124,15 @@ public class TasksProperties {
    * MySQL or Postgres.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private DbType dbType;
   /**
    * MDC keys config.
    */
   @Valid
+  @jakarta.validation.Valid
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Mdc mdc = new Mdc();
   /**
    * We support Transferwise Kafka failover, where for every topic, we additionally listen to 2 other topics, one starting with "fra." and other with
@@ -123,12 +141,14 @@ public class TasksProperties {
    * <p>e.g. kafkaDataCenterPrefixes = "fra.,aws.";
    */
   @ResolvedValue
+  @LegacyResolvedValue
   private String kafkaDataCenterPrefixes = "";
   /**
    * Sometimes environments and engineers are forced to use same Kafka server, but still want to deal with only their own messages. In that case we
    * can configure a so called namespace string, which is prepended to every topics name.
    */
   @ResolvedValue
+  @LegacyResolvedValue
   private String kafkaTopicsNamespace;
 
   /**
@@ -141,11 +161,13 @@ public class TasksProperties {
    * added.
    */
   @Min(1L)
+  @jakarta.validation.constraints.Min(1L)
   private int maxAsyncTaskTriggerings = 100000;
   /**
    * In how many threads to we try to trigger tasks when using crappy Spring own transaction manager.
    */
   @Min(1L)
+  @jakarta.validation.constraints.Min(1L)
   private int asyncTaskTriggeringsConcurrency = 10;
   /**
    * Highest task priority allowed.
@@ -162,12 +184,15 @@ public class TasksProperties {
    * <p>Can use "earliest", "latest" or Duration notion. For example, if you want to rewind 30 min back, you should write "-PT30M";
    */
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String autoResetOffsetTo = "-PT30M";
   /**
    * When do we consider a task or task unique key old enough to be removed from the database.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration finishedTasksHistoryToKeep = Duration.ofDays(30);
   /**
    * How many old tasks maximum do we delete in one batch/transaction. Deletion should always happen in small batches to not create too big spikes for
@@ -179,6 +204,7 @@ public class TasksProperties {
    * situation. Can use TCP/IP flow control algorithms.
    */
   @Min(1L)
+  @jakarta.validation.constraints.Min(1L)
   private int tasksHistoryDeletingBatchSize = 2 * 125;
 
   //TODO: This does not make sense as generic parameter.
@@ -203,6 +229,7 @@ public class TasksProperties {
    * How long a task has to be stuck, before we start sending out VictorOps alerts.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private Duration stuckTaskAge = Duration.ofMinutes(5);
 
   private boolean checkVersionBeforeGrabbing = false;
@@ -216,6 +243,7 @@ public class TasksProperties {
    * type are submitted, and instead the task will be sent to the error state.
    */
   @NotNull
+  @jakarta.validation.constraints.NotNull
   private List<String> additionalProcessingBuckets = new ArrayList<>();
 
   /**
@@ -224,16 +252,24 @@ public class TasksProperties {
   private boolean preventStartWithoutZookeeper = true;
 
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String taskTableName = "tw_task";
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String uniqueTaskKeyTableName = "unique_tw_task_key";
   @NotBlank
+  @jakarta.validation.constraints.NotBlank
   @ResolvedValue
+  @LegacyResolvedValue
   private String taskDataTableName = "tw_task_data";
   @NotNull
+  @jakarta.validation.constraints.NotNull
   @ResolvedValue
+  @LegacyResolvedValue
   private String taskTablesSchemaName = "";
 
   /**
@@ -247,6 +283,7 @@ public class TasksProperties {
    * Just to allow `ignoreUnknownFields` work.
    */
   @ResolvedValue
+  @LegacyResolvedValue
   private String baseUrl;
 
   /**
@@ -255,7 +292,8 @@ public class TasksProperties {
    *
    * <p>The side effect is, that for example erroneous tasks count will never exceed this number.
    */
-  @Min(1)
+  @Min(1L)
+  @jakarta.validation.constraints.Min(1)
   private int maxDatabaseFetchSize = 10000;
 
   /**
@@ -305,13 +343,15 @@ public class TasksProperties {
    * <p>The default 25 is somewhat optimized for RDS Multi A/Z databases with high commit latency, where we have 6 nodes application cluster,
    * relatively close to the database.
    */
-  @Min(1)
+  @Min(1L)
+  @jakarta.validation.constraints.Min(1)
   private Integer taskGrabbingMaxConcurrency = 25;
 
   /**
    * Cluster wide tasks state monitoring options.
    */
   @Valid
+  @jakarta.validation.Valid
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
 
   public enum DbType {
@@ -319,31 +359,39 @@ public class TasksProperties {
   }
 
   @Valid
+  @jakarta.validation.Valid
   private TasksManagement tasksManagement = new TasksManagement();
 
   @Valid
+  @jakarta.validation.Valid
   private Compression compression = new Compression();
 
   @Valid
+  @jakarta.validation.Valid
   private Environment environment = new Environment();
 
   @Valid
+  @jakarta.validation.Valid
   private Triggering triggering = new Triggering();
 
   @Valid
+  @jakarta.validation.Valid
   private TasksResumer tasksResumer = new TasksResumer();
 
   @Data
   public static class Triggering {
 
     @Valid
+    @jakarta.validation.Valid
     private Kafka kafka = new Kafka();
 
     @Data
     public static class Kafka {
 
       @NotBlank
+      @jakarta.validation.constraints.NotBlank
       @ResolvedValue
+      @LegacyResolvedValue
       private String bootstrapServers;
 
       /**
@@ -361,24 +409,31 @@ public class TasksProperties {
      * A role for viewing PII data.
      */
     @NotNull
+    @jakarta.validation.constraints.NotNull
     private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
     /**
      * Roles for all other task management endpoints.
      */
     @NotNull
+    @jakarta.validation.constraints.NotNull
     private Set<String> roles = new HashSet<>(Collections.singleton("ROLE_DEVEL"));
 
     @NotNull
+    @jakarta.validation.constraints.NotNull
     @Valid
+    @jakarta.validation.Valid
     private List<TypeSpecificTaskManagement> typeSpecific = Collections.emptyList();
 
     @Data
     public static class TypeSpecificTaskManagement {
 
       @NotBlank
+      @jakarta.validation.constraints.NotBlank
       @ResolvedValue
+      @LegacyResolvedValue
       private String taskType;
       @NotEmpty
+      @jakarta.validation.constraints.NotEmpty
       private Set<String> viewTaskDataRoles = new HashSet<>(Collections.singletonList("NONEXISTING_ROLE_FOR_TESTING_PURPOSES_ONLY"));
     }
   }
@@ -390,16 +445,24 @@ public class TasksProperties {
   public static class Mdc {
 
     @NotBlank
+    @jakarta.validation.constraints.NotBlank
     @ResolvedValue
+    @LegacyResolvedValue
     private String taskIdKey = "twTaskId";
     @NotBlank
+    @jakarta.validation.constraints.NotBlank
     @ResolvedValue
+    @LegacyResolvedValue
     private String taskVersionKey = "twTaskVersion";
     @NotBlank
+    @jakarta.validation.constraints.NotBlank
     @ResolvedValue
+    @LegacyResolvedValue
     private String taskTypeKey = "twTaskType";
     @NotBlank
+    @jakarta.validation.constraints.NotBlank
     @ResolvedValue
+    @LegacyResolvedValue
     private String taskSubTypeKey = "twTaskSubType";
   }
 
@@ -415,11 +478,13 @@ public class TasksProperties {
      * <p>Monitor can actually run slower or faster, when leadership is switching rapidly.
      */
     @NotNull
+    @jakarta.validation.constraints.NotNull
     private Duration interval = Duration.ofSeconds(30);
     /**
      * The time between monitor acquires leadership and first check is done.
      */
     @NotNull
+    @jakarta.validation.constraints.NotNull
     private Duration startDelay = Duration.ofSeconds(5);
     /**
      * If enabled, we will gather approximate tasks and unique keys counts from database information schema tables.
@@ -432,6 +497,7 @@ public class TasksProperties {
   public static class Compression {
 
     @NotNull
+    @jakarta.validation.constraints.NotNull
     private CompressionAlgorithm algorithm = CompressionAlgorithm.GZIP;
 
     /**
@@ -460,7 +526,9 @@ public class TasksProperties {
      * <p>Allows tw-tasks to decide when it should fail fast, instead of risking with incompatibilities or/and processing pauses.
      */
     @NotBlank
+    @jakarta.validation.constraints.NotBlank
     @ResolvedValue
+    @LegacyResolvedValue
     private String previousVersion;
 
   }
@@ -473,9 +541,11 @@ public class TasksProperties {
      * Specifies how many tasks we are loading from the database in one go to be then resumed concurrently.
      */
     @Positive
+    @jakarta.validation.constraints.Positive
     private int batchSize = 1000;
 
     @Positive
+    @jakarta.validation.constraints.Positive
     private int concurrency = 10;
   }
 }
