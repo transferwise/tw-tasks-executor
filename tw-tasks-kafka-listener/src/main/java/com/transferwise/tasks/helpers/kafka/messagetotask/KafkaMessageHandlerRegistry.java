@@ -2,19 +2,24 @@ package com.transferwise.tasks.helpers.kafka.messagetotask;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
-public class KafkaMessageHandlerRegistry<T> implements IKafkaMessageHandlerRegistry<T> {
+public class KafkaMessageHandlerRegistry<T> implements IKafkaMessageHandlerRegistry<T>, InitializingBean {
 
   @Autowired(required = false)
   private List<IKafkaMessageHandler<T>> kafkaMessageHandlers;
 
-  @PostConstruct
-  public void init() {
+  @Autowired
+  private IEnvironmentValidator environmentValidator;
+
+  @Override
+  public void afterPropertiesSet() {
+    environmentValidator.validate();
+
     if (!isEmpty()) {
       for (IKafkaMessageHandler<T> kafkaMessageHandler : kafkaMessageHandlers) {
         log.info("Registering Kafka message handler '" + kafkaMessageHandler + "'.");

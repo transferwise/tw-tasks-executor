@@ -73,9 +73,9 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor)
         .setProcessingPolicy(new SimpleTaskProcessingPolicy()
-        .setProcessingBucket(BUCKET_ID)
-        .setMaxProcessingDuration(Duration.of(1, ChronoUnit.HOURS))
-        .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
+            .setProcessingBucket(BUCKET_ID)
+            .setMaxProcessingDuration(Duration.of(1, ChronoUnit.HOURS))
+            .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
 
     // when
     final var uniqueKey = UUID.fromString("323efb9c-341e-47a6-a1fe-b38c62c25b37");
@@ -107,6 +107,7 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   }
 
   static class TestPartitionKeyStrategy implements IPartitionKeyStrategy {
+
     private static final UUID KEY = UUID.fromString(PARTITION_KEY);
 
     @Override

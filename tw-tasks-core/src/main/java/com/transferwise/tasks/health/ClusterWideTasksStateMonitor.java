@@ -31,14 +31,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.apache.commons.lang3.tuple.Pair;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
-public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, GracefulShutdownStrategy {
+public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private IExecutorServicesProvider executorServicesProvider;
@@ -76,8 +76,8 @@ public class ClusterWideTasksStateMonitor implements ITasksStateMonitor, Gracefu
   private final Lock stateLock = new ReentrantLock();
   private boolean initialized;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_state_monitor";
 
     ExecutorService executorService = new ThreadNamingExecutorServiceWrapper("tw-tasks-tsm", executorServicesProvider.getGlobalExecutorService());
