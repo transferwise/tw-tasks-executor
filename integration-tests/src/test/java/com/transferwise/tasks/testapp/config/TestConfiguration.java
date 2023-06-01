@@ -14,7 +14,6 @@ import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -22,6 +21,7 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -31,7 +31,7 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Slf4j
 @Import({KafkaListenerExtTestConfiguration.class})
-public class TestConfiguration {
+public class TestConfiguration implements InitializingBean {
 
   public static final String KAFKA_TEST_TOPIC_A = "myTopicA";
   public static final String TEST_JOB_UNIQUE_NAME = "MyFancyJobA";
@@ -42,8 +42,8 @@ public class TestConfiguration {
   @Autowired
   private KafkaProperties kafkaProperties;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     bucketsManager.registerBucketProperties("manualStart", new BucketProperties()
         .setAutoStartProcessing(false));
 

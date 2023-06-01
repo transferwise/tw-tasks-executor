@@ -53,6 +53,11 @@ publishing {
                     developerConnection = projectScmConnection
                     url = projectScmUrl
                 }
+                withXml {
+                    if (!asNode().dependencyManagement.isEmpty()){
+                        throw new IllegalStateException("There should not be any `dependencyManagement` block in POM.")
+                    }
+                }
             }
         }
     }

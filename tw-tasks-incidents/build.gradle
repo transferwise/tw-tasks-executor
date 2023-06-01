@@ -12,6 +12,5 @@ apply from: '../build.ext.gradle'
 dependencies {
     implementation libraries.twIncidents
 
-    implementation libraries.newRelic
     implementation libraries.springBeans
 }

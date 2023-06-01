@@ -7,6 +7,7 @@ import com.transferwise.common.baseutils.meters.cache.TagsSet;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.kafka.clients.consumer.Consumer;
 
 public class KafkaListenerMetricsTemplate implements IKafkaListenerMetricsTemplate {
@@ -19,7 +20,7 @@ public class KafkaListenerMetricsTemplate implements IKafkaListenerMetricsTempla
   private static final String TAG_SUCCESS = "success";
   private static final String TAG_SYNC = "sync";
   private static final String TAG_SHARD = "shard";
-  private static long kafkaConsumerId = 0;
+  private static final AtomicInteger kafkaConsumerId = new AtomicInteger();
 
   private final IMeterCache meterCache;
 
@@ -42,13 +43,13 @@ public class KafkaListenerMetricsTemplate implements IKafkaListenerMetricsTempla
 
   @Override
   @SuppressWarnings("rawtypes")
-  public synchronized AutoCloseable registerKafkaConsumer(Consumer consumer, long shard) {
+  public AutoCloseable registerKafkaConsumer(Consumer consumer, long shard) {
     // Spring application are setting the tag `spring.id`, so we need to set it as well.
 
     // Add specific client id for consumer.
 
     var kafkaClientMetrics = new KafkaClientMetrics(consumer,
-        List.of(new ImmutableTag("spring.id", "tw-tasks-kafka-listener-" + shard + "-" + (kafkaConsumerId++))));
+        List.of(new ImmutableTag("spring.id", "tw-tasks-kafka-listener-" + shard + "-" + (kafkaConsumerId.getAndIncrement()))));
     kafkaClientMetrics.bindTo(meterCache.getMeterRegistry());
 
     return kafkaClientMetrics;

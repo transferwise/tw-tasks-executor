@@ -17,16 +17,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.stereotype.Component;
 
 @Component
 @Slf4j
-public class CoreKafkaListener implements GracefulShutdownStrategy {
+public class CoreKafkaListener implements GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private ITasksService tasksService;
@@ -49,8 +49,8 @@ public class CoreKafkaListener implements GracefulShutdownStrategy {
 
   private final List<String> topics = new ArrayList<>();
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     topics.add("payout.succeeded");
   }
 

@@ -1,13 +1,8 @@
 package com.transferwise.tasks.demoapp.config;
 
-import com.transferwise.common.gaffer.ServiceRegistry;
-import com.transferwise.common.gaffer.ServiceRegistryHolder;
-import com.transferwise.common.gaffer.jdbc.DataSourceImpl;
 import com.zaxxer.hikari.HikariDataSource;
 import java.util.Properties;
 import javax.sql.DataSource;
-import javax.transaction.TransactionManager;
-import javax.transaction.UserTransaction;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.flyway.FlywayDataSource;
@@ -15,52 +10,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.datasource.IsolationLevelDataSourceAdapter;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
-import org.springframework.transaction.jta.JtaTransactionManager;
 
 @Configuration
-@EnableTransactionManagement
 @Slf4j
-public class TransactionManagerConfiguration {
+public class DatabaseAccessConfiguration {
 
   @Autowired
   private Environment env;
-
-  @Bean
-  public UserTransaction gafferUserTransaction() {
-    ServiceRegistry serviceRegistry = ServiceRegistryHolder.getServiceRegistry();
-    return serviceRegistry.getUserTransaction();
-  }
-
-  @Bean
-  public TransactionManager gafferTransactionManager() {
-    ServiceRegistry serviceRegistry = ServiceRegistryHolder.getServiceRegistry();
-    return serviceRegistry.getTransactionManager();
-  }
-
-  @Bean
-  public JtaTransactionManager transactionManager() {
-    ServiceRegistry serviceRegistry = ServiceRegistryHolder.getServiceRegistry();
-    JtaTransactionManager jtaTransactionManager = new JtaTransactionManager(gafferUserTransaction(), gafferTransactionManager());
-    jtaTransactionManager.setAllowCustomIsolationLevels(true);
-    jtaTransactionManager.setTransactionSynchronizationRegistry(serviceRegistry.getTransactionSynchronizationRegistry());
-    return jtaTransactionManager;
-  }
-
-  @Bean
-  @Primary
-  public DataSource jtaDataSource() {
-    DataSourceImpl dataSourceImpl = new DataSourceImpl();
-    dataSourceImpl.setUniqueName("twTasksDemoappDb");
-    dataSourceImpl.setDataSource(dataSource());
-    dataSourceImpl.setValidationTimeoutSeconds(10);
-    dataSourceImpl.setRegisterAsMBean(false);
-
-    IsolationLevelDataSourceAdapter da = new IsolationLevelDataSourceAdapter();
-    da.setTargetDataSource(dataSourceImpl);
-    return da;
-  }
 
   @Bean
   @FlywayDataSource
@@ -77,7 +33,9 @@ public class TransactionManagerConfiguration {
     return hds;
   }
 
-  private DataSource dataSource() {
+  @Bean
+  @Primary
+  public DataSource dataSource() {
     HikariDataSource hds = new HikariDataSource();
     hds.setPoolName("demoapp");
     hds.setJdbcUrl(env.getProperty("spring.datasource.url"));
