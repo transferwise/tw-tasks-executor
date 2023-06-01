@@ -3,7 +3,7 @@ version: '3.7'
 services:
   zookeeper:
     image: bitnami/zookeeper:3.5.5
-    container_name: "zookeeper"
+    container_name: "tw-tasks_zookeeper"
     ports:
       - "2181"
     environment:
@@ -11,25 +11,24 @@ services:
       JVMFLAGS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
   kafka-zk:
     image: bitnami/zookeeper:3.4.14
-    container_name: "kafka-zk"
-    hostname: kafka-zk
+    container_name: "tw-tasks_kafka-zk"
     ports:
       - "2181"
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
       JVMFLAGS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
   kafka:
-    container_name: "kafka"
+    container_name: "tw-tasks_kafka"
     image: wurstmeister/kafka:2.13-2.6.3
     depends_on:
       - kafka-zk
     ports:
       - "9092"
     environment:
-      PORT_COMMAND: "docker port kafka 9092/tcp | cut -d: -f2"
+      PORT_COMMAND: "docker port tw-tasks_kafka 9092/tcp | cut -d: -f2"
       KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://localhost:_{PORT_COMMAND},INTERNAL://kafka:9093"
       KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: kafka-zk:2181
+      KAFKA_ZOOKEEPER_CONNECT: tw-tasks_kafka-zk:2181
       KAFKA_LISTENERS: EXTERNAL://:9092,INTERNAL://:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
@@ -46,7 +45,7 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   mariadb:
-    container_name: "mariadb"
+    container_name: "tw-tasks_mariadb"
     image: mariadb:10.6
     ports:
       - "3306"
@@ -68,7 +67,7 @@ services:
     --sync_binlog=1
     "
   postgres:
-    container_name: "postgres"
+    container_name: "tw-tasks_postgres"
     image: postgres:12
     ports:
       - 5432

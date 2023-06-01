@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}
+    bootstrap-servers: ${TW-TASKS_KAFKA_HOST:localhost}:${TW-TASKS_KAFKA_TCP_9092}
     properties:
       max.request.size: 10000012
       request.timeout.ms: 11000
@@ -17,7 +17,7 @@ spring:
 
 tw-tasks:
   core:
-    zookeeper-connect-string: ${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}
+    zookeeper-connect-string: ${TW-TASKS_ZOOKEEPER_HOST:localhost}:${TW-TASKS_ZOOKEEPER_TCP_2181}
     topic-replication-factor: 1
     waiting-tasks-polling-interval: PT0.1S
     additional-processing-buckets: manualStart
@@ -32,7 +32,7 @@ tw-tasks:
       previousVersion: "1.21.1"
     triggering:
       kafka:
-        bootstrap-servers: ${KAFKA_TCP_HOST:localhost}:${KAFKA_TCP_9092}
+        bootstrap-servers: ${TW-TASKS_KAFKA_HOST:localhost}:${TW-TASKS_KAFKA_TCP_9092}
     tasks-management:
       type-specific:
         -
@@ -58,23 +58,10 @@ tw-incidents:
   slack:
     enabled: false
 tw-curator:
-  zookeeper-connect-string: ${ZOOKEEPER_TCP_HOST:localhost}:${ZOOKEEPER_TCP_2181}
+  zookeeper-connect-string: ${TW-TASKS_ZOOKEEPER_HOST:localhost}:${TW-TASKS_ZOOKEEPER_TCP_2181}
 
 ---
 
-testenv:
-  mysql:
-    port: 3306
-    host: mysql1
-  postgres:
-    port: 5432
-    host: postgres1
-  kafka:
-    host: kafka1
-    port: 9092
-  zookeeper:
-    host: zk-service1
-    port: 2181
 tw-tasks:
   core:
     assert-status-on-grabbing: true
@@ -86,7 +73,7 @@ spring:
 
 spring:
   datasource:
-    url: jdbc:mariadb://${MARIADB_TCP_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test?rewriteBatchStatements=false
+    url: jdbc:mariadb://${TW-TASKS_MARIADB_HOST:localhost}:${TW-TASKS_MARIADB_TCP_3306}/tw-tasks-test?rewriteBatchStatements=false
     username: root
     password: example-password-change-me
   kafka:
@@ -108,7 +95,7 @@ spring.liquibase.change-log: classpath:db/changelog/db.tw-tasks-mysql.xml
 
 spring:
   datasource:
-    url: jdbc:postgresql://${POSTGRES_TCP_HOST:localhost}:${POSTGRES_TCP_5432}/postgres
+    url: jdbc:postgresql://${TW-TASKS_POSTGRES_HOST:localhost}:${TW-TASKS_POSTGRES_TCP_5432}/postgres
     username: postgres
     password: example-password-change-me
   kafka:
