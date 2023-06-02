@@ -49,6 +49,7 @@ if (!Boolean.parseBoolean(System.getenv('RUNS_IN_CI'))) {
 
 dockerCompose {
     useComposeFiles = ["src/test/resources/docker-compose.yml"]
+    projectName = "tw-tasks-executor"
     // Create some flakiness on slower comps
     // waitForTcpPorts = false
 
