@@ -1,7 +1,3 @@
-plugins {
-    id "docker-compose"
-}
-
 ext.projectName = "TwTasks Extension - Kafka Listener - Spring Boot starter"
 ext.projectDescription = "Autoconfigures extension for spring boot application"
 ext.projectArtifactName = "tw-tasks-kafka-listener-spring-boot-starter"

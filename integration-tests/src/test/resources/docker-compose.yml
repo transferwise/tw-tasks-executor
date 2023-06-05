@@ -3,6 +3,7 @@ version: '3.7'
 services:
   zookeeper:
     image: bitnami/zookeeper:3.5.5
+    hostname: zookeeper
     ports:
       - "2181"
     environment:
@@ -17,13 +18,14 @@ services:
       ALLOW_ANONYMOUS_LOGIN: "yes"
       JVMFLAGS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
   kafka:
+    hostname: kafka
     image: wurstmeister/kafka:2.13-2.6.3
     depends_on:
       - kafka-zk
     ports:
       - "9092"
     environment:
-      PORT_COMMAND: "docker port $$(head -2 /proc/self/cgroup | cut -d/ -f3 | sort -r | head -1) 9092/tcp | cut -d: -f2"
+      PORT_COMMAND: "docker port tw-tasks-executor-kafka-1 9092/tcp | cut -d: -f2"
       KAFKA_ADVERTISED_LISTENERS: "EXTERNAL://localhost:_{PORT_COMMAND},INTERNAL://kafka:9093"
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: kafka-zk:2181
@@ -39,10 +41,11 @@ services:
       LOG4J_LOGGER_ORG: WARN,STDOUT
       LOG4J_LOGGER_ORG_APACHE_KAFKA: WARN,STDOUT
       LOG4J_LOGGER_KAFKA: WARN,STDOUT
-      KAFKA_JVM_PERFORMANCE_OPTS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
+      KAFKA_JVM_PERFORMANCE_OPTS: -server -Xms25m -Xmx512m
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   mariadb:
+    hostname: mariadb
     image: mariadb:10.6
     ports:
       - "3306"
@@ -64,6 +67,7 @@ services:
     --sync_binlog=1
     "
   postgres:
+    hostname: postgres
     image: postgres:12
     ports:
       - 5432

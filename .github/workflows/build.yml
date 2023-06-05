@@ -30,12 +30,12 @@ jobs:
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
       RUNS_IN_CI: true
       MARIADB_TCP_3306: 3306
-      MARIADB_TCP_HOST: mysql1
+      MARIADB_HOST: mysql1
       KAFKA_TCP_9092: 9092
-      KAFKA_TCP_HOST: kafka1
+      KAFKA_HOST: kafka1
       ZOOKEEPER_TCP_2181: 2181
-      ZOOKEEPER_TCP_HOST: zk-service1
-      POSTGRES_TCP_HOST: postgres1
+      ZOOKEEPER_HOST: zk-service1
+      POSTGRES_HOST: postgres1
       POSTGRES_TCP_5432: 5432
     container:
       image: azul/zulu-openjdk:17

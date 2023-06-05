@@ -23,7 +23,7 @@ import org.apache.kafka.common.TopicPartition;
  * autoResetOffsetToDuration}. Seeks to the beginning in case the timestamp of the very first record in partition has value greater than {@code now()
  * + autoResetOffsetToDuration}.
  *
- * <p>Note that {@code autoResetOffsetToDuration} is normally a negative duration.
+ * <p>Note that {@code autoResetOffsetToDuration} can be set to positive or negative. Both of them always gets converted to a positive value.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -39,7 +39,7 @@ public class SeekToDurationOnRebalanceListener implements ConsumerRebalanceListe
   @Override
   public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
     Map<TopicPartition, Long> timestampsToSearch = new HashMap<>();
-    long timestampToSearchMs = ZonedDateTime.now(TwContextClockHolder.getClock()).plus(autoResetOffsetToDuration).toInstant().toEpochMilli();
+    long timestampToSearchMs = ZonedDateTime.now(TwContextClockHolder.getClock()).minus(autoResetOffsetToDuration.abs()).toInstant().toEpochMilli();
 
     for (TopicPartition partition : partitions) {
       try {
