@@ -3,7 +3,6 @@ package com.transferwise.tasks.core.autoconfigure;
 import com.transferwise.common.baseutils.concurrency.DefaultExecutorServicesProvider;
 import com.transferwise.common.baseutils.concurrency.IExecutorServicesProvider;
 import com.transferwise.common.baseutils.transactionsmanagement.TransactionsConfiguration;
-import com.transferwise.common.gracefulshutdown.GracefulShutdowner;
 import com.transferwise.tasks.EnvironmentValidator;
 import com.transferwise.tasks.IEnvironmentValidator;
 import com.transferwise.tasks.IPriorityManager;
@@ -71,10 +70,6 @@ import org.springframework.context.annotation.Import;
 @EnableConfigurationProperties
 @AutoConfigureAfter({ValidationAutoConfiguration.class})
 public class TwTasksCoreAutoConfiguration {
-
-  // Following is not used by the code, but makes sure, that someone has not turned graceful shutdown completely off.
-  @Autowired
-  private GracefulShutdowner gracefulShutdowner;
 
   @Bean
   @ConfigurationProperties(prefix = "tw-tasks.core", ignoreUnknownFields = false)

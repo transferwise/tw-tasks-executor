@@ -18,7 +18,6 @@ dependencies {
     implementation libraries.springKafka
     implementation libraries.tomcatJdbc
     implementation libraries.twBaseUtils
-    implementation libraries.twGracefulShutdown
     implementation libraries.twGracefulShutdownIntefaces
     implementation libraries.twContext
 

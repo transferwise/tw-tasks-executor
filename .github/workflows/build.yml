@@ -31,8 +31,8 @@ jobs:
       RUNS_IN_CI: true
       MARIADB_TCP_3306: 3306
       MARIADB_HOST: mysql1
-      KAFKA_TCP_9092: 9092
-      KAFKA_HOST: kafka1
+      TW_TASKS_EXECUTOR_KAFKA_TCP_9092: 9092
+      TW_TASKS_EXECUTOR_KAFKA_HOST: kafka1
       ZOOKEEPER_TCP_2181: 2181
       ZOOKEEPER_HOST: zk-service1
       POSTGRES_HOST: postgres1
