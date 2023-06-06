@@ -7,7 +7,11 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 #### 1.39.2 - 2023/06/06
 
-* Fixed circular dependency with graceful shutdown.
+### Fixed
+
+* Circular dependency with graceful shutdown.
+
+* docker-compose on linux.
 
 #### 1.39.1 - 2023/04/19
 
