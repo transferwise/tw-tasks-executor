@@ -1,6 +1,6 @@
 spring:
   kafka:
-    bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_TCP_9092}
+    bootstrap-servers: ${TW-TASKS-EXECUTOR-KAFKA_HOST:localhost}:${TW-TASKS-EXECUTOR-KAFKA_TCP_9092}
     properties:
       max.request.size: 10000012
       request.timeout.ms: 11000
@@ -32,7 +32,7 @@ tw-tasks:
       previousVersion: "1.21.1"
     triggering:
       kafka:
-        bootstrap-servers: ${KAFKA_HOST:localhost}:${KAFKA_TCP_9092}
+        bootstrap-servers: ${TW-TASKS-EXECUTOR-KAFKA_HOST:localhost}:${TW-TASKS-EXECUTOR-KAFKA_TCP_9092}
     tasks-management:
       type-specific:
         -

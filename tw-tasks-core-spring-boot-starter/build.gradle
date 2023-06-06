@@ -7,10 +7,10 @@ apply from: '../build.starter.gradle'
 dependencies {
     api project(":tw-tasks-core")
 
-    implementation libraries.twGracefulShutdown
     implementation libraries.apacheCuratorRecipies
     implementation libraries.micrometerCore
 
+    runtimeOnly libraries.twGracefulShutdown
     runtimeOnly libraries.twContextStarter
     runtimeOnly libraries.twLeaderSelectorStarter
     runtimeOnly libraries.springBootStarterValidation
