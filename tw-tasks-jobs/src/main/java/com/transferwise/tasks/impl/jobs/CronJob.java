@@ -10,12 +10,12 @@ import java.lang.annotation.Target;
 public @interface CronJob {
 
   /**
-   * A cron-like expression
+   * A cron-like expression.
    */
   String value();
 
   /**
-   * a zone id accepted by java.util.TimeZone.getTimeZone(String), or an empty String to indicate the server's default time zone
+   * A zone id accepted by java.util.TimeZone.getTimeZone(String), or an empty String to indicate the server's default time zone.
    */
   String timezone() default "";
 
