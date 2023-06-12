@@ -62,15 +62,15 @@ public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProce
 
   @Override
   public Object postProcessAfterInitialization(Object bean, String beanName) {
-    if (bean instanceof AopInfrastructureBean || bean instanceof TaskScheduler ||
-        bean instanceof ScheduledExecutorService) {
+    if (bean instanceof AopInfrastructureBean || bean instanceof TaskScheduler
+        || bean instanceof ScheduledExecutorService) {
       // Ignore AOP infrastructure such as scoped proxies.
       return bean;
     }
 
     Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
-    if (!this.nonAnnotatedClasses.contains(targetClass) &&
-        AnnotationUtils.isCandidateClass(targetClass, CronJob.class)) {
+    if (!this.nonAnnotatedClasses.contains(targetClass)
+        && AnnotationUtils.isCandidateClass(targetClass, CronJob.class)) {
       Map<Method, Set<CronJob>> annotatedMethods = MethodIntrospector.selectMethods(targetClass,
           (MethodIntrospector.MetadataLookup<Set<CronJob>>) method -> {
             Set<CronJob> cronJobAnnotations = AnnotatedElementUtils.getAllMergedAnnotations(method, CronJob.class);
