@@ -8,7 +8,6 @@ import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.interfaces.IJobsService;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Date;
@@ -27,7 +26,6 @@ import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcess
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.core.MethodIntrospector;
-import org.springframework.core.Ordered;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.scheduling.TaskScheduler;
@@ -39,7 +37,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
 @Slf4j
-public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProcessor, Ordered, EmbeddedValueResolverAware {
+public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProcessor, EmbeddedValueResolverAware {
 
   private StringValueResolver embeddedValueResolver;
 
@@ -47,11 +45,6 @@ public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProce
   private IJobsService jobsService;
 
   private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
-
-  @Override
-  public int getOrder() {
-    return LOWEST_PRECEDENCE;
-  }
 
   @Override
   public void setEmbeddedValueResolver(StringValueResolver resolver) {
