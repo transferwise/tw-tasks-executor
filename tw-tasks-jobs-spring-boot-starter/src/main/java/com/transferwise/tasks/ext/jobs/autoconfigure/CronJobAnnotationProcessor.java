@@ -5,25 +5,28 @@ import static com.transferwise.tasks.impl.jobs.interfaces.IJob.ProcessResult.Res
 import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.impl.jobs.CronJob;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
-import com.transferwise.tasks.impl.jobs.interfaces.IJobsService;
 import java.lang.reflect.Method;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.stream.Collectors;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopInfrastructureBean;
 import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.aop.support.AopUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.support.MergedBeanDefinitionPostProcessor;
-import org.springframework.beans.factory.support.RootBeanDefinition;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanFactoryPostProcessor;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.EmbeddedValueResolverAware;
 import org.springframework.core.MethodIntrospector;
 import org.springframework.core.annotation.AnnotatedElementUtils;
@@ -32,19 +35,19 @@ import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.ScheduledMethodRunnable;
 import org.springframework.scheduling.support.SimpleTriggerContext;
+import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.util.StringValueResolver;
 
 @Slf4j
-public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProcessor, EmbeddedValueResolverAware {
+@Service
+public class CronJobAnnotationProcessor implements BeanFactoryPostProcessor, BeanPostProcessor, EmbeddedValueResolverAware {
 
   private StringValueResolver embeddedValueResolver;
 
-  @Autowired
-  private IJobsService jobsService;
-
   private final Set<Class<?>> nonAnnotatedClasses = Collections.newSetFromMap(new ConcurrentHashMap<>(64));
+  private ConfigurableListableBeanFactory beanFactory;
 
   @Override
   public void setEmbeddedValueResolver(StringValueResolver resolver) {
@@ -52,37 +55,29 @@ public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProce
   }
 
   @Override
-  public void postProcessMergedBeanDefinition(RootBeanDefinition beanDefinition, Class<?> beanType, String beanName) {
-  }
-
-  @Override
   public Object postProcessBeforeInitialization(Object bean, String beanName) {
-    return bean;
-  }
-
-  @Override
-  public Object postProcessAfterInitialization(Object bean, String beanName) {
-    if (bean instanceof AopInfrastructureBean || bean instanceof TaskScheduler
-        || bean instanceof ScheduledExecutorService) {
+    if (bean instanceof AopInfrastructureBean || bean instanceof TaskScheduler || bean instanceof ScheduledExecutorService) {
       // Ignore AOP infrastructure such as scoped proxies.
       return bean;
     }
 
     Class<?> targetClass = AopProxyUtils.ultimateTargetClass(bean);
-    if (!this.nonAnnotatedClasses.contains(targetClass)
-        && AnnotationUtils.isCandidateClass(targetClass, CronJob.class)) {
-      Map<Method, Set<CronJob>> annotatedMethods = MethodIntrospector.selectMethods(targetClass,
-          (MethodIntrospector.MetadataLookup<Set<CronJob>>) method -> {
+    if (!this.nonAnnotatedClasses.contains(targetClass) && AnnotationUtils.isCandidateClass(targetClass, CronJob.class)) {
+      Map<Method, List<CronJob>> annotatedMethods = MethodIntrospector.selectMethods(targetClass,
+          (MethodIntrospector.MetadataLookup<List<CronJob>>) method -> {
             Set<CronJob> cronJobAnnotations = AnnotatedElementUtils.getAllMergedAnnotations(method, CronJob.class);
-            return (!cronJobAnnotations.isEmpty() ? cronJobAnnotations : null);
+            return (!cronJobAnnotations.isEmpty() ? cronJobAnnotations.stream().collect(Collectors.toList()) : null);
           });
       if (annotatedMethods.isEmpty()) {
         this.nonAnnotatedClasses.add(targetClass);
         log.trace("No @CronJob annotations found on bean class: {}", targetClass);
       } else {
         // Non-empty set of methods
-        annotatedMethods.forEach((method, scheduledAnnotations) ->
-            scheduledAnnotations.forEach(scheduled -> processCronJobAnnotation(scheduled, method, bean)));
+        annotatedMethods.forEach((method, annotations) -> {
+          for (int i = 0; i < annotations.size(); i++) {
+            addJob(annotations.get(i), method, bean, beanName, i);
+          }
+        });
         if (log.isTraceEnabled()) {
           log.trace("{} @CronJob methods processed on bean '{}': {}", annotatedMethods.size(), beanName, annotatedMethods);
         }
@@ -91,11 +86,15 @@ public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProce
     return bean;
   }
 
-  private void processCronJobAnnotation(CronJob cronJob, Method method, Object bean) {
-    Runnable runnable = createRunnable(bean, method);
-
+  private void addJob(CronJob cronJob, Method method, Object bean, String beanName, int num) {
+    String uniqueName = buildUniqueName(method, beanName, num);
     CronTrigger trigger = toCronTrigger(cronJob, method);
-    jobsService.register(new CronJobHandler(trigger, runnable, cronJob.transactional()));
+    Runnable runnable = createRunnable(bean, method);
+    beanFactory.registerSingleton(uniqueName, new CronJobHandler(uniqueName, trigger, runnable, cronJob.transactional()));
+  }
+
+  private static String buildUniqueName(Method method, String beanName, int num) {
+    return "(" + method.getDeclaringClass().getCanonicalName() + ")" + beanName + ":_#" + num + "_" + method;
   }
 
   private CronTrigger toCronTrigger(CronJob cronJob, Method method) {
@@ -108,29 +107,41 @@ public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProce
     }
 
     if (!StringUtils.hasText(cron)) {
-      throw new IllegalArgumentException("Cron expression is mandatory field for 'CronJob' annotation. Check "
-          + method.getDeclaringClass().getCanonicalName() + "." + method.getName());
+      throw new IllegalArgumentException(
+          "Cron expression is mandatory field for 'CronJob' annotation. Check method '" + method + "' of class " + method.getDeclaringClass()
+              .getCanonicalName());
     }
 
-    TimeZone timeZone = StringUtils.hasText(zone)
-        ? TimeZone.getTimeZone(zone)
-        : TimeZone.getDefault();
+    TimeZone timeZone = StringUtils.hasText(zone) ? TimeZone.getTimeZone(zone) : TimeZone.getDefault();
 
     return new CronTrigger(cron, timeZone);
   }
 
-  protected Runnable createRunnable(Object target, Method method) {
+
+  private static Runnable createRunnable(Object target, Method method) {
     Assert.isTrue(method.getParameterCount() == 0, "Only no-arg methods may be annotated with @CronJob");
     Method invocableMethod = AopUtils.selectInvocableMethod(method, target.getClass());
     return new ScheduledMethodRunnable(target, invocableMethod);
   }
 
+
+  @Override
+  public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+    this.beanFactory = beanFactory;
+  }
+
   @AllArgsConstructor
   private static class CronJobHandler implements IJob {
 
+    private final String uniqueName;
     private final CronTrigger trigger;
     private final Runnable handler;
     private final boolean transactional;
+
+    @Override
+    public String getUniqueName() {
+      return uniqueName;
+    }
 
     @Override
     public boolean isTransactional() {
@@ -147,6 +158,23 @@ public class CronJobAnnotationProcessor implements MergedBeanDefinitionPostProce
     public ProcessResult process(ITask task) {
       handler.run();
       return new ProcessResult().setResultCode(SUCCESS);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      CronJobHandler that = (CronJobHandler) o;
+      return Objects.equals(uniqueName, that.uniqueName);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(uniqueName);
     }
   }
 }
