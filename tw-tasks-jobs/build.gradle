@@ -5,6 +5,8 @@ ext.projectArtifactName = "tw-tasks-jobs"
 apply from: '../build.ext.gradle'
 
 dependencies {
+    api project(":tw-tasks-core")
+
     implementation libraries.springBeans
     implementation libraries.springContext
     implementation libraries.micrometerCore

@@ -1,5 +1,6 @@
 package com.transferwise.tasks.testapp.config;
 
+import com.transferwise.tasks.ext.jobs.JobsTestConfiguration;
 import com.transferwise.tasks.ext.kafkalistener.KafkaListenerExtTestConfiguration;
 import com.transferwise.tasks.test.DefaultMetricsTestHelper;
 import com.transferwise.tasks.testapp.ResultRegisteringSyncTaskProcessor;
@@ -12,7 +13,7 @@ import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
 @Slf4j
-@Import({KafkaListenerExtTestConfiguration.class, CorruptedMessageTestSetup.class})
+@Import({KafkaListenerExtTestConfiguration.class, JobsTestConfiguration.class, CorruptedMessageTestSetup.class})
 public class TestApplication {
 
   @Bean

@@ -11,6 +11,7 @@ import com.transferwise.tasks.domain.ITask;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
+import com.transferwise.tasks.impl.jobs.CronJob;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.test.ITestJobsService;
 import java.time.Duration;
@@ -21,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.stereotype.Component;
 
 class JobsIntTest extends BaseIntTest {
 
@@ -33,9 +35,18 @@ class JobsIntTest extends BaseIntTest {
   @Autowired
   private ITestJobsService testJobsService;
 
+  @Autowired
+  private CronJobA cronJobA;
+
   @BeforeEach
   void resetJobs() {
     testJobsService.reset();
+  }
+
+  @Test
+  void registerCronJobBean() {
+    int executionsCount = cronJobA.executionsCount;
+    await().until(() -> cronJobA.executionsCount == executionsCount + 2);
   }
 
   @Test
@@ -125,6 +136,17 @@ class JobsIntTest extends BaseIntTest {
         return new ProcessResult().setResultCode(ProcessResult.ResultCode.END);
       }
       return ThreadLocalRandom.current().nextBoolean() ? new ProcessResult().setResultCode(ProcessResult.ResultCode.SUCCESS) : null;
+    }
+  }
+
+  @Component
+  static class CronJobA {
+
+    int executionsCount;
+
+    @CronJob("* * * * * *")
+    void annotatedMethod() {
+      executionsCount++;
     }
   }
 
