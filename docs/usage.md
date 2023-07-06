@@ -10,8 +10,8 @@ testImplementation("com.transferwise.tasks:tw-tasks-core-test:${twTasksVersion}"
 ```
 
 ##### Create database tables
-- [MySQL/MariaDB/Percona](/tw-tasks-core/src/main/resources/db/changelog/db.tw-tasks-mysql.xml)
-- [Postgres](/tw-tasks-core/src/main/resources/db/changelog/db.tw-tasks-postgres.xml)
+- [MySQL/MariaDB/Percona](https://github.com/transferwise/tw-tasks-executor/blob/master/tw-tasks-core/src/main/resources/db/changelog/db.tw-tasks-mysql.xml)
+- [Postgres](https://github.com/transferwise/tw-tasks-executor/blob/master/tw-tasks-core/src/main/resources/db/changelog/db.tw-tasks-postgres.xml)
 
 ##### Add at least following configuration options
 ```yml
