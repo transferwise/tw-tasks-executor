@@ -394,8 +394,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       }
       try {
         consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
-      }
-      catch (WakeupException ignored){
+      } catch (WakeupException ignored) {
         // consumer.wakeup() was called, most likely to shut down.
         // The wakeup is meant to force the consumer to exit from the poll() method, however it can be outside the poll() already and
         // commitSync would get the signal instead.
