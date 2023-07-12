@@ -56,17 +56,20 @@ configurations {
 }
 
 dependencies {
-    local platform(libraries.springBootDependencies + '!!')
+    local platform(libraries.springBootDependencies)
     local libraries.lombok
 
     annotationProcessor libraries.springBootConfigurationProcessor
 
     compileOnly libraries.spotbugsAnnotations
+    compileOnly libraries.springBootConfigurationProcessor
     compileOnly libraries.jakartaValidationApi
+    compileOnly libraries.javaxValidationApi
 
     implementation libraries.slf4j
     implementation libraries.apacheCommonsCollections
     implementation libraries.apacheCommonsLang
+
     implementation libraries.guava
     implementation libraries.twBaseUtils
 
@@ -77,11 +80,24 @@ dependencies {
     testImplementation libraries.junitParams
     testImplementation libraries.junitMockito
     testImplementation libraries.assertJCore
+
+    if (springBootVersion.startsWith("2")) {
+        /*
+         Since hibernate-validator is depending on jakarta.validation:jakarta-validation-api and we are forcing the version to newer one to be able to compile for both javax and jakarta then we need to explicitly
+         add the javax variation back when running in javax environment (that is spring boot 2) for the Spring Boot autoconfiguration to work.
+        */
+        testRuntimeOnly libraries.javaxValidationApi
+    }
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_11
-    targetCompatibility = JavaVersion.VERSION_11
+    if (springBootVersion.startsWith("3.")) {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    } else {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
     withSourcesJar()
     withJavadocJar()
 }
@@ -103,16 +119,16 @@ compileJava {
 }
 
 compileTestJava {
-    sourceCompatibility = JavaVersion.VERSION_15
-    targetCompatibility = JavaVersion.VERSION_15
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
     javaCompiler = javaToolchains.compilerFor {
-        languageVersion = JavaLanguageVersion.of(15)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
 test {
     javaLauncher = javaToolchains.launcherFor {
-        languageVersion = JavaLanguageVersion.of(15)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 
     testLogging {

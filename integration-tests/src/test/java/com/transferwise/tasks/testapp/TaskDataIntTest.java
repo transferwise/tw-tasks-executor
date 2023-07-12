@@ -67,8 +67,8 @@ public class TaskDataIntTest extends BaseIntTest {
     String longData = Strings.repeat(shortData, 10);
     return Stream.of(
         Arguments.of(shortData, null, 0, shortData.getBytes(StandardCharsets.UTF_8)),
-        Arguments.of(longData, null, 1, new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0, 0}),
-        Arguments.of(mediumData, "GZIP", 1, new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0, 0}),
+        Arguments.of(longData, null, 1, new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0}),
+        Arguments.of(mediumData, "GZIP", 1, new byte[]{31, -117, 8, 0, 0, 0, 0, 0, 0}),
         Arguments.of(mediumData, "LZ4", 2, new byte[]{76, 90, 52, 66, 108, 111, 99, 107, 38, 22}),
         Arguments.of(shortData, "GZIP", 0, shortData.getBytes(StandardCharsets.UTF_8)),
         Arguments.of(shortData, "LZ4", 0, shortData.getBytes(StandardCharsets.UTF_8)),
@@ -132,7 +132,7 @@ public class TaskDataIntTest extends BaseIntTest {
     assertThat(fullTaskRecord.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
 
     String oldData = jdbcTemplate
-        .queryForObject("select data from tw_task where id=?", new Object[]{taskSqlMapper.uuidToSqlTaskId(taskId)}, String.class);
+        .queryForObject("select data from tw_task where id=?", String.class, taskSqlMapper.uuidToSqlTaskId(taskId));
 
     assertThat(oldData).isEqualTo("");
   }

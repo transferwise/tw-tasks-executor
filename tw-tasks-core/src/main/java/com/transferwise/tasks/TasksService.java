@@ -22,10 +22,10 @@ import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,7 +33,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
-public class TasksService implements ITasksService, GracefulShutdownStrategy {
+public class TasksService implements ITasksService, GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private ITaskDao taskDao;
@@ -64,8 +64,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy {
   private final AtomicInteger inProgressAfterCommitTasks = new AtomicInteger();
   private final AtomicInteger activeAfterCommitTasks = new AtomicInteger();
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     environmentValidator.validate();
 
     if (tasksProperties.isAsyncTaskTriggering()) {

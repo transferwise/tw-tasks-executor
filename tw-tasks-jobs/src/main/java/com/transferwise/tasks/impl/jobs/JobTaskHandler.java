@@ -17,12 +17,12 @@ import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.interfaces.IJobsService;
 import java.time.ZonedDateTime;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
-public class JobTaskHandler implements ITaskHandler {
+public class JobTaskHandler implements ITaskHandler, InitializingBean {
 
   @Autowired
   protected IJobsService jobsService;
@@ -39,8 +39,8 @@ public class JobTaskHandler implements ITaskHandler {
   private ITaskRetryPolicy taskRetryPolicy;
   private ISyncTaskProcessor taskProcessor;
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     defaultTaskProcessingPolicy = new SimpleTaskProcessingPolicy().setProcessingBucket(jobsProperties.getProcessingBucket());
     defaultConcurrencyPolicy = new SimpleTaskConcurrencyPolicy(jobsProperties.getConcurrency());
 

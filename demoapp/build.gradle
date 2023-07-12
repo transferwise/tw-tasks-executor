@@ -16,24 +16,29 @@ dependencies {
     implementation libraries.springBootStarterWeb
     implementation libraries.springBootStarterJdbc
     implementation libraries.springKafka
-    implementation libraries.gafferJta
     implementation libraries.tomcatJdbc
     implementation libraries.twBaseUtils
-    implementation libraries.twGracefulShutdown
     implementation libraries.twGracefulShutdownIntefaces
     implementation libraries.twContext
-
-    compileOnly libraries.newRelic
 
     runtimeOnly libraries.springBootStarterActuator
     runtimeOnly libraries.micrometerRegistryPrometheus
     runtimeOnly libraries.janino
     runtimeOnly libraries.twEntryPointsStarter
     runtimeOnly libraries.flywayCore
+    if (springBootVersion.startsWith("3.")) {
+        runtimeOnly libraries.twGafferJtaJakartaStarter
+    } else {
+        runtimeOnly libraries.twGafferJtaStarter
+    }
 
     // Database drivers
     runtimeOnly libraries.mariadbJavaClient
-    runtimeOnly libraries.mysqlConnectorJava
+    if (springBootVersion.startsWith("3.") || springBootVersion.startsWith("2.7")) {
+        runtimeOnly libraries.mysqlConnectorJ
+    } else {
+        runtimeOnly libraries.mysqlConnectorJava
+    }
     runtimeOnly libraries.postgresql
     //runtimeOnly 'software.aws.rds:aws-mysql-jdbc:0.1.0'
     //runtimeOnly 'software.aws.rds:aws-postgresql-jdbc:0.1.0'

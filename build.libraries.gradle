@@ -1,30 +1,28 @@
 ext {
-    twContextVersion = "0.11.1"
-    twLeaderSelectorVersion = "1.6.0"
-    springBootVersion = "${System.getenv("SPRING_BOOT_VERSION") ?: '2.6.14'}"
-
     libraries = [
             // version defined
             awaitility                      : 'org.awaitility:awaitility:4.2.0',
-            gafferJta                       : 'com.transferwise.common:tw-gaffer-jta:1.5.0',
-            apacheCuratorRecipies           : "org.apache.curator:curator-recipes:5.4.0",
+            twGafferJtaStarter              : 'com.transferwise.common:tw-gaffer-jta-starter:2.2.0',
+            twGafferJtaJakartaStarter       : 'com.transferwise.common:tw-gaffer-jta-jakarta-starter:3.0.0',
+            apacheCuratorRecipies           : "org.apache.curator:curator-recipes:5.5.0",
             apacheCommonsCollections        : "org.apache.commons:commons-collections4:4.4",
             commonsIo                       : "commons-io:commons-io:2.11.0",
             guava                           : "com.google.guava:guava:31.1-jre",
-            newRelic                        : "com.newrelic.agent.java:newrelic-api:7.11.1",
+            jakartaValidationApi            : 'jakarta.validation:jakarta.validation-api:3.0.2',
+            javaxValidationApi              : "javax.validation:validation-api:2.0.1.Final",
             semver4j                        : "com.vdurmont:semver4j:3.1.0",
             spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
             springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:$springBootVersion",
-            twGracefulShutdown              : "com.transferwise.common:tw-graceful-shutdown:2.8.0",
-            twGracefulShutdownIntefaces     : "com.transferwise.common:tw-graceful-shutdown-interfaces:2.8.0",
-            twContext                       : "com.transferwise.common:tw-context:${twContextVersion}",
-            twContextStarter                : "com.transferwise.common:tw-context-starter:${twContextVersion}",
-            twIncidents                     : 'com.transferwise.common:tw-incidents:1.1.1',
-            twLeaderSelector                : "com.transferwise.common:tw-leader-selector:${twLeaderSelectorVersion}",
-            twLeaderSelectorStarter         : "com.transferwise.common:tw-leader-selector-starter:${twLeaderSelectorVersion}",
-            twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.8.1",
-            twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.7.1',
-            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.2-5',
+            twGracefulShutdown              : "com.transferwise.common:tw-graceful-shutdown:2.13.0",
+            twGracefulShutdownIntefaces     : "com.transferwise.common:tw-graceful-shutdown-interfaces:2.13.0",
+            twContext                       : "com.transferwise.common:tw-context:0.12.0",
+            twContextStarter                : "com.transferwise.common:tw-context-starter:0.12.0",
+            twIncidents                     : 'com.transferwise.common:tw-incidents:1.2.0',
+            twLeaderSelector                : "com.transferwise.common:tw-leader-selector:1.10.0",
+            twLeaderSelectorStarter         : "com.transferwise.common:tw-leader-selector-starter:1.10.0",
+            twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.10.1",
+            twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.10.0',
+            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.5-2',
             lz4Java                         : 'org.lz4:lz4-java:1.8.0',
 
             // versions managed by spring-boot-dependencies platform
@@ -40,7 +38,7 @@ ext {
             springSecurityWeb               : "org.springframework.security:spring-security-web",
             springBoot                      : "org.springframework.boot:spring-boot",
             springBootStarterActuator       : "org.springframework.boot:spring-boot-starter-actuator",
-            springBootStarterValidator      : 'org.springframework.boot:spring-boot-starter-validation',
+            springBootStarterValidation     : 'org.springframework.boot:spring-boot-starter-validation',
             springBootStarter               : "org.springframework.boot:spring-boot-starter",
             springBootAutoconfigure         : "org.springframework.boot:spring-boot-autoconfigure",
             springBootStarterTest           : 'org.springframework.boot:spring-boot-starter-test',
@@ -53,8 +51,6 @@ ext {
             micrometerRegistryPrometheus    : "io.micrometer:micrometer-registry-prometheus",
             jacksonAnnotations              : "com.fasterxml.jackson.core:jackson-annotations",
             jacksonDatabind                 : "com.fasterxml.jackson.core:jackson-databind",
-            javaxAnnotationApi              : "javax.annotation:javax.annotation-api",
-            jakartaValidationApi            : "jakarta.validation:jakarta.validation-api",
             kafkaClients                    : "org.apache.kafka:kafka-clients",
             lombok                          : "org.projectlombok:lombok",
             slf4j                           : "org.slf4j:slf4j-api",
@@ -69,6 +65,7 @@ ext {
             janino                          : 'org.codehaus.janino:janino',
             postgresql                      : 'org.postgresql:postgresql',
             mysqlConnectorJava              : 'mysql:mysql-connector-java',
+            mysqlConnectorJ                 : 'com.mysql:mysql-connector-j',
             logbackClassic                  : "ch.qos.logback:logback-classic",
     ]
 }

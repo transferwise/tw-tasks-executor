@@ -84,6 +84,8 @@ class ClusterWideTasksStateMonitorIntTest extends BaseIntTest {
 
     clusterWideTasksStateMonitor.leaderSelector.stop();
 
+    await().until(() -> clusterWideTasksStateMonitor.leaderSelector.hasStopped());
+
     await().until(() -> meterRegistry.find("twTasks.health.tasksInErrorCount").gauges().size() == 0);
 
     // metrics get unregistered

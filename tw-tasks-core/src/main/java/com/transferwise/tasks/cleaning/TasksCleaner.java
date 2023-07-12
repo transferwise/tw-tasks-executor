@@ -20,13 +20,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
-public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
+public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
   private TasksProperties tasksProperties;
@@ -45,8 +45,8 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy {
 
   private final List<DeletableStatus> deletableStatuses = new ArrayList<>();
 
-  @PostConstruct
-  public void init() {
+  @Override
+  public void afterPropertiesSet() {
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_cleaner";
 
     TaskStatus[] statuses = {TaskStatus.DONE, TaskStatus.FAILED};

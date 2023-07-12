@@ -37,6 +37,9 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
 
   private AdminClient adminClient;
   private KafkaConsumer<String, String> kafkaConsumer;
+  // Second consumer to test the duration passed as negative number
+  private KafkaConsumer<String, String> kafkaConsumer2;
+
   private KafkaProducer<String, String> kafkaProducer;
 
   @BeforeEach
@@ -55,6 +58,14 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
     consumerProperties.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
     kafkaConsumer = new KafkaConsumer<>(consumerProperties);
 
+    // Second consumer to test the duration passed as negative number
+    Map<String, Object> consumerProperties2 = new HashMap<>(configs);
+    consumerProperties2.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "none");
+    consumerProperties2.put(ConsumerConfig.GROUP_ID_CONFIG, "SeekToDurationOnRebalanceConsumer2");
+    consumerProperties2.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    consumerProperties2.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+    kafkaConsumer2 = new KafkaConsumer<>(consumerProperties2);
+
     Map<String, Object> producerProperties = new HashMap<>(configs);
     producerProperties.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
     producerProperties.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -65,6 +76,7 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
   void cleanup() {
     cleanWithoutException(() -> {
       kafkaConsumer.close();
+      kafkaConsumer2.close();
     });
     cleanWithoutException(() -> {
       adminClient.deleteTopics(Collections.singletonList(TOPIC));
@@ -89,7 +101,7 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
     sendKafkaMessage(TOPIC, 2, now.minus(Duration.ofHours(1)).toEpochMilli(), "key", "9");
     sendKafkaMessage(TOPIC, 2, now.minus(Duration.ofHours(1)).toEpochMilli(), "key", "10");
 
-    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer, Duration.ofDays(4).negated()));
+    kafkaConsumer.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer, Duration.ofDays(4)));
 
     Set<String> values = new HashSet<>();
     await().until(
@@ -98,6 +110,21 @@ public class SeekToDurationOnRebalanceListenerIntTest extends BaseIntTest {
             values.add(record.value());
           }
           return values.equals(ImmutableSet.of("2", "3", "6", "7", "8", "9", "10"));
+        }
+    );
+
+    kafkaConsumer.close();
+
+    // Second consumer to test the duration passed as negative number
+    kafkaConsumer2.subscribe(Collections.singletonList(TOPIC), new SeekToDurationOnRebalanceListener(kafkaConsumer2, Duration.ofDays(-4)));
+
+    Set<String> values2 = new HashSet<>();
+    await().until(
+        () -> {
+          for (ConsumerRecord<String, String> record : kafkaConsumer2.poll(Duration.ofSeconds(5))) {
+            values2.add(record.value());
+          }
+          return values2.equals(ImmutableSet.of("2", "3", "6", "7", "8", "9", "10"));
         }
     );
   }

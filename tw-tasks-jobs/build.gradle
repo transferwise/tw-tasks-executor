@@ -5,9 +5,9 @@ ext.projectArtifactName = "tw-tasks-jobs"
 apply from: '../build.ext.gradle'
 
 dependencies {
-    implementation libraries.newRelic
+    api project(":tw-tasks-core")
+
     implementation libraries.springBeans
     implementation libraries.springContext
     implementation libraries.micrometerCore
-    implementation libraries.javaxAnnotationApi
 }

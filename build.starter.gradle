@@ -6,7 +6,6 @@ dependencies {
 
     // Avoid annotation related compilation warnings
     compileOnly libraries.jacksonAnnotations
-    compileOnly libraries.newRelic
     compileOnly libraries.springTx
     compileOnly libraries.springWeb
 }
