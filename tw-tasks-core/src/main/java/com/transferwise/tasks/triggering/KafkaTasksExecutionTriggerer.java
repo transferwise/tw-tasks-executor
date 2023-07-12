@@ -258,7 +258,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         try {
           consumerRecords = consumerBucket.getKafkaConsumer().poll(tasksProperties.getGenericMediumDelay());
         } catch (WakeupException ignored) {
-          // Wake up was called, most likely to shut down, nothing erronous here.
+          // Wake up was called, most likely to shut down, nothing erroneous here.
           continue;
         }
 
@@ -392,7 +392,17 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         log.debug("Sync-committing bucket '" + bucketId + "' offsets to Kafka: " + offsetsToCommit.entrySet().stream()
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
       }
-      consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
+      try {
+        consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
+      }
+      catch (WakeupException ignored){
+        // consumer.wakeup() was called, most likely to shut down.
+        // The wakeup is meant to force the consumer to exit from the poll() method, however it can be outside the poll() already and
+        // commitSync would get the signal instead.
+        //
+        // In that case, we will just retry the operation.
+        consumerBucket.getKafkaConsumer().commitSync(offsetsToCommit);
+      }
       success = true;
     } catch (Throwable t) {
       registerCommitException(bucketId, t);

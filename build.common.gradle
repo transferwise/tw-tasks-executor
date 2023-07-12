@@ -11,6 +11,9 @@ apply plugin: "com.github.spotbugs"
 apply from: "../build.libraries.gradle"
 
 repositories {
+    maven {
+        setUrl("https://arti.tw.ee/artifactory/libs-release")
+    }
     mavenCentral()
     mavenLocal()
 }

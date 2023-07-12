@@ -25,7 +25,7 @@ dependencies {
     runtimeOnly libraries.micrometerRegistryPrometheus
     runtimeOnly libraries.janino
     runtimeOnly libraries.twEntryPointsStarter
-    runtimeOnly libraries.flywayCore
+    implementation libraries.flywayCore
     if (springBootVersion.startsWith("3.")) {
         runtimeOnly libraries.twGafferJtaJakartaStarter
     } else {
