@@ -49,6 +49,7 @@ import com.transferwise.tasks.stucktasks.ITasksResumer;
 import com.transferwise.tasks.stucktasks.TasksResumer;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
+import java.util.List;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -255,6 +256,6 @@ public class TwTasksCoreAutoConfiguration {
 
   @Bean
   public NoOpTaskHandler noOpActionTaskHandler(TasksProperties tasksProperties) {
-    return new NoOpTaskHandler(tasksProperties.getNoOpTaskTypes());
+    return new NoOpTaskHandler(tasksProperties.getNoOpTaskTypes() == null ? List.of() : tasksProperties.getNoOpTaskTypes());
   }
 }
