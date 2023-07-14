@@ -27,6 +27,7 @@ import com.transferwise.tasks.entrypoints.EntryPointsService;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.entrypoints.MdcService;
+import com.transferwise.tasks.handler.NoOpTaskHandler;
 import com.transferwise.tasks.handler.TaskHandlerRegistry;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.health.ClusterWideTasksStateMonitor;
@@ -48,6 +49,7 @@ import com.transferwise.tasks.stucktasks.ITasksResumer;
 import com.transferwise.tasks.stucktasks.TasksResumer;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.triggering.KafkaTasksExecutionTriggerer;
+import java.util.List;
 import javax.sql.DataSource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -250,5 +252,11 @@ public class TwTasksCoreAutoConfiguration {
   @ConditionalOnMissingBean(IPartitionKeyStrategy.class)
   public IPartitionKeyStrategy twTasksPartitionKeyStrategy() {
     return new RandomPartitionKeyStrategy();
+  }
+
+  @Bean
+  @ConditionalOnMissingBean(NoOpTaskHandler.class)
+  public NoOpTaskHandler twTasksNoOpTaskHandler(TasksProperties tasksProperties) {
+    return new NoOpTaskHandler(tasksProperties.getNoOpTaskTypes() == null ? List.of() : tasksProperties.getNoOpTaskTypes());
   }
 }

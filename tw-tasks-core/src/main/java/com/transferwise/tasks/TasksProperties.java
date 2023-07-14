@@ -354,6 +354,12 @@ public class TasksProperties {
   @jakarta.validation.Valid
   private ClusterWideTasksStateMonitor clusterWideTasksStateMonitor = new ClusterWideTasksStateMonitor();
 
+  /**
+   * Task types for which some tasks are still present in the database, and still yet to be executed. This will allow a NO-OP task
+   * handler to pick them up and execute them gracefully without creating noise for the service owners.
+   */
+  private List<String> noOpTaskTypes;
+
   public enum DbType {
     MYSQL, POSTGRES
   }
