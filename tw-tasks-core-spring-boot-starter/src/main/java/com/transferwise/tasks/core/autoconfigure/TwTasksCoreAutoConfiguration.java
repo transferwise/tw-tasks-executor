@@ -255,7 +255,8 @@ public class TwTasksCoreAutoConfiguration {
   }
 
   @Bean
-  public NoOpTaskHandler noOpActionTaskHandler(TasksProperties tasksProperties) {
+  @ConditionalOnMissingBean(NoOpTaskHandler.class)
+  public NoOpTaskHandler twTasksNoOpTaskHandler(TasksProperties tasksProperties) {
     return new NoOpTaskHandler(tasksProperties.getNoOpTaskTypes() == null ? List.of() : tasksProperties.getNoOpTaskTypes());
   }
 }
