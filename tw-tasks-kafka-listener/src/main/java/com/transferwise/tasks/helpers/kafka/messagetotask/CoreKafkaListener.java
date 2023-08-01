@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicInteger;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -27,6 +28,7 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Slf4j
+@NoArgsConstructor
 public class CoreKafkaListener<T> implements GracefulShutdownStrategy, InitializingBean {
 
   @Autowired
@@ -51,6 +53,12 @@ public class CoreKafkaListener<T> implements GracefulShutdownStrategy, Initializ
   private volatile Map<Integer, List<MyTopic>> topicsShards;
   private List<String> kafkaDataCenterPrefixes;
   private final AtomicInteger inProgressPollers = new AtomicInteger();
+
+  // Required for @InjectMocks annotation used in tests to work in SB3.1
+  private CoreKafkaListener(IKafkaMessageHandlerRegistry<T> kafkaMessageHandlerRegistry, TasksProperties tasksProperties) {
+    this.kafkaMessageHandlerRegistry = kafkaMessageHandlerRegistry;
+    this.tasksProperties = tasksProperties;
+  }
 
   /**
    * Remember to set correct number of partitions for all topics here: @ https://octopus.tw.ee/kafka/topic/change . We could do it automatically, but
