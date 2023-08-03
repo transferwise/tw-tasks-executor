@@ -13,8 +13,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Bumped
 
-* Build against Spring Boot 3.0.6 --> 3.0.7
-* Build against Spring Boot 2.7.11 --> 2.7.13
+* Build against Spring Boot 3.0.6 --> 3.0.9
+* Build against Spring Boot 2.7.11 --> 2.7.14
 * Build against Spring Boot 2.6.14 --> 2.6.15
 
 #### 1.40.2 - 2023/07/14
