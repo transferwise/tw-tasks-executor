@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#### 1.40.3 - 2023/08/01
+
+### Added
+
+* Support for Spring Boot 3.1
+
+### Bumped
+
+* Build against Spring Boot 3.0.6 --> 3.0.9
+* Build against Spring Boot 2.7.11 --> 2.7.14
+* Build against Spring Boot 2.6.14 --> 2.6.15
+
 #### 1.40.2 - 2023/07/14
 
 ### Added

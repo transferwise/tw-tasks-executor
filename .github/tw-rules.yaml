@@ -1,1 +1,9 @@
 runChecks: true
+
+actions:
+  branch-protection-settings:
+    branches:
+      - name: master
+        checks:
+          - name: Build and Test
+            type: tests

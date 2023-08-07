@@ -22,9 +22,10 @@ jobs:
       max-parallel: 100
       matrix:
         spring_boot_version:
-          - 3.0.6
-          - 2.7.11
-          - 2.6.14
+          - 3.1.2
+          - 3.0.9
+          - 2.7.14
+          - 2.6.15
     env:
       SPRING_BOOT_VERSION: ${{ matrix.spring_boot_version }}
       GRADLE_OPTS: "-Djava.security.egd=file:/dev/./urandom -Dorg.gradle.parallel=true"
