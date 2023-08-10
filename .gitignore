@@ -7,4 +7,7 @@ target/
 build
 
 .idea
+*.iml
+*.ipr
+*.iws
 /demoapp/src/main/resources/application-rds.yml
