@@ -52,4 +52,6 @@ public interface IManagementTaskDao {
   List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount);
 
   List<FullTaskRecord> getTasks(List<UUID> uuids);
+
+  List<FullTaskRecord> getTasksByType(List<String> types);
 }

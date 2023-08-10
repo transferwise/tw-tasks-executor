@@ -207,4 +207,31 @@ public interface ITasksManagementService {
       private Instant stateTime;
     }
   }
+
+  GetTasksByTypeResponse getTasksByType(GetTasksByTypeRequest request);
+
+  @Data
+  @Accessors(chain = true)
+  class GetTasksByTypeRequest {
+
+    private List<String> taskTypes = new ArrayList<>();
+  }
+
+  @Data
+  @Accessors(chain = true)
+  class GetTasksByTypeResponse {
+
+    private List<Task> tasks = new ArrayList<>();
+
+    @Data
+    @Accessors(chain = true)
+    public static class Task {
+
+      private TaskVersionId taskVersionId;
+      private String type;
+      private String subType;
+      private String status;
+      private Instant stateTime;
+    }
+  }
 }

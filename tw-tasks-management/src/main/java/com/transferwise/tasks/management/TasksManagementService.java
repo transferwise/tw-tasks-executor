@@ -205,6 +205,25 @@ public class TasksManagementService implements ITasksManagementService {
 
   @Override
   @EntryPoint(usesExisting = true)
+  public GetTasksByTypeResponse getTasksByType(GetTasksByTypeRequest request) {
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_BY_ID, () -> {
+          List<FullTaskRecord> tasks = managementTaskDao.getTasks(request.getTaskTypes());
+          return new GetTasksByIdResponse().setTasks(
+              tasks.stream().map(t -> new GetTasksByIdResponse.Task()
+                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                  .setType(t.getType())
+                  .setSubType(t.getSubType())
+                  .setStatus(t.getStatus())
+                  .setStateTime(t.getStateTime().toInstant())
+              )
+                  .collect(Collectors.toList())
+          );
+        });
+  }
+
+  @Override
+  @EntryPoint(usesExisting = true)
   public GetTaskWithoutDataResponse getTaskWithoutData(UUID taskId) {
     return entryPointsHelper
         .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASK_WITHOUT_DATA,

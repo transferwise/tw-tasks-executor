@@ -11,6 +11,8 @@ import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
 import com.transferwise.tasks.helpers.sql.CacheKey;
 import com.transferwise.tasks.helpers.sql.SqlHelper;
 import com.transferwise.tasks.utils.TimeUtils;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.Instant;
@@ -36,6 +38,7 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
     final String getStuckTasks;
     final String getTasksInStatus;
     final String getTasks;
+    final String getTasksByType;
 
     Queries(ITwTaskTables tables) {
       scheduleTaskForImmediateExecution = "update " + tables.getTaskTableIdentifier() + " set status=?"
@@ -50,6 +53,10 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
           + ",next_event_time,processing_client_id,d.data_format,d.data"
           + " from " + tables.getTaskTableIdentifier() + " t left join " + tables.getTaskDataTableIdentifier() + " d on t.id = d.task_id"
           + " where t.id in (??)";
+      getTasksByType = "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,state_time"
+          + ",next_event_time,processing_client_id,d.data_format,d.data"
+          + " from " + tables.getTaskTableIdentifier() + " t left join " + tables.getTaskDataTableIdentifier() + " d on t.id = d.task_id"
+          + " where t.type in (??)";
     }
   }
 
@@ -157,6 +164,15 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   }
 
   @Override
+  public List<FullTaskRecord> getTasksByType(List<String> types) {
+      return new ArrayList<>(jdbcTemplate.query(
+          queries.getTasksByType,
+          args(types),
+          this::mapRowToFullTaskRecord
+      ));
+  }
+
+  @Override
   public List<FullTaskRecord> getTasks(List<UUID> taskIds) {
     List<FullTaskRecord> result = new ArrayList<>();
 
@@ -184,31 +200,33 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
           jdbcTemplate.query(
               sql,
               args(taskIds.subList(idx, idx + questionsCount)),
-              (rs, rowNum) -> {
-                byte[] data;
-                byte[] newData = rs.getBytes(13);
-                if (newData != null) {
-                  data = taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(12)).setData(newData));
-                } else {
-                  data = rs.getBytes(4);
-                }
-                return new FullTaskRecord()
-                    .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
-                    .setType(rs.getString(2))
-                    .setSubType(rs.getString(3))
-                    .setData(data)
-                    .setStatus(rs.getString(5))
-                    .setVersion(rs.getLong(6))
-                    .setProcessingTriesCount(rs.getLong(7))
-                    .setPriority(rs.getInt(8))
-                    .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(9)))
-                    .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(10)))
-                    .setProcessingClientId(rs.getString(11));
-              }
+              this::mapRowToFullTaskRecord
           )
       );
       idx += questionsCount;
     }
+  }
+
+  private FullTaskRecord mapRowToFullTaskRecord(ResultSet rs, int rowNum) throws SQLException {
+    byte[] data;
+    byte[] newData = rs.getBytes(13);
+    if (newData != null) {
+      data = taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(12)).setData(newData));
+    } else {
+      data = rs.getBytes(4);
+    }
+    return new FullTaskRecord()
+        .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
+        .setType(rs.getString(2))
+        .setSubType(rs.getString(3))
+        .setData(data)
+        .setStatus(rs.getString(5))
+        .setVersion(rs.getLong(6))
+        .setProcessingTriesCount(rs.getLong(7))
+        .setPriority(rs.getInt(8))
+        .setStateTime(TimeUtils.toZonedDateTime(rs.getTimestamp(9)))
+        .setNextEventTime(TimeUtils.toZonedDateTime(rs.getTimestamp(10)))
+        .setProcessingClientId(rs.getString(11));
   }
 
   protected PreparedStatementSetter args(Object... args) {
