@@ -52,12 +52,12 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: example-password-change-me
       zk-service1:
-        image: bitnami/zookeeper:3.5.5
+        image: bitnami/zookeeper:3.7.1
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
       zk1:
-        image: bitnami/zookeeper:3.4.14
+        image: bitnami/zookeeper:3.7.1
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
