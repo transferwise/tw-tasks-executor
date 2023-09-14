@@ -2,21 +2,21 @@ version: '3.7'
 
 services:
   zookeeper:
-    image: bitnami/zookeeper:3.5.5
+    image: bitnami/zookeeper:3.7.1
     hostname: zookeeper
     ports:
       - "2181"
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
-      JVMFLAGS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
+      JVMFLAGS: -server -Xms25m -Xmx512m -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrent
   kafka-zk:
-    image: bitnami/zookeeper:3.4.14
+    image: bitnami/zookeeper:3.7.1
     hostname: kafka-zk
     ports:
       - "2181"
     environment:
       ALLOW_ANONYMOUS_LOGIN: "yes"
-      JVMFLAGS: -server -Xms25m -Xmx512m -XX:+UseG1GC -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+TieredCompilation -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -Dcom.sun.xml.internal.bind.v2.runtime.JAXBContextImpl.fastBoot=true -XX:+AggressiveOpts -XX:+UseFastAccessorMethods -Dcom.sun.xml.internal.bind.v2.bytecode.ClassTailor.noOptimize=true -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrentAndUnloadsClasses
+      JVMFLAGS: -server -Xms25m -Xmx512m -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrent
   kafka:
     hostname: kafka
     image: wurstmeister/kafka:2.13-2.6.3
@@ -42,7 +42,7 @@ services:
       LOG4J_LOGGER_ORG: WARN,STDOUT
       LOG4J_LOGGER_ORG_APACHE_KAFKA: WARN,STDOUT
       LOG4J_LOGGER_KAFKA: WARN,STDOUT
-      KAFKA_JVM_PERFORMANCE_OPTS: -server -Xms25m -Xmx512m
+      KAFKA_JVM_PERFORMANCE_OPTS: -server -Xms25m -Xmx512m -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrent
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
   mariadb:
