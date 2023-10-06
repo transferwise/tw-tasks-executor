@@ -33,6 +33,7 @@ dependencies {
     testImplementation libraries.mariadbJavaClient
     testImplementation libraries.springKafka
     testImplementation libraries.awaitility
+    testImplementation libraries.twSpyqlStarter
 
     testRuntimeOnly project(":tw-tasks-core-test-spring-boot-starter")
     testRuntimeOnly project(":tw-tasks-jobs-test-spring-boot-starter")

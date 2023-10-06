@@ -22,6 +22,7 @@ ext {
             twLeaderSelectorStarter         : "com.transferwise.common:tw-leader-selector-starter:1.10.0",
             twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.10.1",
             twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.10.0',
+            twSpyqlStarter                  : 'com.transferwise.common:tw-spyql-starter:1.6.1',
             lubenZstd                       : 'com.github.luben:zstd-jni:1.5.5-2',
             lz4Java                         : 'org.lz4:lz4-java:1.8.0',
 
