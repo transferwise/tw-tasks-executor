@@ -538,7 +538,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
       @Override
       public void onStatementExecute(StatementExecuteEvent event) {
         // Correct schema is used.
-        if (event.getSql().equals("select table_rows from information_schema.tables where table_schema='tw-tasks-test' and table_name = 'tw_task'")){
+        if (event.getSql().equals("select table_rows from information_schema.tables where table_schema='tw-tasks-test' and table_name = 'tw_task'")) {
           correctSqlEncountered.set(true);
         }
       }
@@ -549,8 +549,7 @@ abstract class TaskDaoIntTest extends BaseIntTest {
     try {
       assertThat(taskDao.getApproximateTasksCount()).isGreaterThan(-1);
       assertThat(correctSqlEncountered).isTrue();
-    }
-    finally {
+    } finally {
       spyqlDataSource.getDataSourceListeners().remove(spyqlDataSourceListener);
     }
   }

@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 
 @ActiveProfiles("postgres")
 class PostgresTaskDaoIntTest extends TaskDaoIntTest {
+
   @Test
   @SneakyThrows
   void approximateTaskCountCanBeRetrieved() {
@@ -22,7 +23,9 @@ class PostgresTaskDaoIntTest extends TaskDaoIntTest {
       @Override
       public void onStatementExecute(StatementExecuteEvent event) {
         // Check if correct schema is set.
-        if (event.getSql().equals("SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE  pg_class.relnamespace=pg_namespace.oid and nspname='public' and relname = 'tw_task'")){
+        if (event.getSql().equals(
+            "SELECT reltuples as approximate_row_count FROM pg_class, pg_namespace WHERE "
+                + " pg_class.relnamespace=pg_namespace.oid and nspname='public' and relname = 'tw_task'")) {
           correctSqlEncountered.set(true);
         }
       }
@@ -33,8 +36,7 @@ class PostgresTaskDaoIntTest extends TaskDaoIntTest {
     try {
       assertThat(taskDao.getApproximateTasksCount()).isGreaterThan(-1);
       assertThat(correctSqlEncountered).isTrue();
-    }
-    finally {
+    } finally {
       spyqlDataSource.getDataSourceListeners().remove(spyqlDataSourceListener);
     }
   }
