@@ -16,6 +16,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.common.baseutils.clock.TestClock;
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.common.spyql.SpyqlDataSource;
+import com.transferwise.common.spyql.event.StatementExecuteEvent;
+import com.transferwise.common.spyql.listener.SpyqlConnectionListener;
+import com.transferwise.common.spyql.listener.SpyqlDataSourceListener;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.TaskTestBuilder;
@@ -41,7 +45,9 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import javax.sql.DataSource;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.data.TemporalUnitWithinOffset;
@@ -56,7 +62,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 abstract class TaskDaoIntTest extends BaseIntTest {
 
   @Autowired
-  private ITaskDao taskDao;
+  protected ITaskDao taskDao;
   @Autowired
   private JdbcTemplate jdbcTemplate;
   @Autowired
@@ -65,8 +71,11 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   private ITestTaskDao testTaskDao;
   @Autowired
   private ITaskDataSerializer taskDataSerializer;
+  @Autowired
+  protected DataSource dataSource;
 
   @BeforeEach
+  @SneakyThrows
   void taskDaoIntTestSetup() {
     testTasksService.stopProcessing();
   }
@@ -521,8 +530,29 @@ abstract class TaskDaoIntTest extends BaseIntTest {
   }
 
   @Test
+  @SneakyThrows
   void approximateTaskCountCanBeRetrieved() {
-    assertThat(taskDao.getApproximateTasksCount()).isGreaterThan(-1);
+    var correctSqlEncountered = new AtomicBoolean();
+    var spyqlDataSource = dataSource.unwrap(SpyqlDataSource.class);
+    final SpyqlDataSourceListener spyqlDataSourceListener = event -> new SpyqlConnectionListener() {
+      @Override
+      public void onStatementExecute(StatementExecuteEvent event) {
+        // Correct schema is used.
+        if (event.getSql().equals("select table_rows from information_schema.tables where table_schema='tw-tasks-test' and table_name = 'tw_task'")){
+          correctSqlEncountered.set(true);
+        }
+      }
+    };
+
+    spyqlDataSource.addListener(spyqlDataSourceListener);
+
+    try {
+      assertThat(taskDao.getApproximateTasksCount()).isGreaterThan(-1);
+      assertThat(correctSqlEncountered).isTrue();
+    }
+    finally {
+      spyqlDataSource.getDataSourceListeners().remove(spyqlDataSourceListener);
+    }
   }
 
   @Test

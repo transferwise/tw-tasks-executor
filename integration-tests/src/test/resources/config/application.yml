@@ -76,6 +76,8 @@ spring:
     url: jdbc:mariadb://${MARIADB_HOST:localhost}:${MARIADB_TCP_3306}/tw-tasks-test?rewriteBatchStatements=false
     username: root
     password: example-password-change-me
+    hikari:
+      pool-name: tw-tasks-test
   kafka:
     client-id: test-mysql
     consumer:

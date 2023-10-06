@@ -41,7 +41,7 @@ public class PostgresTaskDao extends JdbcTaskDao implements InitializingBean {
   @Override
   protected String getApproximateTableCountSql(boolean withSchema, String table) {
     String schema = "current_schema()";
-    if (!withSchema) {
+    if (withSchema) {
       schema = "'" + tasksProperties.getTaskTablesSchemaName() + "'";
     }
 
