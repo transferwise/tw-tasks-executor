@@ -490,6 +490,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     configs.put(ProducerConfig.CLIENT_ID_CONFIG, tasksProperties.getGroupId() + ".tw-tasks-triggerer");
     configs.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
     configs.put(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
+    configs.put(ProducerConfig.METADATA_MAX_AGE_CONFIG, "120000");
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
