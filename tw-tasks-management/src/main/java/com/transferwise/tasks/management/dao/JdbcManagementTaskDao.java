@@ -1,5 +1,10 @@
 package com.transferwise.tasks.management.dao;
 
+import static java.util.stream.Collectors.filtering;
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
@@ -24,8 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import javax.management.Query;
 import javax.sql.DataSource;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
@@ -33,10 +36,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.transaction.annotation.Transactional;
 
-import static java.util.stream.Collectors.filtering;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 
 public class JdbcManagementTaskDao implements IManagementTaskDao {
 
@@ -84,9 +83,16 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
       QueryBuilder and(String paramName, Op op) {
         this.where += " AND " + paramName;
         switch (op) {
-          case EQUALS: where += "=?"; break;
-          case IN: where += " IN (?)"; break;
-          case LESS_THAN: where += " <?"; break;
+          case IN:
+            where += " IN (?)";
+            break;
+          case LESS_THAN:
+            where += " <?";
+            break;
+          case EQUALS:
+          default:
+            where += "=?";
+            break;
         }
         return this;
       }

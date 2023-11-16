@@ -173,7 +173,8 @@ public class TasksManagementService implements ITasksManagementService {
     return entryPointsHelper
         .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_IN_PROCESSING_OR_WAITING,
             () -> {
-              List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(request.getMaxCount(), request.getTaskType(), request.getTaskSubType());
+              List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(
+                  request.getMaxCount(), request.getTaskType(), request.getTaskSubType());
               return new GetTasksInProcessingOrWaitingResponse().setTasksInProcessingOrWaiting(
                   tasks.stream().map(t -> new GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting()
                       .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
