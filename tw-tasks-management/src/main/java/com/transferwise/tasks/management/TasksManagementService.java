@@ -236,10 +236,10 @@ public class TasksManagementService implements ITasksManagementService {
           GetTaskDataResponse response = new GetTaskDataResponse();
 
           final FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
-          mdcService.put(task);
           if (task == null) {
             response.setResultCode(ResultCode.NOT_FOUND);
           } else {
+            mdcService.put(task);
             response.setVersion(task.getVersion());
             response.setType(task.getType());
 

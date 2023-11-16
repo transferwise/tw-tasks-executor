@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.40.6 - 2023/11/16
+### Fixed
+
+* NullPointerException in TaskManagementService.getTaskData in case task is not found
+
 #### 1.40.5 - 2023/10/30
 ### Added
 - Setting METADATA_MAX_AGE_CONFIG to two minutes for producer
