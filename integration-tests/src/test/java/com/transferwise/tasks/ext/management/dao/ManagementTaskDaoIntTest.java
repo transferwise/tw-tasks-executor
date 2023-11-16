@@ -77,7 +77,7 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
     randomProcessingTask().withSubType("3").save();
     randomErrorTask().withSubType("4").save();
 
-    List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(2);
+    List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(2, null, null);
 
     assertEquals(2, tasks.size());
     for (DaoTask1 task : tasks) {
@@ -93,7 +93,7 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
     randomProcessingTask().withSubType("4").save();
     randomWaitingTask().withSubType("5").save();
 
-    List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(3);
+    List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(3, null, null);
 
     assertEquals(3, tasks.size());
     assertEquals(3, tasks.stream().filter(t -> ImmutableSet.of("1", "3", "4", "5").contains(t.getSubType())).count());
@@ -114,7 +114,7 @@ abstract class ManagementTaskDaoIntTest extends BaseIntTest {
     randomDoneTask().save();
     randomWaitingTask().save();
 
-    List<DaoTask2> tasks = managementTaskDao.getStuckTasks(4, Duration.ofMillis(-2));
+    List<DaoTask2> tasks = managementTaskDao.getStuckTasks(4, null, null, Duration.ofMillis(-2));
 
     assertEquals(4, tasks.size());
   }

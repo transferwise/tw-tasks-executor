@@ -11,6 +11,7 @@ public final class ManagementEntryPointNames {
   public static final String MARK_AS_FAILED = "markAsFailed";
   public static final String GET_TASK_WITHOUT_DATA = "getTaskWithoutData";
   public static final String GET_TASK_DATA = "getTaskData";
+  public static final String GET_TASKS_TYPES = "getTasksTypes";
 
   private ManagementEntryPointNames() {
     throw new AssertionError();

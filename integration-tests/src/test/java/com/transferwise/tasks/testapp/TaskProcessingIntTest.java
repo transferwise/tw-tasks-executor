@@ -214,7 +214,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
 
       List<DaoTask1> error = transactionsHelper.withTransaction().asNew().call(() ->
-          managementTaskDao.getTasksInErrorStatus(10)
+          managementTaskDao.getTasksInErrorStatus(10, null, null)
       );
       boolean taskWasMarkedAsError = error.size() != 0 && error.get(0).getId().equals(taskRef.get().getTaskId());
       if (taskWasMarkedAsError) {
