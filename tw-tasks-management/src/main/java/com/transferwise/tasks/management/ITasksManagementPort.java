@@ -192,8 +192,8 @@ public interface ITasksManagementPort {
   @Accessors(chain = true)
   class GetTasksInErrorRequest {
     private int maxCount;
-    String taskType;
-    String taskSubType;
+    List<String> taskTypes;
+    List<String> taskSubTypes;
   }
 
   @Data
@@ -201,8 +201,8 @@ public interface ITasksManagementPort {
   class GetTasksInProcessingOrWaitingRequest {
 
     private int maxCount;
-    String taskType;
-    String taskSubType;
+    List<String> taskTypes;
+    List<String> taskSubTypes;
   }
 
   @Data
@@ -249,8 +249,8 @@ public interface ITasksManagementPort {
   class GetTasksStuckRequest {
 
     private int maxCount;
-    String taskType;
-    String taskSubType;
+    List<String> taskTypes;
+    List<String> taskSubTypes;
   }
 
   @Data

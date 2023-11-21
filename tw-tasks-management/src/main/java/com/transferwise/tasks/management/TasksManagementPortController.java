@@ -99,8 +99,8 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
     return callWithAuthentication(() -> {
       ITasksManagementService.GetTasksInErrorResponse serviceResponse = tasksManagementService
           .getTasksInError(new ITasksManagementService.GetTasksInErrorRequest()
-              .setTaskType(request != null ? request.getTaskType() : null)
-              .setTaskSubType(request != null ? request.getTaskSubType() : null)
+              .setTaskTypes(request != null ? request.getTaskTypes() : null)
+              .setTaskSubTypes(request != null ? request.getTaskSubTypes() : null)
               .setMaxCount(request != null ? request.getMaxCount() : DEFAULT_MAX_COUNT));
 
       return ResponseEntity.ok(new GetTasksInErrorResponse().setTasksInError(serviceResponse.getTasksInError().stream().map(taskInError ->
@@ -142,8 +142,8 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
     return callWithAuthentication(() -> {
       ITasksManagementService.GetTasksInProcessingOrWaitingResponse serviceResponse = tasksManagementService
           .getTasksInProcessingOrWaiting(new ITasksManagementService.GetTasksInProcessingOrWaitingRequest()
-              .setTaskType(request != null ? request.getTaskType() : null)
-              .setTaskSubType(request != null ? request.getTaskSubType() : null)
+              .setTaskTypes(request != null ? request.getTaskTypes() : null)
+              .setTaskSubTypes(request != null ? request.getTaskSubTypes() : null)
               .setMaxCount(request != null ? request.getMaxCount() : DEFAULT_MAX_COUNT));
 
       return ResponseEntity.ok(new GetTasksInProcessingOrWaitingResponse()
@@ -188,8 +188,8 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
     return callWithAuthentication(() -> {
       ITasksManagementService.GetTasksStuckResponse serviceResponse = tasksManagementService
           .getTasksStuck(new ITasksManagementService.GetTasksStuckRequest()
-              .setTaskType(request != null ? request.getTaskType() : null)
-              .setTaskSubType(request != null ? request.getTaskSubType() : null)
+              .setTaskTypes(request != null ? request.getTaskTypes() : null)
+              .setTaskSubTypes(request != null ? request.getTaskSubTypes() : null)
               .setMaxCount(request != null ? request.getMaxCount() : DEFAULT_MAX_COUNT));
 
       return ResponseEntity.ok(new GetTasksStuckResponse().setTasksStuck(serviceResponse.getTasksStuck().stream().map(taskStuck ->

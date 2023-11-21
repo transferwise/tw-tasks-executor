@@ -153,21 +153,16 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   }
 
   @Override
-  public List<DaoTask1> getTasksInErrorStatus(int maxCount, String taskType, String taskSubType) {
+  public List<DaoTask1> getTasksInErrorStatus(int maxCount, List<String> taskTypes, List<String> taskSubTypes) {
     QueryBuilder builder = Queries.queryBuilder(queries.getTasksInErrorStatus)
         .and("status")
         .desc("next_event_time")
         .withLimit();
 
-    if (taskType != null) {
-      builder.and("type");
-    }
-    if (taskSubType != null) {
-      builder.and("sub_type");
-    }
+    addTaskTypeArgs(builder, taskTypes, taskSubTypes);
     return jdbcTemplate.query(
         builder.build(),
-        args(TaskStatus.ERROR.name(), taskType, taskSubType, maxCount),
+        args(TaskStatus.ERROR.name(), taskTypes, taskSubTypes, maxCount),
         (rs, rowNum) ->
             new DaoTask1()
                 .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
@@ -196,7 +191,7 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   }
 
   @Override
-  public List<DaoTask2> getStuckTasks(int maxCount, String taskType, String taskSubType, Duration delta) {
+  public List<DaoTask2> getStuckTasks(int maxCount, List<String> taskTypes, List<String> taskSubTypes, Duration delta) {
     Timestamp timeThreshold = Timestamp.from(ZonedDateTime.now(TwContextClockHolder.getClock()).toInstant().minus(delta));
 
     List<DaoTask2> stuckTasks = new ArrayList<>();
@@ -205,18 +200,13 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
         .and("next_event_time", Op.LESS_THAN)
         .desc("next_event_time")
         .withLimit();
-    if (taskType != null) {
-      builder.and("type");
-    }
-    if (taskSubType != null) {
-      builder.and("sub_type");
-    }
+    addTaskTypeArgs(builder, taskTypes, taskSubTypes);
     String query = builder.build();
     for (TaskStatus taskStatus : STUCK_STATUSES) {
       stuckTasks.addAll(
           jdbcTemplate.query(
               query,
-              args(taskStatus.name(), timeThreshold, taskType, taskSubType, maxCount),
+              args(taskStatus.name(), timeThreshold, taskTypes, taskSubTypes, maxCount),
               (rs, rowNum) ->
                   new DaoTask2()
                       .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
@@ -232,25 +222,19 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   }
 
   @Override
-  public List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount, String taskType, String taskSubType) {
+  public List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount, List<String> taskTypes, List<String> taskSubTypes) {
     List<DaoTask3> result = new ArrayList<>();
     QueryBuilder builder = Queries.queryBuilder(queries.getTasksInStatus)
         .and("status")
         .desc("next_event_time")
         .withLimit();
-
-    if (taskType != null) {
-      builder.and("type");
-    }
-    if (taskSubType != null) {
-      builder.and("sub_type");
-    }
+    addTaskTypeArgs(builder, taskTypes, taskSubTypes);
     String query = builder.build();
     for (TaskStatus taskStatus : WAITING_AND_PROCESSING_STATUSES) {
       result.addAll(
           jdbcTemplate.query(
               query,
-              args(taskStatus, taskType, taskSubType, maxCount),
+              args(taskStatus, taskTypes, taskSubTypes, maxCount),
               (rs, rowNum) ->
                   new DaoTask3()
                       .setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
@@ -337,6 +321,15 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
         .map(entry -> new DaoTaskType().setType(entry.getKey()).setSubTypes(entry.getValue().stream().sorted().collect(toList())))
         .sorted(Comparator.comparing(DaoTaskType::getType))
         .collect(toList());
+  }
+
+  protected void addTaskTypeArgs(QueryBuilder builder, List<String> taskTypes, List<String> taskSubTypes) {
+    if (taskTypes != null && !taskTypes.isEmpty()) {
+      builder.and("type", Op.IN);
+    }
+    if (taskSubTypes != null && !taskSubTypes.isEmpty()) {
+      builder.and("sub_type", Op.IN);
+    }
   }
 
   protected PreparedStatementSetter args(Object... args) {

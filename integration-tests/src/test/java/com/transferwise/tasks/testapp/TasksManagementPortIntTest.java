@@ -381,7 +381,9 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
     ResponseEntity<GetTasksInErrorResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/getTasksInError",
-        new ITasksManagementPort.GetTasksInErrorRequest().setMaxCount(10).setTaskType("A").setTaskSubType("SUB"),
+        new ITasksManagementPort.GetTasksInErrorRequest().setMaxCount(10)
+            .setTaskTypes(List.of("A"))
+            .setTaskSubTypes(List.of("SUB")),
         GetTasksInErrorResponse.class
     );
 
@@ -421,7 +423,9 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
     ResponseEntity<ITasksManagementPort.GetTasksStuckResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/getTasksStuck",
-        new ITasksManagementPort.GetTasksStuckRequest().setMaxCount(10).setTaskType("A").setTaskSubType("SUB"),
+        new ITasksManagementPort.GetTasksStuckRequest().setMaxCount(10)
+            .setTaskTypes(List.of("A"))
+            .setTaskSubTypes(List.of("SUB")),
         ITasksManagementPort.GetTasksStuckResponse.class
     );
 
@@ -457,7 +461,9 @@ public class TasksManagementPortIntTest extends BaseIntTest {
 
     ResponseEntity<GetTasksInProcessingOrWaitingResponse> response = goodEngineerTemplate().postForEntity(
         "/v1/twTasks/getTasksInProcessingOrWaiting",
-        new ITasksManagementPort.GetTasksInProcessingOrWaitingRequest().setMaxCount(10).setTaskType("A").setTaskSubType("SUB"),
+        new ITasksManagementPort.GetTasksInProcessingOrWaitingRequest().setMaxCount(10)
+            .setTaskTypes(List.of("A"))
+            .setTaskSubTypes(List.of("SUB")),
         GetTasksInProcessingOrWaitingResponse.class
     );
 
