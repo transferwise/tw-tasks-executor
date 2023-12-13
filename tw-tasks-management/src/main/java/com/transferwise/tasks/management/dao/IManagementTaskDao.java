@@ -43,13 +43,22 @@ public interface IManagementTaskDao {
     private ZonedDateTime nextEventTime;
   }
 
-  List<DaoTask1> getTasksInErrorStatus(int maxCount);
+  @Data
+  @Accessors(chain = true)
+  class DaoTaskType {
+    private String type;
+    private List<String> subTypes;
+  }
+
+  List<DaoTask1> getTasksInErrorStatus(int maxCount, List<String> taskType, List<String> taskSubType);
 
   boolean scheduleTaskForImmediateExecution(UUID taskId, long version);
 
-  List<DaoTask2> getStuckTasks(int maxCount, Duration delta);
+  List<DaoTask2> getStuckTasks(int maxCount, List<String> taskTypes, List<String> taskSubTypes, Duration delta);
 
-  List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount);
+  List<DaoTask3> getTasksInProcessingOrWaitingStatus(int maxCount, List<String> taskTypes, List<String> taskSubTypes);
 
   List<FullTaskRecord> getTasks(List<UUID> uuids);
+
+  List<DaoTaskType> getTaskTypes();
 }

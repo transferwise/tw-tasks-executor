@@ -17,6 +17,7 @@ import com.transferwise.tasks.management.dao.IManagementTaskDao;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask1;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask2;
 import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTask3;
+import com.transferwise.tasks.management.dao.IManagementTaskDao.DaoTaskType;
 import com.transferwise.tasks.utils.LogUtils;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -123,7 +124,7 @@ public class TasksManagementService implements ITasksManagementService {
             return response;
           }
 
-          List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
+          List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount(), List.of(request.getTaskType()), null);
           List<TaskVersionId> taskVersionIdsToResume = tasksInError.stream()
               .filter(t -> t.getType().equals(request.getTaskType()))
               .map(t -> new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
@@ -138,7 +139,7 @@ public class TasksManagementService implements ITasksManagementService {
   public GetTasksInErrorResponse getTasksInError(GetTasksInErrorRequest request) {
     return entryPointsHelper
         .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_IN_ERROR, () -> {
-          List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(request.getMaxCount());
+          List<DaoTask1> tasks = managementTaskDao.getTasksInErrorStatus(request.getMaxCount(), request.getTaskTypes(), request.getTaskSubTypes());
 
           return new GetTasksInErrorResponse().setTasksInError(
               tasks.stream().map(t -> new GetTasksInErrorResponse.TaskInError()
@@ -155,8 +156,8 @@ public class TasksManagementService implements ITasksManagementService {
   public GetTasksStuckResponse getTasksStuck(GetTasksStuckRequest request) {
     return entryPointsHelper
         .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_STUCK, () -> {
-          List<DaoTask2> tasks = managementTaskDao.getStuckTasks(request.getMaxCount(), request.getDelta() == null
-              ? Duration.ofSeconds(10) : request.getDelta());
+          List<DaoTask2> tasks = managementTaskDao.getStuckTasks(request.getMaxCount(), request.getTaskTypes(), request.getTaskSubTypes(),
+              request.getDelta() == null ? Duration.ofSeconds(10) : request.getDelta());
 
           return new GetTasksStuckResponse().setTasksStuck(
               tasks.stream().map(t -> new GetTasksStuckResponse.TaskStuck()
@@ -172,7 +173,8 @@ public class TasksManagementService implements ITasksManagementService {
     return entryPointsHelper
         .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_IN_PROCESSING_OR_WAITING,
             () -> {
-              List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(request.getMaxCount());
+              List<DaoTask3> tasks = managementTaskDao.getTasksInProcessingOrWaitingStatus(
+                  request.getMaxCount(), request.getTaskTypes(), request.getTaskSubTypes());
               return new GetTasksInProcessingOrWaitingResponse().setTasksInProcessingOrWaiting(
                   tasks.stream().map(t -> new GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting()
                       .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
@@ -253,6 +255,17 @@ public class TasksManagementService implements ITasksManagementService {
             }
           }
           return response;
+        });
+  }
+
+  @Override
+  public GetTaskTypesResponse getTaskTypes() {
+    return entryPointsHelper
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_TYPES, () -> {
+          List<DaoTaskType> types = managementTaskDao.getTaskTypes();
+          return new GetTaskTypesResponse().setTypes(
+              types.stream().map(t -> new GetTaskTypesResponse.TaskType().setType(t.getType()).setSubTypes(t.getSubTypes()))
+                  .collect(Collectors.toList()));
         });
   }
 }

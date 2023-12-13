@@ -140,6 +140,11 @@ public interface ITasksManagementPort {
   @ResponseBody
   ResponseEntity<GetTasksByIdResponse> getTasksById(@RequestBody GetTasksByIdRequest request);
 
+  @GetMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/getTaskTypes", produces = {MediaType.APPLICATION_JSON_VALUE})
+  @ResponseBody
+  ResponseEntity<GetTaskTypesResponse> getTaskTypes();
+
+
   @Data
   @Accessors(chain = true)
   class GetTasksByIdRequest {
@@ -186,8 +191,9 @@ public interface ITasksManagementPort {
   @Data
   @Accessors(chain = true)
   class GetTasksInErrorRequest {
-
     private int maxCount;
+    List<String> taskTypes;
+    List<String> taskSubTypes;
   }
 
   @Data
@@ -195,6 +201,8 @@ public interface ITasksManagementPort {
   class GetTasksInProcessingOrWaitingRequest {
 
     private int maxCount;
+    List<String> taskTypes;
+    List<String> taskSubTypes;
   }
 
   @Data
@@ -241,6 +249,8 @@ public interface ITasksManagementPort {
   class GetTasksStuckRequest {
 
     private int maxCount;
+    List<String> taskTypes;
+    List<String> taskSubTypes;
   }
 
   @Data
@@ -255,6 +265,19 @@ public interface ITasksManagementPort {
 
       private TaskVersionId taskVersionId;
       private Instant stuckTime;
+    }
+  }
+
+  @Data
+  @Accessors(chain = true)
+  class GetTaskTypesResponse {
+    private List<TaskType> types;
+
+    @Data
+    @Accessors(chain = true)
+    public static class TaskType {
+      private String type;
+      private List<String> subTypes;
     }
   }
 }

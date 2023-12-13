@@ -17,9 +17,12 @@ import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTaskTypesResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskWithoutDataResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInErrorResponse.TaskInError;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInProcessingOrWaitingResponse;
+import com.transferwise.tasks.management.ITasksManagementPort.GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTasksStuckResponse.TaskStuck;
 import java.time.ZonedDateTime;
@@ -352,6 +355,167 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     FullTaskRecord task = taskDao.getTask(task0Id, FullTaskRecord.class);
     // decrementing 1 because of database rounding error
     assertFalse(task.getNextEventTime().isAfter(ZonedDateTime.now(TwContextClockHolder.getClock()).plusSeconds(1)));
+  }
+
+  @Test
+  void filtersErroredTasksByTypeAndSubType() {
+    final UUID taskId = transactionsHelper.withTransaction().asNew().call(() -> {
+      TaskTestBuilder.newTask().inStatus(TaskStatus.ERROR).withMaxStuckTime(ZonedDateTime.now().plusDays(2)).save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.ERROR).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("B")
+          .withSubType("SUB")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.ERROR).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .withSubType("BAD")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.ERROR).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withSubType("SUB")
+          .save();
+      return TaskTestBuilder.newTask().inStatus(TaskStatus.ERROR).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .withSubType("SUB")
+          .save()
+          .getTaskId();
+    });
+
+    ResponseEntity<GetTasksInErrorResponse> response = goodEngineerTemplate().postForEntity(
+        "/v1/twTasks/getTasksInError",
+        new ITasksManagementPort.GetTasksInErrorRequest().setMaxCount(10)
+            .setTaskTypes(List.of("A"))
+            .setTaskSubTypes(List.of("SUB")),
+        GetTasksInErrorResponse.class
+    );
+
+    assertEquals(200, response.getStatusCodeValue());
+    GetTasksInErrorResponse tasksInErrorResponse = response.getBody();
+    assertNotNull(tasksInErrorResponse);
+    List<TaskInError> tasksInError = tasksInErrorResponse.getTasksInError();
+    assertEquals(1, tasksInError.size());
+    assertEquals(taskId, tasksInError.get(0).getTaskVersionId().getId());
+    assertEquals("A", tasksInError.get(0).getType());
+    assertEquals("SUB", tasksInError.get(0).getSubType());
+  }
+
+  @Test
+  void filtersStuckTasksByTypeAndSubType() {
+    testTasksService.stopProcessing();
+
+    final UUID taskId = transactionsHelper.withTransaction().asNew().call(() -> {
+      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2)).save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2))
+          .withType("B")
+          .withSubType("SUB")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2))
+          .withType("A")
+          .withSubType("BAD")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2))
+          .withSubType("SUB")
+          .save();
+      return TaskTestBuilder.newTask().inStatus(TaskStatus.PROCESSING).withMaxStuckTime(ZonedDateTime.now().minusDays(2))
+          .withType("A")
+          .withSubType("SUB")
+          .save()
+          .getTaskId();
+    });
+
+    ResponseEntity<ITasksManagementPort.GetTasksStuckResponse> response = goodEngineerTemplate().postForEntity(
+        "/v1/twTasks/getTasksStuck",
+        new ITasksManagementPort.GetTasksStuckRequest().setMaxCount(10)
+            .setTaskTypes(List.of("A"))
+            .setTaskSubTypes(List.of("SUB")),
+        ITasksManagementPort.GetTasksStuckResponse.class
+    );
+
+    assertEquals(200, response.getStatusCodeValue());
+    GetTasksStuckResponse stuckTasksResponse = response.getBody();
+    assertNotNull(stuckTasksResponse);
+    List<TaskStuck> tasksStuck = stuckTasksResponse.getTasksStuck();
+    assertEquals(1, tasksStuck.size());
+    assertEquals(taskId, tasksStuck.get(0).getTaskVersionId().getId());
+  }
+
+  @Test
+  void filtersWaitingTasksByTypeAndSubType() {
+    final UUID taskId = transactionsHelper.withTransaction().asNew().call(() -> {
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2)).save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("B")
+          .withSubType("SUB")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .withSubType("BAD")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withSubType("SUB")
+          .save();
+      return TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .withSubType("SUB")
+          .save()
+          .getTaskId();
+    });
+
+    ResponseEntity<GetTasksInProcessingOrWaitingResponse> response = goodEngineerTemplate().postForEntity(
+        "/v1/twTasks/getTasksInProcessingOrWaiting",
+        new ITasksManagementPort.GetTasksInProcessingOrWaitingRequest().setMaxCount(10)
+            .setTaskTypes(List.of("A"))
+            .setTaskSubTypes(List.of("SUB")),
+        GetTasksInProcessingOrWaitingResponse.class
+    );
+
+    assertEquals(
+        200, response.getStatusCodeValue());
+    GetTasksInProcessingOrWaitingResponse waitingTasksResponse = response.getBody();
+    assertNotNull(waitingTasksResponse);
+    List<TaskInProcessingOrWaiting> tasksWaiting = waitingTasksResponse.getTasksInProcessingOrWaiting();
+    assertEquals(1, tasksWaiting.size());
+    assertEquals(taskId, tasksWaiting.get(0).getTaskVersionId().getId());
+    assertEquals("A", tasksWaiting.get(0).getType());
+    assertEquals("SUB", tasksWaiting.get(0).getSubType());
+  }
+
+  @Test
+  void getTaskTypesWillReturnCorrectly() {
+    transactionsHelper.withTransaction().asNew().run(() -> {
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .withSubType("SUB-2")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .withSubType("SUB-1")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("B")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("A")
+          .save();
+      TaskTestBuilder.newTask().inStatus(TaskStatus.WAITING).withMaxStuckTime(ZonedDateTime.now().plusDays(2))
+          .withType("B")
+          .save();
+    });
+
+    ResponseEntity<GetTaskTypesResponse> response = goodEngineerTemplate().getForEntity(
+        "/v1/twTasks/getTaskTypes",
+        GetTaskTypesResponse.class
+    );
+
+    assertEquals(200, response.getStatusCodeValue());
+    GetTaskTypesResponse typesResponse = response.getBody();
+    assertNotNull(typesResponse);
+    List<GetTaskTypesResponse.TaskType> types = typesResponse.getTypes();
+    assertEquals(2, types.size());
+    assertEquals("A", types.get(0).getType());
+    assertEquals("B", types.get(1).getType());
+    assertEquals(2, types.get(0).getSubTypes().size());
+    assertEquals("SUB-1", types.get(0).getSubTypes().get(0));
+    assertEquals("SUB-2", types.get(0).getSubTypes().get(1));
+    assertTrue(types.get(1).getSubTypes().isEmpty());
   }
 
   private TestRestTemplate goodEngineerTemplate() {

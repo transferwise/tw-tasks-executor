@@ -110,6 +110,8 @@ public interface ITasksManagementService {
   class GetTasksInErrorRequest {
 
     private int maxCount;
+    private List<String> taskTypes;
+    private List<String> taskSubTypes;
   }
 
   @Data
@@ -137,6 +139,8 @@ public interface ITasksManagementService {
 
     private int maxCount;
     private Duration delta;
+    private List<String> taskTypes;
+    private List<String> taskSubTypes;
   }
 
   @Data
@@ -161,6 +165,8 @@ public interface ITasksManagementService {
   class GetTasksInProcessingOrWaitingRequest {
 
     private int maxCount = 10;
+    private List<String> taskTypes;
+    private List<String> taskSubTypes;
   }
 
   @Data
@@ -205,6 +211,21 @@ public interface ITasksManagementService {
       private String subType;
       private String status;
       private Instant stateTime;
+    }
+  }
+
+  GetTaskTypesResponse getTaskTypes();
+
+  @Data
+  @Accessors(chain = true)
+  class GetTaskTypesResponse {
+    private List<TaskType> types;
+
+    @Data
+    @Accessors(chain = true)
+    public static class TaskType {
+      private String type;
+      private List<String> subTypes;
     }
   }
 }
