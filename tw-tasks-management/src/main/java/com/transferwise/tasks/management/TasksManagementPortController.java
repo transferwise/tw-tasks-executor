@@ -217,7 +217,7 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
     final Authentication auth = getAuthenticationIfAllowed(roles);
 
     if (auth == null) {
-      return (T) ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+      return (T) ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
     }
 
     return fun.apply(auth);
