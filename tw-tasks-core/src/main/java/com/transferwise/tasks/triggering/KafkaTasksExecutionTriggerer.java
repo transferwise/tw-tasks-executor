@@ -77,7 +77,8 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Slf4j
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy, InitializingBean {
-
+  private static final int MAX_KAFKA_PRODUCER_INSTANTIATION_ATTEMPTS = 5;
+  private static final int KAFKA_PRODUCER_INSTANTIATION_FAILURE_WAIT_TIME_MS = 500;
   @Autowired
   private ITasksProcessingService tasksProcessingService;
   @Autowired
@@ -503,11 +504,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         attemptsCount++;
         kafkaProducer = new KafkaProducer<>(configs);
       } catch (KafkaException e) {
-        if (attemptsCount >= 5) {
+        if (attemptsCount >= MAX_KAFKA_PRODUCER_INSTANTIATION_ATTEMPTS) {
           throw e;
         }
         log.error("Creating Kafka producer failed. Attempt #{}", attemptsCount, e);
-        WaitUtils.sleepQuietly(Duration.ofMillis(500));
+        WaitUtils.sleepQuietly(Duration.ofMillis(KAFKA_PRODUCER_INSTANTIATION_FAILURE_WAIT_TIME_MS));
       }
     }
     coreMetricsTemplate.registerKafkaProducer(kafkaProducer);
