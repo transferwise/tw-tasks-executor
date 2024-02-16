@@ -29,6 +29,7 @@ import com.transferwise.tasks.utils.JsonUtils;
 import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
 import com.vdurmont.semver4j.Semver;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -61,6 +62,7 @@ import org.apache.kafka.clients.consumer.RangeAssignor;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.KafkaException;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.errors.ReassignmentInProgressException;
 import org.apache.kafka.common.errors.RebalanceInProgressException;
@@ -494,7 +496,20 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
     configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
 
-    KafkaProducer<String, String> kafkaProducer = new KafkaProducer<>(configs);
+    KafkaProducer<String, String> kafkaProducer = null;
+    int attemptsCount = 0;
+    while (kafkaProducer == null) {
+      try {
+        attemptsCount++;
+        kafkaProducer = new KafkaProducer<>(configs);
+      } catch (KafkaException e) {
+        if (attemptsCount >= 5) {
+          throw e;
+        }
+        log.error("Creating Kafka producer failed. Attempt #{}", attemptsCount, e);
+        WaitUtils.sleepQuietly(Duration.ofMillis(500));
+      }
+    }
     coreMetricsTemplate.registerKafkaProducer(kafkaProducer);
 
     return kafkaProducer;
