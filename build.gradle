@@ -2,7 +2,7 @@ import org.eclipse.jgit.api.errors.RefAlreadyExistsException
 
 buildscript {
     if (!project.hasProperty("springBootVersion")) {
-        ext.springBootVersion = System.getenv("SPRING_BOOT_VERSION") ?: "2.6.15"
+        ext.springBootVersion = System.getenv("SPRING_BOOT_VERSION") ?: "2.7.14"
     }
     dependencies {
         classpath "com.avast.gradle:gradle-docker-compose-plugin:0.16.4"

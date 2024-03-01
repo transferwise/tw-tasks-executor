@@ -91,12 +91,12 @@ dependencies {
 }
 
 java {
-    if (springBootVersion.startsWith("3.")) {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    } else {
+    if (springBootVersion.startsWith("2.")) {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
+    } else {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     withSourcesJar()
     withJavadocJar()
