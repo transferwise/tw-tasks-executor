@@ -142,7 +142,7 @@ public interface ITasksManagementPort {
 
   @GetMapping(value = "${tw-tasks.core.base-url:}/v1/twTasks/getTaskTypes", produces = {MediaType.APPLICATION_JSON_VALUE})
   @ResponseBody
-  ResponseEntity<GetTaskTypesResponse> getTaskTypes();
+  ResponseEntity<GetTaskTypesResponse> getTaskTypes(@RequestParam(name = "status", required = false) List<String> status);
 
 
   @Data

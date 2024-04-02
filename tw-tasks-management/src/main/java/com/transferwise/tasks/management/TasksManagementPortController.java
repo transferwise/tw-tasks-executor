@@ -6,6 +6,7 @@ import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.management.ITasksManagementPort.GetTaskDataResponse.ResultCode;
 import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest;
 import com.transferwise.tasks.management.ITasksManagementService.GetTaskDataRequest.ContentFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -26,6 +27,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 @Slf4j
@@ -199,9 +201,9 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
   }
 
   @Override
-  public ResponseEntity<GetTaskTypesResponse> getTaskTypes() {
+  public ResponseEntity<GetTaskTypesResponse> getTaskTypes(@RequestParam(name = "status", required = false) List<String> status) {
     return callWithAuthentication(() -> {
-      ITasksManagementService.GetTaskTypesResponse serviceResponse = tasksManagementService.getTaskTypes();
+      ITasksManagementService.GetTaskTypesResponse serviceResponse = tasksManagementService.getTaskTypes(status);
 
       return ResponseEntity.ok(new GetTaskTypesResponse().setTypes(serviceResponse.getTypes().stream().map(type ->
           new GetTaskTypesResponse.TaskType().setType(type.getType()).setSubTypes(type.getSubTypes())).collect(Collectors.toList())));

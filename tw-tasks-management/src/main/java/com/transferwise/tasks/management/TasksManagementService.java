@@ -259,10 +259,10 @@ public class TasksManagementService implements ITasksManagementService {
   }
 
   @Override
-  public GetTaskTypesResponse getTaskTypes() {
+  public GetTaskTypesResponse getTaskTypes(List<String> status) {
     return entryPointsHelper
         .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.GET_TASKS_TYPES, () -> {
-          List<DaoTaskType> types = managementTaskDao.getTaskTypes();
+          List<DaoTaskType> types = managementTaskDao.getTaskTypes(status);
           return new GetTaskTypesResponse().setTypes(
               types.stream().map(t -> new GetTaskTypesResponse.TaskType().setType(t.getType()).setSubTypes(t.getSubTypes()))
                   .collect(Collectors.toList()));

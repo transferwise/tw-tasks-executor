@@ -60,5 +60,5 @@ public interface IManagementTaskDao {
 
   List<FullTaskRecord> getTasks(List<UUID> uuids);
 
-  List<DaoTaskType> getTaskTypes();
+  List<DaoTaskType> getTaskTypes(List<String> status);
 }

@@ -84,7 +84,7 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
         this.where += " AND " + paramName;
         switch (op) {
           case IN:
-            where += " IN (?)";
+            where += " IN (??)";
             break;
           case LESS_THAN:
             where += " <?";
@@ -94,6 +94,11 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
             where += "=?";
             break;
         }
+        return this;
+      }
+
+      QueryBuilder expand(int count) {
+        this.where = SqlHelper.expandParametersList(this.where, count);
         return this;
       }
 
@@ -309,10 +314,15 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   }
 
   @Override
-  public List<DaoTaskType> getTaskTypes() {
+  public List<DaoTaskType> getTaskTypes(List<String> status) {
+    var builder = Queries.queryBuilder(queries.getTaskTypes);
+    if (status != null && !status.isEmpty()) {
+      builder.and("status", Op.IN).expand(status.size());
+    }
     List<Pair<String, String>> types = jdbcTemplate.query(
-        queries.getTaskTypes,
-        (rs, rowNum) -> ImmutablePair.of(rs.getString(1), rs.getString(2)));
+          builder.build(),
+          args(status),
+          (rs, rowNum) -> ImmutablePair.of(rs.getString(1), rs.getString(2)));
 
     return types.stream()
         .collect(groupingBy(Pair::getKey, mapping(Pair::getValue, filtering(Objects::nonNull, toList()))))
@@ -325,10 +335,10 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
 
   protected void addTaskTypeArgs(QueryBuilder builder, List<String> taskTypes, List<String> taskSubTypes) {
     if (taskTypes != null && !taskTypes.isEmpty()) {
-      builder.and("type", Op.IN);
+      builder.and("type", Op.IN).expand(taskTypes.size());
     }
     if (taskSubTypes != null && !taskSubTypes.isEmpty()) {
-      builder.and("sub_type", Op.IN);
+      builder.and("sub_type", Op.IN).expand(taskSubTypes.size());
     }
   }
 
