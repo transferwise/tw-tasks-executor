@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#### 1.41.4 - 2024/04/02
+### Changed
+- `/getTaskTypes` endpoint accepts optional query parameter `status` to filter only types of tasks in the particular status(es).
+- Fixed a bug with `taskType` and `taskSubType` filters on query endpoints when multiple values are supplied, where it would consider only one value.
+
 #### 1.41.3 - 2024/02/29
 ### Changed
 * Add compatibility with Spring Boot 3.2.

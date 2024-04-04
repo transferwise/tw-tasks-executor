@@ -214,7 +214,7 @@ public interface ITasksManagementService {
     }
   }
 
-  GetTaskTypesResponse getTaskTypes();
+  GetTaskTypesResponse getTaskTypes(List<String> status);
 
   @Data
   @Accessors(chain = true)
