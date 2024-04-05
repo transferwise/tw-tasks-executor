@@ -34,7 +34,7 @@ public class TwTasksExtJobsAutoConfiguration {
 
   @Bean
   @ConditionalOnMissingBean(CronJobAnnotationProcessor.class)
-  public CronJobAnnotationProcessor cronJobAnnotationProcessor() {
+  public static CronJobAnnotationProcessor cronJobAnnotationProcessor() {
     return new CronJobAnnotationProcessor();
   }
 }
