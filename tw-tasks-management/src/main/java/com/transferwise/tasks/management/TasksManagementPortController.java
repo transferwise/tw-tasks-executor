@@ -202,6 +202,9 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
 
   @Override
   public ResponseEntity<GetTaskTypesResponse> getTaskTypes(@RequestParam(name = "status", required = false) List<String> status) {
+    if (!tasksProperties.getTasksManagement().isEnableGetTaskTypes()) {
+      return ResponseEntity.status(HttpStatus.GONE).build();
+    }
     return callWithAuthentication(() -> {
       ITasksManagementService.GetTaskTypesResponse serviceResponse = tasksManagementService.getTaskTypes(status);
 

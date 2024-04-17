@@ -430,6 +430,11 @@ public class TasksProperties {
     @jakarta.validation.Valid
     private List<TypeSpecificTaskManagement> typeSpecific = Collections.emptyList();
 
+    /**
+     * Services with lots of tasks might cause the endpoint to timeout, service owners may disable it to avoid high db load.
+     **/
+    private boolean enableGetTaskTypes = true;
+
     @Data
     public static class TypeSpecificTaskManagement {
 
