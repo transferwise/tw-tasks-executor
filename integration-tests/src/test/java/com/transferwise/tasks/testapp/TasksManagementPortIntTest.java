@@ -10,6 +10,7 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.TaskTestBuilder;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -45,6 +46,8 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   private ITaskDao taskDao;
   @Autowired
   private ITaskDataSerializer taskDataSerializer;
+  @Autowired
+  private TasksProperties tasksProperties;
 
   @Test
   void erroneousTasksWillBeCorrectlyFound() {
@@ -564,6 +567,18 @@ public class TasksManagementPortIntTest extends BaseIntTest {
     assertEquals("B", types.get(1).getType());
     assertTrue(types.get(0).getSubTypes().isEmpty());
     assertTrue(types.get(1).getSubTypes().isEmpty());
+  }
+
+  @Test
+  void getTaskTypesFailsIfEndpointIsDisabled() {
+    tasksProperties.getTasksManagement().setEnableGetTaskTypes(false);
+    ResponseEntity<GetTaskTypesResponse> response = goodEngineerTemplate().getForEntity(
+        "/v1/twTasks/getTaskTypes?status=ERROR,PROCESSING",
+        GetTaskTypesResponse.class
+    );
+
+    assertEquals(410, response.getStatusCodeValue());
+    tasksProperties.getTasksManagement().setEnableGetTaskTypes(true);
   }
 
   private TestRestTemplate goodEngineerTemplate() {
