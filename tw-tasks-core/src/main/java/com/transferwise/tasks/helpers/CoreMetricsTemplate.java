@@ -51,6 +51,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   private static final String METRIC_TASKS_RETRIES_COUNT = METRIC_PREFIX + "tasks.retriesCount";
   private static final String METRIC_TASKS_RESUMINGS_COUNT = METRIC_PREFIX + "tasks.resumingsCount";
   private static final String METRIC_TASKS_MARKED_AS_FAILED_COUNT = METRIC_PREFIX + "tasks.markedAsFailedCount";
+  private static final String METRIC_TASKS_RESCHEDULED_COUNT = METRIC_PREFIX + "tasks.rescheduledCount";
+  private static final String METRIC_TASKS_FAILED_NEXT_EVENT_TIME_CHANGE_COUNT = METRIC_PREFIX + "tasks.failedNextEventTimeChangeCount";
   private static final String METRIC_TASKS_ADDINGS_COUNT = METRIC_PREFIX + "task.addings.count";
   private static final String METRIC_TASKS_SERVICE_IN_PROGRESS_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.inProgressTriggeringsCount";
   private static final String METRIC_TASKS_SERVICE_ACTIVE_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.activeTriggeringsCount";
@@ -95,6 +97,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   private static final String TAG_PROCESSING_RESULT = "processingResult";
   private static final String TAG_FROM_STATUS = "fromStatus";
   private static final String TAG_TO_STATUS = "toStatus";
+  private static final String TAG_FROM_NEXT_EVENT_TIME = "fromNextEventTime";
+  private static final String TAG_TO_NEXT_EVENT_TIME = "toNextEventTime";
   private static final String TAG_TASK_STATUS = "taskStatus";
   private static final String TAG_BUCKET_ID = "bucketId";
   private static final String TAG_SYNC = "sync";
@@ -158,6 +162,19 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus) {
     meterCache.counter(METRIC_TASKS_FAILED_STATUS_CHANGE_COUNT, TagsSet.of(TAG_TASK_TYPE, taskType,
             TAG_FROM_STATUS, fromStatus, TAG_TO_STATUS, toStatus.name()))
+        .increment();
+  }
+
+  @Override
+  public void registerTaskRescheduled(String bucketId, String taskType) {
+    meterCache.counter(METRIC_TASKS_RESCHEDULED_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId), TAG_TASK_TYPE, taskType))
+        .increment();
+  }
+
+  @Override
+  public void registerFailedNextEventTimeChange(String taskType, ZonedDateTime fromNextEventTime, ZonedDateTime toNextEventTime) {
+    meterCache.counter(METRIC_TASKS_FAILED_NEXT_EVENT_TIME_CHANGE_COUNT, TagsSet.of(TAG_TASK_TYPE, taskType,
+            TAG_FROM_NEXT_EVENT_TIME, fromNextEventTime.toString(), TAG_TO_NEXT_EVENT_TIME, toNextEventTime.toString()))
         .increment();
   }
 

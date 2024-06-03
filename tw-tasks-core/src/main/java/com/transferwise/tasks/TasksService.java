@@ -3,9 +3,11 @@ package com.transferwise.tasks;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
+import com.transferwise.tasks.ITasksService.RescheduleTaskResponse.Result;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
+import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.EntryPoint;
 import com.transferwise.tasks.entrypoints.EntryPointsGroups;
@@ -31,6 +33,8 @@ import org.springframework.core.Ordered;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+
+import static com.transferwise.tasks.domain.TaskStatus.WAITING;
 
 @Slf4j
 public class TasksService implements ITasksService, GracefulShutdownStrategy, InitializingBean {
@@ -92,7 +96,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           mdcService.putSubType(request.getSubType());
           ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
           final TaskStatus status =
-              request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
+              request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : WAITING;
 
           final int priority = priorityManager.normalize(request.getPriority());
           if (StringUtils.isEmpty(StringUtils.trim(request.getType()))) {
@@ -160,7 +164,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
             return false;
           }
 
-          if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
+          if (task.getStatus().equals(WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
             if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
               coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
               if (log.isDebugEnabled()) {
@@ -186,6 +190,47 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           }
           triggerTask(task.toBaseTask().setVersion(version));
           return true;
+        });
+  }
+
+  @Override
+  @EntryPoint(usesExisting = true)
+  @Transactional(rollbackFor = Exception.class)
+  public RescheduleTaskResponse rescheduleTask(RescheduleTaskRequest request) {
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.RESCHEDULE_TASK,
+        () -> {
+          UUID taskId = request.getTaskId();
+          mdcService.put(request.getTaskId(), request.getVersion());
+
+          FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+
+          if (task == null) {
+            log.debug("Cannot reschedule task '" + taskId + "' as it was not found.");
+            return new RescheduleTaskResponse().setResult(Result.NOT_FOUND).setTaskId(taskId);
+          }
+
+          mdcService.put(task);
+
+          long version = task.getVersion();
+
+          if (version != request.getVersion()) {
+            coreMetricsTemplate.registerFailedNextEventTimeChange(task.getType(), task.getNextEventTime(), request.getRunAfterTime());
+            log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
+            return new RescheduleTaskResponse().setResult(Result.NOT_FOUND).setTaskId(taskId);
+          }
+
+          if (task.getStatus().equals(WAITING.name())) {
+            if (!taskDao.setNextEventTime(taskId, request.getRunAfterTime(), version, WAITING.name())) {
+              coreMetricsTemplate.registerFailedNextEventTimeChange(task.getType(), task.getNextEventTime(), request.getRunAfterTime());
+              return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.FAILED).setTaskId(taskId);
+            } else {
+              coreMetricsTemplate.registerTaskRescheduled(null, task.getType());
+              return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.OK).setTaskId(taskId);
+            }
+          }
+
+          coreMetricsTemplate.registerFailedNextEventTimeChange(task.getType(), task.getNextEventTime(), request.getRunAfterTime());
+          return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.NOT_ALLOWED).setTaskId(taskId);
         });
   }
 
