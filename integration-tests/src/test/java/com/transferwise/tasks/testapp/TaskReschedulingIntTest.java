@@ -17,15 +17,15 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.management.ITasksManagementService;
 import com.transferwise.tasks.test.ITestTasksService;
 import io.micrometer.core.instrument.Counter;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import java.time.ZonedDateTime;
-import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 public class TaskReschedulingIntTest  extends BaseIntTest {

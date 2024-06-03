@@ -158,7 +158,8 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         + ",processing_start_time=?,next_event_time=?,processing_tries_count=processing_tries_count+1"
         + ",state_time=?,time_updated=?,version=? where id=? and version=?";
     setStatusSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
-    setNextEventTimeSql = "update " + taskTable + " set next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=? and status=?";
+    setNextEventTimeSql = "update " + taskTable
+        + " set next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=? and status=?";
     getStuckTasksSql = "select id,version,type,priority,status from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time limit ?";
     prepareStuckOnProcessingTaskForResumingSql =

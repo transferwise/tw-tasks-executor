@@ -34,8 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import static com.transferwise.tasks.domain.TaskStatus.WAITING;
-
 @Slf4j
 public class TasksService implements ITasksService, GracefulShutdownStrategy, InitializingBean {
 
@@ -96,7 +94,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           mdcService.putSubType(request.getSubType());
           ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
           final TaskStatus status =
-              request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : WAITING;
+              request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
 
           final int priority = priorityManager.normalize(request.getPriority());
           if (StringUtils.isEmpty(StringUtils.trim(request.getType()))) {
@@ -164,7 +162,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
             return false;
           }
 
-          if (task.getStatus().equals(WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
+          if (task.getStatus().equals(TaskStatus.WAITING.name()) || task.getStatus().equals(TaskStatus.NEW.name())) {
             if (!taskDao.markAsSubmitted(taskId, version++, taskHandlerRegistry.getExpectedProcessingMoment(task))) {
               coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.SUBMITTED);
               if (log.isDebugEnabled()) {
@@ -219,8 +217,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
             return new RescheduleTaskResponse().setResult(Result.NOT_FOUND).setTaskId(taskId);
           }
 
-          if (task.getStatus().equals(WAITING.name())) {
-            if (!taskDao.setNextEventTime(taskId, request.getRunAfterTime(), version, WAITING.name())) {
+          if (task.getStatus().equals(TaskStatus.WAITING.name())) {
+            if (!taskDao.setNextEventTime(taskId, request.getRunAfterTime(), version, TaskStatus.WAITING.name())) {
               coreMetricsTemplate.registerFailedNextEventTimeChange(task.getType(), task.getNextEventTime(), request.getRunAfterTime());
               return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.FAILED).setTaskId(taskId);
             } else {
