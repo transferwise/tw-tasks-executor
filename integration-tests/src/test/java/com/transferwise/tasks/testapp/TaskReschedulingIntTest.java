@@ -117,7 +117,7 @@ public class TaskReschedulingIntTest  extends BaseIntTest {
 
   @ParameterizedTest
   @EnumSource(value = TaskStatus.class,
-      names = {"WAITING"},
+      names = {"WAITING", "UNKNOWN"},
       mode = EnumSource.Mode.EXCLUDE)
   void taskWillNotBeRescheduleIfNotWaiting(TaskStatus status) {
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
