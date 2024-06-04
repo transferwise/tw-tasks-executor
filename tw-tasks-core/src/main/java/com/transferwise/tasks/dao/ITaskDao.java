@@ -116,6 +116,8 @@ public interface ITaskDao {
 
   boolean setStatus(UUID taskId, TaskStatus status, long version);
 
+  boolean setNextEventTime(UUID taskId, ZonedDateTime nextEventTime, long version, String state);
+
   boolean markAsSubmitted(UUID taskId, long version, ZonedDateTime maxStuckTime);
 
   Long getTaskVersion(UUID id);

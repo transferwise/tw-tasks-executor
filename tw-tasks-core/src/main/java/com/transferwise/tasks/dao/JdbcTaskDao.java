@@ -99,6 +99,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   protected String grabForProcessingWithStatusAssertionSql;
   protected String grabForProcessingSql;
   protected String setStatusSql;
+  protected String setNextEventTimeSql;
   protected String getStuckTasksSql;
   protected String prepareStuckOnProcessingTaskForResumingSql;
   protected String prepareStuckOnProcessingTaskForResumingSql1;
@@ -157,6 +158,8 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         + ",processing_start_time=?,next_event_time=?,processing_tries_count=processing_tries_count+1"
         + ",state_time=?,time_updated=?,version=? where id=? and version=?";
     setStatusSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
+    setNextEventTimeSql = "update " + taskTable
+        + " set next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=? and status=?";
     getStuckTasksSql = "select id,version,type,priority,status from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time limit ?";
     prepareStuckOnProcessingTaskForResumingSql =
@@ -319,6 +322,14 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   public boolean setStatus(UUID taskId, TaskStatus status, long version) {
     Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
     int updatedCount = jdbcTemplate.update(setStatusSql, args(status, now, now, now, version + 1, taskId, version));
+    return updatedCount == 1;
+  }
+
+  @Override
+  @Transactional(rollbackFor = Exception.class)
+  public boolean setNextEventTime(UUID taskId, ZonedDateTime nextEventTime, long version, String status) {
+    Timestamp now = Timestamp.from(Instant.now(TwContextClockHolder.getClock()));
+    int updatedCount = jdbcTemplate.update(setNextEventTimeSql, args(nextEventTime, now, now, version + 1, taskId, version, status));
     return updatedCount == 1;
   }
 

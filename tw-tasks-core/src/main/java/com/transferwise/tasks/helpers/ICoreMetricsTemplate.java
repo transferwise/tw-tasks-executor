@@ -31,6 +31,8 @@ public interface ICoreMetricsTemplate {
 
   void registerTaskMarkedAsFailed(String bucketId, String taskType);
 
+  void registerTaskRescheduled(String bucketId, String taskType);
+
   void registerDuplicateTask(String taskType, boolean expected);
 
   void registerScheduledTaskResuming(String taskType);
@@ -44,6 +46,8 @@ public interface ICoreMetricsTemplate {
   void registerStuckTaskMarkedAsError(@Nonnull String taskType, @Nonnull StuckDetectionSource stuckDetectionSource);
 
   void registerFailedStatusChange(String taskType, String fromStatus, TaskStatus toStatus);
+
+  void registerFailedNextEventTimeChange(String taskType, ZonedDateTime fromNextEventTime, ZonedDateTime toNextEventTime);
 
   void registerTaskGrabbingResponse(String bucketId, String type, int priority, ProcessTaskResponse processTaskResponse);
 

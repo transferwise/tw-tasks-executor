@@ -83,6 +83,32 @@ public interface ITasksService {
     private boolean force;
   }
 
+  /**
+   * Reschedules a task in WAITING state. It is useful, when you want to change the next time the task is executed.
+   *
+   * <p>If the task in another state NOT_ALLOWED would be returned.
+   */
+  RescheduleTaskResponse rescheduleTask(RescheduleTaskRequest request);
+
+  @Data
+  @Accessors(chain = true)
+  class RescheduleTaskRequest {
+    private UUID taskId;
+    private long version;
+    private ZonedDateTime runAfterTime;
+  }
+
+  @Data
+  @Accessors(chain = true)
+  class RescheduleTaskResponse {
+    private UUID taskId;
+    private Result result;
+
+    public enum Result {
+      OK, NOT_FOUND, NOT_ALLOWED, FAILED
+    }
+  }
+
   void startTasksProcessing(String bucketId);
 
   Future<Void> stopTasksProcessing(String bucketId);
