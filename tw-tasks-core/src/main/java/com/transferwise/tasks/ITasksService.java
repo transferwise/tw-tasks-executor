@@ -86,7 +86,7 @@ public interface ITasksService {
   /**
    * Reschedules a task in WAITING state. It is useful, when you want to change the next time the task is executed.
    *
-   *<p> If the task in another state NOT_ALLOWED would be returned.
+   * <p>If the task in another state NOT_ALLOWED would be returned.
    */
   RescheduleTaskResponse rescheduleTask(RescheduleTaskRequest request);
 
