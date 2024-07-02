@@ -276,7 +276,16 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
 
           log.debug("Received Kafka message from topic '{}' partition {} offset {}.", consumerRecord.topic(), consumerRecord.partition(), offset);
 
-          BaseTask task = JsonUtils.fromJson(objectMapper, consumerRecord.value(), BaseTask.class);
+          BaseTask task;
+          try {
+            task = JsonUtils.fromJson(objectMapper, consumerRecord.value(), BaseTask.class);
+          } catch (Exception e) {
+            log.error("Received malformed task trigger in bucket {} [from topic '{}' partition {} offset {}].",
+                bucketId, consumerRecord.topic(), consumerRecord.partition(), offset, e);
+            releaseCompletedOffset(consumerBucket, topicPartition, offset);
+            break;
+          }
+
           mdcService.with(() -> {
             mdcService.put(task);
 
