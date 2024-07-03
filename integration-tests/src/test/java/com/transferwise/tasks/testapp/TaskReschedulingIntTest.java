@@ -10,11 +10,11 @@ import com.transferwise.common.baseutils.UuidUtils;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.ITasksService.GetTaskRequest;
 import com.transferwise.tasks.ITasksService.RescheduleTaskResponse.Result;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
-import com.transferwise.tasks.management.ITasksManagementService;
 import com.transferwise.tasks.test.ITestTasksService;
 import io.micrometer.core.instrument.Counter;
 import java.time.ZonedDateTime;
@@ -36,8 +36,6 @@ public class TaskReschedulingIntTest  extends BaseIntTest {
   private ITestTasksService testTasksService;
   @Autowired
   private ITaskDataSerializer taskDataSerializer;
-  @Autowired
-  private ITasksManagementService tasksManagementService;
   @Autowired
   private ITaskDao taskDao;
 
@@ -63,15 +61,13 @@ public class TaskReschedulingIntTest  extends BaseIntTest {
 
     await().until(() -> !testTasksService.getWaitingTasks("test", null).isEmpty());
 
-    var task = tasksManagementService.getTasksById(
-        new ITasksManagementService.GetTasksByIdRequest().setTaskIds(List.of(taskId))
-    ).getTasks().stream().filter(t -> t.getTaskVersionId().getId().equals(taskId)).findFirst().orElseThrow();
+    var task = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
     assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.rescheduleTask(
             new ITasksService.RescheduleTaskRequest()
                 .setTaskId(taskId)
-                .setVersion(task.getTaskVersionId().getVersion())
+                .setVersion(task.getVersion())
                 .setRunAfterTime(ZonedDateTime.now().minusHours(1))
         ).getResult() == Result.OK
     ));
@@ -97,16 +93,14 @@ public class TaskReschedulingIntTest  extends BaseIntTest {
 
     await().until(() -> !testTasksService.getWaitingTasks("test", null).isEmpty());
 
-    var task = tasksManagementService.getTasksById(
-        new ITasksManagementService.GetTasksByIdRequest().setTaskIds(List.of(taskId))
-    ).getTasks().stream().filter(t -> t.getTaskVersionId().getId().equals(taskId)).findFirst().orElseThrow();
+    var task = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
     assertFalse(
         transactionsHelper.withTransaction().asNew().call(() ->
             tasksService.rescheduleTask(
                 new ITasksService.RescheduleTaskRequest()
                     .setTaskId(taskId)
-                    .setVersion(task.getTaskVersionId().getVersion() - 1)
+                    .setVersion(task.getVersion() - 1)
                     .setRunAfterTime(ZonedDateTime.now().plusHours(2))
             ).getResult() == Result.OK
         )
@@ -141,22 +135,18 @@ public class TaskReschedulingIntTest  extends BaseIntTest {
 
     await().until(() -> testTasksService.getWaitingTasks("test", null).isEmpty());
 
-    var updateTask = tasksManagementService.getTasksById(
-        new ITasksManagementService.GetTasksByIdRequest().setTaskIds(List.of(taskId))
-    ).getTasks().stream().filter(t -> t.getTaskVersionId().getId().equals(taskId)).findFirst().orElseThrow();
+    var updateTask = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
-    taskDao.setStatus(taskId, status, updateTask.getTaskVersionId().getVersion());
+    taskDao.setStatus(taskId, status, updateTask.getVersion());
 
-    var finalTask = tasksManagementService.getTasksById(
-        new ITasksManagementService.GetTasksByIdRequest().setTaskIds(List.of(taskId))
-    ).getTasks().stream().filter(t -> t.getTaskVersionId().getId().equals(taskId)).findFirst().orElseThrow();
+    var finalTask = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
     assertFalse(
         transactionsHelper.withTransaction().asNew().call(() ->
             tasksService.rescheduleTask(
                 new ITasksService.RescheduleTaskRequest()
                     .setTaskId(taskId)
-                    .setVersion(finalTask.getTaskVersionId().getVersion())
+                    .setVersion(finalTask.getVersion())
                     .setRunAfterTime(ZonedDateTime.now().plusHours(2))
             ).getResult() == Result.OK
         )

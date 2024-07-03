@@ -3,7 +3,6 @@ package com.transferwise.tasks;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.common.context.UnitOfWorkManager;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
-import com.transferwise.tasks.ITasksService.RescheduleTaskResponse.Result;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
@@ -204,7 +203,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
 
           if (task == null) {
             log.debug("Cannot reschedule task '" + taskId + "' as it was not found.");
-            return new RescheduleTaskResponse().setResult(Result.NOT_FOUND).setTaskId(taskId);
+            return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.NOT_FOUND).setTaskId(taskId);
           }
 
           mdcService.put(task);
@@ -214,7 +213,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           if (version != request.getVersion()) {
             coreMetricsTemplate.registerFailedNextEventTimeChange(task.getType(), task.getNextEventTime(), request.getRunAfterTime());
             log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
-            return new RescheduleTaskResponse().setResult(Result.NOT_FOUND).setTaskId(taskId);
+            return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.NOT_FOUND).setTaskId(taskId);
           }
 
           if (task.getStatus().equals(TaskStatus.WAITING.name())) {
@@ -229,6 +228,36 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
 
           coreMetricsTemplate.registerFailedNextEventTimeChange(task.getType(), task.getNextEventTime(), request.getRunAfterTime());
           return new RescheduleTaskResponse().setResult(RescheduleTaskResponse.Result.NOT_ALLOWED).setTaskId(taskId);
+        });
+  }
+
+  @Override
+  @EntryPoint(usesExisting = true)
+  @Transactional(rollbackFor = Exception.class)
+  public GetTaskResponse getTask(GetTaskRequest request) {
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.GET_TASK,
+        () -> {
+          UUID taskId = request.getTaskId();
+          mdcService.put(request.getTaskId());
+
+          FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+
+          if (task == null) {
+            log.debug("Cannot get task '" + taskId + "' as it was not found.");
+            return new GetTaskResponse()
+                .setResult(GetTaskResponse.Result.NOT_FOUND)
+                .setTaskId(taskId);
+          }
+
+          mdcService.put(task);
+
+          return new GetTaskResponse().setResult(GetTaskResponse.Result.OK)
+              .setTaskId(taskId)
+              .setType(task.getType())
+              .setVersion(task.getVersion())
+              .setPriority(task.getPriority())
+              .setStatus(task.getStatus())
+              .setNextEventTime(task.getNextEventTime());
         });
   }
 
