@@ -96,3 +96,17 @@ class PayoutTaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
 	}
 }
 ```
+
+2. Rescheduling a task.
+   Let's assume, we want to reschedule a task with taskId to be executed in 5 minutes if it is in WAITING state. We need to get the task first to check its status and get current version.
+```java
+GetTaskResponse task = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
+
+if (task.getStatus().equals(TaskStatus.WAITING)) {
+  tasksService.rescheduleTask(new RescheduleTaskRequest()
+          .setTaskId(taskId)
+          .setVersion(task.getVersion())
+  .setRunAfterTime(ZonedDateTime.now().plusMinutes(5))
+  );
+};
+```
