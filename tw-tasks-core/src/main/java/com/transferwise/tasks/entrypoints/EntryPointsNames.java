@@ -17,6 +17,7 @@ public final class EntryPointsNames {
   public static final String ASYNC_HANDLE_SUCCESS = "asyncHandleSuccess";
   public static final String ASYNC_HANDLE_FAIL = "asyncHandleFail";
   public static final String RESCHEDULE_TASK = "rescheduleTask";
+  public static final String GET_TASK = "getTask";
 
   private EntryPointsNames() {
     throw new AssertionError();

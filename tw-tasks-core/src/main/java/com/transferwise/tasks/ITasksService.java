@@ -1,5 +1,7 @@
 package com.transferwise.tasks;
 
+import com.transferwise.tasks.ITasksService.AddTaskResponse.Result;
+import com.transferwise.tasks.domain.TaskStatus;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -107,6 +109,32 @@ public interface ITasksService {
     public enum Result {
       OK, NOT_FOUND, NOT_ALLOWED, FAILED
     }
+  }
+
+  GetTaskResponse getTask(GetTaskRequest request);
+
+  @Data
+  @Accessors(chain = true)
+  class GetTaskRequest {
+    private UUID taskId;
+  }
+
+  @Data
+  @Accessors(chain = true)
+  class GetTaskResponse {
+    private UUID taskId;
+    private String type;
+    private long version;
+    private Integer priority;
+    private String status;
+    private ZonedDateTime nextEventTime;
+
+    private Result result;
+
+    public enum Result {
+      OK, NOT_FOUND
+    }
+
   }
 
   void startTasksProcessing(String bucketId);
