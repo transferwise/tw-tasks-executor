@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+#### 1.42.0 - 2024/07/16
+### Added
+- Support for Spring Boot 3.3.
+
+### Removed
+- Support for spring boot 3.1 and 2.7 versions.
+
 #### 1.41.6 - 2024/04/17
 ### Added
 - `/getTaskTypes` endpoint may be disabled through configuration property `tw-tasks.core.tasks-management.enable-get-task-types: false`. Services with extreme amount of tasks might benefit from this.
