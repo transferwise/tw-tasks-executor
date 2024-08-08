@@ -1,6 +1,7 @@
 package com.transferwise.tasks.domain;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.Objects;
 import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -18,6 +19,7 @@ public class Task implements ITask {
   private long version;
   private long processingTriesCount;
   private int priority;
+  private TaskContext taskContext;
 
   // TODO: We should create an interface instead.
   public BaseTask toBaseTask() {

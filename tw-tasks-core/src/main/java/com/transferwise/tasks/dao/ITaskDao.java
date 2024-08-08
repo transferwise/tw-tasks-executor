@@ -4,6 +4,7 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest.CompressionRequest;
 import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.Task;
+import com.transferwise.tasks.domain.TaskContext;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -54,6 +55,7 @@ public interface ITaskDao {
     private ZonedDateTime maxStuckTime;
     private Integer priority;
     private CompressionRequest compression;
+    private TaskContext taskContext;
   }
 
   @Data

@@ -16,9 +16,12 @@ import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.handler.interfaces.ITaskHandlerRegistry;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.executors.IExecutorsHelper;
+import com.transferwise.tasks.processing.ITaskRegistrationDecorator;
 import com.transferwise.tasks.triggering.ITasksExecutionTriggerer;
 import com.transferwise.tasks.utils.LogUtils;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -58,6 +61,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
   private IEnvironmentValidator environmentValidator;
   @Autowired
   private ICoreMetricsTemplate coreMetricsTemplate;
+  @Autowired(required = false)
+  private List<ITaskRegistrationDecorator> taskRegistrationInterceptors = new ArrayList<>();
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -85,12 +90,18 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
   @Override
   @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
-  public AddTaskResponse addTask(AddTaskRequest request) {
+  public AddTaskResponse addTask(AddTaskRequest requestParam) {
     return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.ADD_TASK,
         () -> {
+          AddTaskRequest request = requestParam;
           mdcService.put(request.getTaskId(), 0L);
           mdcService.putType(request.getType());
           mdcService.putSubType(request.getSubType());
+
+          for (ITaskRegistrationDecorator interceptor : taskRegistrationInterceptors) {
+            request = interceptor.intercept(request);
+          }
+
           ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
           final TaskStatus status =
               request.getRunAfterTime() == null || !request.getRunAfterTime().isAfter(now) ? TaskStatus.SUBMITTED : TaskStatus.WAITING;
@@ -102,17 +113,19 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
 
           ZonedDateTime maxStuckTime =
               request.getExpectedQueueTime() == null ? now.plus(tasksProperties.getTaskStuckTimeout()) : now.plus(request.getExpectedQueueTime());
-          byte[] data = request.getData();
+
           ITaskDao.InsertTaskResponse insertTaskResponse = taskDao.insertTask(
-              new ITaskDao.InsertTaskRequest().setData(data).setKey(request.getUniqueKey())
+              new ITaskDao.InsertTaskRequest().setData(request.getData()).setKey(request.getUniqueKey())
                   .setRunAfterTime(request.getRunAfterTime())
                   .setSubType(request.getSubType())
                   .setType(request.getType()).setTaskId(request.getTaskId())
                   .setMaxStuckTime(maxStuckTime).setStatus(status).setPriority(priority)
-                  .setCompression(request.getCompression()));
+                  .setCompression(request.getCompression())
+                  .setTaskContext(request.getTaskContext())
+          );
 
-          coreMetricsTemplate
-              .registerTaskAdding(request.getType(), request.getUniqueKey(), insertTaskResponse.isInserted(), request.getRunAfterTime(), data);
+          coreMetricsTemplate.registerTaskAdding(request.getType(), request.getUniqueKey(),
+              insertTaskResponse.isInserted(), request.getRunAfterTime(), request.getData());
 
           if (!insertTaskResponse.isInserted()) {
             coreMetricsTemplate.registerDuplicateTask(request.getType(), !request.isWarnWhenTaskExists());

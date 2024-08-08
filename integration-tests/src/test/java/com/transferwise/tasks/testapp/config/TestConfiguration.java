@@ -9,7 +9,11 @@ import com.transferwise.tasks.helpers.kafka.IKafkaListenerConsumerPropertiesProv
 import com.transferwise.tasks.helpers.kafka.messagetotask.IKafkaMessageHandler;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.processing.ITaskProcessingInterceptor;
+import com.transferwise.tasks.processing.ITaskRegistrationDecorator;
+import com.transferwise.tasks.testapp.testbeans.JambiTaskInterceptor;
+import com.transferwise.tasks.testapp.testbeans.JambiTaskRegistrationDecorator;
 import com.transferwise.tasks.utils.LogUtils;
+import io.micrometer.core.instrument.MeterRegistry;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -135,5 +139,15 @@ public class TestConfiguration implements InitializingBean {
 
       return props;
     };
+  }
+
+  @Bean
+  ITaskRegistrationDecorator jambiRegistrationInterceptor() {
+    return new JambiTaskRegistrationDecorator();
+  }
+
+  @Bean
+  ITaskProcessingInterceptor jambiProcessingInterceptor(MeterRegistry meterRegistry) {
+    return new JambiTaskInterceptor(meterRegistry);
   }
 }

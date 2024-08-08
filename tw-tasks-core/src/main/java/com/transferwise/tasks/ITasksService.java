@@ -1,6 +1,7 @@
 package com.transferwise.tasks;
 
 import com.transferwise.tasks.ITasksService.AddTaskResponse.Result;
+import com.transferwise.tasks.domain.TaskContext;
 import com.transferwise.tasks.domain.TaskStatus;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
@@ -45,6 +46,7 @@ public interface ITasksService {
     private boolean warnWhenTaskExists;
     private Duration expectedQueueTime;
     private CompressionRequest compression;
+    private TaskContext taskContext;
 
     @Data
     @Accessors(chain = true)
@@ -95,6 +97,7 @@ public interface ITasksService {
   @Data
   @Accessors(chain = true)
   class RescheduleTaskRequest {
+
     private UUID taskId;
     private long version;
     private ZonedDateTime runAfterTime;
@@ -103,6 +106,7 @@ public interface ITasksService {
   @Data
   @Accessors(chain = true)
   class RescheduleTaskResponse {
+
     private UUID taskId;
     private Result result;
 
@@ -116,12 +120,14 @@ public interface ITasksService {
   @Data
   @Accessors(chain = true)
   class GetTaskRequest {
+
     private UUID taskId;
   }
 
   @Data
   @Accessors(chain = true)
   class GetTaskResponse {
+
     private UUID taskId;
     private String type;
     private long version;
