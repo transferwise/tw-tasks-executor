@@ -1,6 +1,5 @@
 package com.transferwise.tasks.testapp;
 
-import static com.transferwise.tasks.dao.JdbcTaskDao.NULL_BLOB;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -8,11 +7,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.CompressionAlgorithm;
-import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
 import com.transferwise.tasks.ITasksService.AddTaskRequest.CompressionRequest;
 import com.transferwise.tasks.ITasksService.AddTaskResponse;
-import com.transferwise.tasks.TaskDataSerializer;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
@@ -34,7 +31,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
