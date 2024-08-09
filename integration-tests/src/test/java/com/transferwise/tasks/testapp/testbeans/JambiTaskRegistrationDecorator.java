@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 public class JambiTaskRegistrationDecorator implements ITaskRegistrationDecorator {
 
   @Override
-  public AddTaskRequest intercept(AddTaskRequest request) {
+  public AddTaskRequest decorate(AddTaskRequest request) {
     if ("Jambi".equals(request.getSubType())) {
       return request.setTaskContext(new TaskContext().setContextMap(Map.of("adam-jones", "eulogy")));
     }

@@ -4,5 +4,5 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest;
 
 public interface ITaskRegistrationDecorator {
 
-  AddTaskRequest intercept(AddTaskRequest request);
+  AddTaskRequest decorate(AddTaskRequest request);
 }

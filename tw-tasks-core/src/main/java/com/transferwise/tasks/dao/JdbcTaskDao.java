@@ -279,16 +279,20 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         DataSourceUtils.releaseConnection(con, dataSource);
       }
 
-      byte[] data = request.getData() == null ? NULL_BLOB : request.getData();
-      SerializedData serializedData = taskDataSerializer.serialize(data, request.getCompression());
-      byte[] contextBlob = objectMapper.writeValueAsBytes(request.getTaskContext());
-      SerializedData serializedContext = taskDataSerializer.serialize(contextBlob, request.getCompression());
-      jdbcTemplate.update(
-          insertTaskDataSql,
-          args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData(), serializedContext.getDataFormat(),
-              serializedContext.getData())
-      );
-      coreMetricsTemplate.registerDaoTaskDataSerialization(request.getType(), data.length, serializedData.getData().length);
+      if (request.getData() != null || request.getTaskContext() != null) {
+        byte[] data = request.getData() == null ? NULL_BLOB : request.getData();
+        SerializedData serializedData = taskDataSerializer.serialize(data, request.getCompression());
+        byte[] contextBlob = objectMapper.writeValueAsBytes(request.getTaskContext());
+        SerializedData serializedContext = taskDataSerializer.serialize(contextBlob, request.getCompression());
+        jdbcTemplate.update(
+            insertTaskDataSql,
+            args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData(), serializedContext.getDataFormat(),
+                serializedContext.getData())
+        );
+        if (request.getData() != null) {
+          coreMetricsTemplate.registerDaoTaskDataSerialization(request.getType(), data.length, serializedData.getData().length);
+        }
+      }
       return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
     });
   }

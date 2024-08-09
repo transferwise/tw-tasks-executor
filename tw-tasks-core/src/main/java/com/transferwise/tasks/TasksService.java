@@ -62,7 +62,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
   @Autowired
   private ICoreMetricsTemplate coreMetricsTemplate;
   @Autowired(required = false)
-  private List<ITaskRegistrationDecorator> taskRegistrationInterceptors = new ArrayList<>();
+  private List<ITaskRegistrationDecorator> taskRegistrationDecorators = new ArrayList<>();
 
   private ExecutorService afterCommitExecutorService;
   private TxSyncAdapterFactory txSyncAdapterFactory;
@@ -98,8 +98,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           mdcService.putType(request.getType());
           mdcService.putSubType(request.getSubType());
 
-          for (ITaskRegistrationDecorator interceptor : taskRegistrationInterceptors) {
-            request = interceptor.intercept(request);
+          for (ITaskRegistrationDecorator interceptor : taskRegistrationDecorators) {
+            request = interceptor.decorate(request);
           }
 
           ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
