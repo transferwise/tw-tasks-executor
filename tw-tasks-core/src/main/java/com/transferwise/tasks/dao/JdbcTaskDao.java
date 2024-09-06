@@ -136,7 +136,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   protected String getApproximateTaskDatasCountSql1;
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
-  static final byte[] NULL_BLOB = "./g".getBytes(StandardCharsets.UTF_8);
+  static final byte[] NULL_BLOB = "®".getBytes(StandardCharsets.UTF_8);
   protected final TaskStatus[] stuckStatuses = new TaskStatus[]{TaskStatus.NEW, TaskStatus.SUBMITTED, TaskStatus.WAITING, TaskStatus.PROCESSING};
 
   protected ITwTaskTables twTaskTables(TasksProperties tasksProperties) {
