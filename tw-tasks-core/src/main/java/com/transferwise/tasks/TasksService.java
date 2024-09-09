@@ -98,8 +98,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           mdcService.putType(request.getType());
           mdcService.putSubType(request.getSubType());
 
-          for (ITaskRegistrationDecorator interceptor : taskRegistrationDecorators) {
-            request = interceptor.decorate(request);
+          for (ITaskRegistrationDecorator decorator : taskRegistrationDecorators) {
+            request = decorator.decorate(request);
           }
 
           ZonedDateTime now = ZonedDateTime.now(TwContextClockHolder.getClock());
