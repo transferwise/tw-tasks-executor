@@ -9,4 +9,5 @@ dependencies {
     implementation libraries.springBeans
     implementation libraries.springJdbc
     implementation libraries.springContext
+    implementation libraries.jacksonDatabind
 }

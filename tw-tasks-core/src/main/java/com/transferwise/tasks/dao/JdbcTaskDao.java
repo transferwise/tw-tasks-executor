@@ -2,6 +2,7 @@ package com.transferwise.tasks.dao;
 
 import static com.transferwise.tasks.utils.TimeUtils.toZonedDateTime;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
 import com.transferwise.common.baseutils.ExceptionUtils;
 import com.transferwise.common.baseutils.UuidUtils;
@@ -12,6 +13,7 @@ import com.transferwise.tasks.domain.BaseTask;
 import com.transferwise.tasks.domain.BaseTask1;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
+import com.transferwise.tasks.domain.TaskContext;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
@@ -30,6 +32,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,6 +77,8 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   protected ITaskDaoDataSerializer taskDataSerializer;
   @Autowired
   protected ICoreMetricsTemplate coreMetricsTemplate;
+  @Autowired
+  protected ObjectMapper objectMapper;
 
   private final ConcurrentHashMap<CacheKey, String> sqlCache = new ConcurrentHashMap<>();
 
@@ -94,6 +99,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   protected String insertTaskSql;
   protected String insertUniqueTaskKeySql;
   protected String insertTaskDataSql;
+  protected String insertTaskContext;
   protected String setToBeRetriedSql;
   protected String setToBeRetriedSql1;
   protected String grabForProcessingWithStatusAssertionSql;
@@ -130,7 +136,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   protected String getApproximateTaskDatasCountSql1;
 
   protected final int[] questionBuckets = {1, 5, 25, 125, 625};
-
+  static final byte[] NULL_BLOB = "®".getBytes(StandardCharsets.UTF_8);
   protected final TaskStatus[] stuckStatuses = new TaskStatus[]{TaskStatus.NEW, TaskStatus.SUBMITTED, TaskStatus.WAITING, TaskStatus.PROCESSING};
 
   protected ITwTaskTables twTaskTables(TasksProperties tasksProperties) {
@@ -147,7 +153,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
     insertTaskSql = "insert ignore into " + taskTable + "(id,type,sub_type,status,data,next_event_time"
         + ",state_time,time_created,time_updated,processing_tries_count,version,priority) values (?,?,?,?,?,?,?,?,?,?,?,?)";
     insertUniqueTaskKeySql = "insert ignore into " + uniqueTaskKeyTable + "(task_id,key_hash,`key`) values (?, ?, ?)";
-    insertTaskDataSql = "insert into " + taskDataTable + "(task_id,data_format,data) values (?,?,?)";
+    insertTaskDataSql = "insert into " + taskDataTable + "(task_id,data_format,data,task_context_format,task_context) values (?,?,?,?,?)";
     setToBeRetriedSql = "update " + taskTable + " set status=?,next_event_time=?,state_time=?,time_updated=?,version=? where id=? and version=?";
     setToBeRetriedSql1 = "update " + taskTable + " set status=?,next_event_time=?"
         + ",processing_tries_count=?,state_time=?,time_updated=?,version=? where id=? and version=?";
@@ -174,11 +180,12 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
     getStuckTasksCountGroupedSql = "select type, count(*) from (select type from " + taskTable + " where status=?"
         + " and next_event_time<? order by next_event_time limit ?) q group by type";
     getTaskSql = "select id,version,type,status,priority from " + taskTable + " where id=?";
-    getTaskSql1 = "select id,version,type,status,priority,sub_type,t.data,processing_tries_count,d.data_format,d.data"
-        + " from " + taskTable + " t left join " + taskDataTable + " d on t.id=d.task_id"
-        + " where t.id=?";
+    getTaskSql1 =
+        "select id,version,type,status,priority,sub_type,t.data,processing_tries_count,d.data_format,d.data, d.task_context_format, d.task_context"
+            + " from " + taskTable + " t left join " + taskDataTable + " d on t.id=d.task_id"
+            + " where t.id=?";
     getTaskSql2 = "select id,version,type,status,priority,sub_type,t.data"
-        + ",processing_tries_count,state_time,next_event_time,processing_client_id,d.data_format,d.data"
+        + ",processing_tries_count,state_time,next_event_time,processing_client_id,d.data_format,d.data,d.task_context_format, d.task_context"
         + " from " + taskTable + " t left join " + taskDataTable + " d on t.id=d.task_id"
         + " where t.id=?";
     deleteTaskSql = "delete from " + taskTable + " where id=? and version=?";
@@ -272,13 +279,20 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         DataSourceUtils.releaseConnection(con, dataSource);
       }
 
-      byte[] data = request.getData();
-      if (data != null) {
+      if (request.getData() != null || request.getTaskContext() != null) {
+        byte[] data = request.getData() == null ? NULL_BLOB : request.getData();
         SerializedData serializedData = taskDataSerializer.serialize(data, request.getCompression());
-        jdbcTemplate.update(insertTaskDataSql, args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData()));
-        coreMetricsTemplate.registerDaoTaskDataSerialization(request.getType(), data.length, serializedData.getData().length);
+        byte[] contextBlob = objectMapper.writeValueAsBytes(request.getTaskContext());
+        SerializedData serializedContext = taskDataSerializer.serialize(contextBlob, request.getCompression());
+        jdbcTemplate.update(
+            insertTaskDataSql,
+            args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData(), serializedContext.getDataFormat(),
+                serializedContext.getData())
+        );
+        if (request.getData() != null) {
+          coreMetricsTemplate.registerDaoTaskDataSerialization(request.getType(), data.length, serializedData.getData().length);
+        }
       }
-
       return new InsertTaskResponse().setTaskId(taskId).setInserted(true);
     });
   }
@@ -458,16 +472,19 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
     } else if (clazz.equals(Task.class)) {
       List<Task> result = jdbcTemplate.query(getTaskSql1, args(taskId), (rs, rowNum) -> {
         byte[] data = getData(rs, 7, 9, 10);
+        TaskContext context = getContext(rs, 11, 12);
         return new Task().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
             .setVersion(rs.getLong(2)).setType(rs.getString(3))
             .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
             .setSubType(rs.getString(6)).setData(data)
-            .setProcessingTriesCount(rs.getLong(8));
+            .setProcessingTriesCount(rs.getLong(8))
+            .setTaskContext(context);
       });
       return (T) getFirst(result);
     } else if (clazz.equals(FullTaskRecord.class)) {
       List<FullTaskRecord> result = jdbcTemplate.query(getTaskSql2, args(taskId), (rs, rowNum) -> {
         byte[] data = getData(rs, 7, 12, 13);
+        TaskContext context = getContext(rs, 14, 15);
         return new FullTaskRecord().setId(sqlMapper.sqlTaskIdToUuid(rs.getObject(1)))
             .setVersion(rs.getLong(2)).setType(rs.getString(3))
             .setStatus(rs.getString(4)).setPriority(rs.getInt(5))
@@ -475,7 +492,8 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
             .setProcessingTriesCount(rs.getLong(8))
             .setStateTime(toZonedDateTime(rs.getTimestamp(9)))
             .setNextEventTime(toZonedDateTime(rs.getTimestamp(10)))
-            .setProcessingClientId(rs.getString(11));
+            .setProcessingClientId(rs.getString(11))
+            .setTaskContext(context);
       });
       return (T) getFirst(result);
     } else {
@@ -716,9 +734,22 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
     }
   }
 
+  protected TaskContext getContext(ResultSet rs, int contextFormatIdx, int contextIdx) throws SQLException {
+    return ExceptionUtils.doUnchecked(() -> {
+      var blob = taskDataSerializer.deserialize(new SerializedData()
+          .setDataFormat(rs.getInt(contextFormatIdx))
+          .setData(rs.getBytes(contextIdx))
+      );
+      if (blob == null) {
+        return null;
+      }
+      return objectMapper.readValue(blob, TaskContext.class);
+    });
+  }
+
   protected byte[] getData(ResultSet rs, int deprecatedDataIdx, int dataFormatIdx, int dataIdx) throws SQLException {
     byte[] data = rs.getBytes(dataIdx);
-    if (data != null) {
+    if (data != null && !Arrays.equals(NULL_BLOB, data)) {
       return taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(dataFormatIdx)).setData(data));
     } else {
       String deprecatedData = rs.getString(deprecatedDataIdx);

@@ -1,7 +1,9 @@
 package com.transferwise.tasks.testapp;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Strings;
 import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.CompressionAlgorithm;
@@ -10,16 +12,20 @@ import com.transferwise.tasks.ITasksService.AddTaskRequest.CompressionRequest;
 import com.transferwise.tasks.ITasksService.AddTaskResponse;
 import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.MySqlTaskTypesMapper;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.Task;
+import com.transferwise.tasks.domain.TaskContext;
 import com.transferwise.tasks.test.ITestTasksService;
 import com.transferwise.tasks.test.dao.ITestTaskDao;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
+import lombok.SneakyThrows;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,6 +49,10 @@ public class TaskDataIntTest extends BaseIntTest {
   private TasksProperties tasksProperties;
   @Autowired
   private JdbcTemplate jdbcTemplate;
+  @Autowired
+  private ObjectMapper objectMapper;
+  @Autowired
+  private ITaskDaoDataSerializer taskDataSerializer;
 
   private CompressionAlgorithm originalAlgorithm;
   private int originalMinSize;
@@ -135,6 +145,61 @@ public class TaskDataIntTest extends BaseIntTest {
         .queryForObject("select data from tw_task where id=?", String.class, taskSqlMapper.uuidToSqlTaskId(taskId));
 
     assertThat(oldData).isEqualTo("");
+  }
+
+  @ParameterizedTest
+  @MethodSource("providedAlgorithms")
+  @SneakyThrows
+  void testWritingTaskContextData() {
+    testTasksService.stopProcessing();
+
+    String data = "Hello World!";
+    var context = new TaskContext().setContextMap(Map.of("adam-jones", "jambi"));
+    AddTaskRequest addTaskRequest = new AddTaskRequest()
+        .setType("test_data")
+        .setData(data.getBytes(StandardCharsets.UTF_8))
+        .setTaskContext(context);
+    AddTaskResponse addTaskResponse = testTasksService.addTask(addTaskRequest);
+    UUID taskId = addTaskResponse.getTaskId();
+
+    FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(fullTaskRecord.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
+
+    byte[] contextBlob = jdbcTemplate
+        .queryForObject("select task_context from tw_task_data where task_id=?", byte[].class, taskSqlMapper.uuidToSqlTaskId(taskId));
+
+    TaskContext contextData = objectMapper.readValue(contextBlob, TaskContext.class);
+    assertEquals(Map.of("adam-jones", "jambi"), contextData.getContextMap());
+
+  }
+
+
+  @ParameterizedTest
+  @MethodSource("providedAlgorithms")
+  void testReadingTaskContextData(String algorithm) {
+    testTasksService.stopProcessing();
+
+    String data = "Hello World!";
+    var context = new TaskContext().setContextMap(Map.of("danny-carey", "the-grudge"));
+    AddTaskRequest addTaskRequest = new AddTaskRequest()
+        .setType("test_data")
+        .setData(data.getBytes(StandardCharsets.UTF_8))
+        .setTaskContext(context)
+        .setCompression(algorithm == null ? null : new CompressionRequest().setAlgorithm(CompressionAlgorithm.valueOf(algorithm)));
+    AddTaskResponse addTaskResponse = testTasksService.addTask(addTaskRequest);
+    UUID taskId = addTaskResponse.getTaskId();
+
+    FullTaskRecord fullTaskRecord = taskDao.getTask(taskId, FullTaskRecord.class);
+    assertThat(fullTaskRecord.getData()).isEqualTo(data.getBytes(StandardCharsets.UTF_8));
+    assertEquals(Map.of("danny-carey", "the-grudge"), fullTaskRecord.getTaskContext().getContextMap());
+
+    Task taskRecord = taskDao.getTask(taskId, Task.class);
+    assertEquals(new TaskContext().setContextMap(Map.of("danny-carey", "the-grudge")), taskRecord.getTaskContext());
+
+  }
+
+  private static Stream<String> providedAlgorithms() {
+    return Stream.of("GZIP", "LZ4", null, "NONE");
   }
 
 }

@@ -1,10 +1,14 @@
 package com.transferwise.tasks.test.dao;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.transferwise.common.baseutils.jackson.DefaultJsonConverter;
+import com.transferwise.common.baseutils.jackson.JsonConverter;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer;
 import com.transferwise.tasks.dao.ITaskDaoDataSerializer.SerializedData;
 import com.transferwise.tasks.dao.ITaskSqlMapper;
 import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.Task;
+import com.transferwise.tasks.domain.TaskContext;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
 import com.transferwise.tasks.helpers.sql.CacheKey;
@@ -59,7 +63,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
           " and status in (??)"
       };
       getTasksByTypeAndStatusAndSubType = new String[]{
-          "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,d.data_format,d.data"
+          "select id,type,sub_type,t.data,status,version,processing_tries_count,priority,d.data_format,d.data,d.task_context_format,d.task_context"
               + " from " + tasksTable + " t left join " + dataTable + " d on t.id=d.task_id"
               + " where type=?",
           " and status in (??)",
@@ -74,6 +78,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
   private final ITaskSqlMapper sqlMapper;
   private final ConcurrentHashMap<CacheKey, String> sqlCache;
   private final ITaskDaoDataSerializer taskDataSerializer;
+  private final JsonConverter jsonConverter = new DefaultJsonConverter(new ObjectMapper());
 
   public JdbcTestTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDaoDataSerializer taskDataSerializer) {
     this.sqlCache = new ConcurrentHashMap<>();
@@ -198,8 +203,16 @@ public class JdbcTestTaskDao implements ITestTaskDao {
         (rs, rowNum) -> {
           byte[] data;
           byte[] newData = rs.getBytes(10);
+          TaskContext context = null;
           if (newData != null) {
             data = taskDataSerializer.deserialize(new SerializedData().setDataFormat(rs.getInt(9)).setData(newData));
+            var contextBlob = taskDataSerializer.deserialize(new SerializedData()
+                .setDataFormat(rs.getInt(11))
+                .setData(rs.getBytes(12))
+            );
+            if (contextBlob != null) {
+              context = jsonConverter.toObject(contextBlob, TaskContext.class);
+            }
           } else {
             data = rs.getBytes(4);
           }
@@ -211,7 +224,8 @@ public class JdbcTestTaskDao implements ITestTaskDao {
               .setStatus(rs.getString(5))
               .setVersion(rs.getLong(6))
               .setProcessingTriesCount(rs.getLong(7))
-              .setPriority(rs.getInt(8));
+              .setPriority(rs.getInt(8))
+              .setTaskContext(context);
         }
     );
   }
