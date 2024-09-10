@@ -137,6 +137,9 @@ jobs:
       - name: Verify matrix jobs succeeded
         if: ${{ needs.matrix_build.result != 'success' }}
         run: exit 1
+      - name: "Install packages"
+        run: |
+          apt-get update && apt-get install -y git unzip
       - name: Checkout repository
         uses: actions/checkout@v3
       - name: "Gradle cache"
