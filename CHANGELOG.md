@@ -22,10 +22,11 @@ ADD COLUMN task_context BYTEA;
 MariaDB:
 
 ```
-ALTER TABLE tw_task_data
-ADD COLUMN task_context_format SMALLINT,
-ADD COLUMN task_context BLOB,
-ALGORITHM=INPLACE, LOCK=NONE;
+ALTER TABLE tw_task_data WAIT 2
+    ADD COLUMN IF NOT EXISTS task_context_format SMALLINT,
+    ADD COLUMN IF NOT EXISTS task_context        BLOB,
+    ALGORITHM = INSTANT,
+    LOCK = NONE;
 ```
 
 #### 1.42.0 - 2024/07/16
