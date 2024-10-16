@@ -152,7 +152,8 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
         FullTaskRecord alreadyScheduledTask = taskDao.getTask(cronTask.getTaskId(), FullTaskRecord.class);
 
         if (alreadyScheduledTask.getStatus().equals(TaskStatus.ERROR.name()) && !silent) {
-          log.error("Job '{}' was not registered with task id '{}', because an task in ERROR state already exists.", jobContainer.getUniqueName(),
+          log.error("Job '{}' was not registered with task id '{}', because the task already exists and is in ERROR state.",
+              jobContainer.getUniqueName(),
               cronTask.getTaskId());
         } else if (jobsProperties.isTestMode() || silent) {
           // We don't want to see this every time a new test runs while tasks are not cleaned.
