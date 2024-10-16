@@ -63,6 +63,22 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
     initJobs(false);
   }
 
+  @Override
+  public boolean canShutdown() {
+    return true;
+  }
+
+  @Override
+  public IJob getJobFor(IBaseTask task) {
+    String jobName = StringUtils.substringAfter(task.getType(), "|");
+    jobName = StringUtils.substringBefore(jobName, "|");
+    JobContainer jobContainer = cronTasksMap.get(jobName);
+    if (jobContainer == null) {
+      return null;
+    }
+    return jobContainer.job;
+  }
+
   protected void initJobs(boolean silent) {
     List<IJob> availableCronTasks = new ArrayList<>(applicationContext.getBeansOfType(IJob.class).values());
 
@@ -74,11 +90,6 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
 
     validateState();
     registerCronTasks(silent);
-  }
-
-  @Override
-  public boolean canShutdown() {
-    return true;
   }
 
   private void validateState() {
@@ -140,7 +151,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
       } else {
         FullTaskRecord alreadyScheduledTask = taskDao.getTask(cronTask.getTaskId(), FullTaskRecord.class);
 
-        if(alreadyScheduledTask.getStatus().equals(TaskStatus.ERROR.name()) && !silent) {
+        if (alreadyScheduledTask.getStatus().equals(TaskStatus.ERROR.name()) && !silent) {
           log.error("Job '{}' was not registered with task id '{}', because an task in ERROR state already exists.", jobContainer.getUniqueName(),
               cronTask.getTaskId());
         } else if (jobsProperties.isTestMode() || silent) {
@@ -153,17 +164,6 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
         }
       }
     }
-  }
-
-  @Override
-  public IJob getJobFor(IBaseTask task) {
-    String jobName = StringUtils.substringAfter(task.getType(), "|");
-    jobName = StringUtils.substringBefore(jobName, "|");
-    JobContainer jobContainer = cronTasksMap.get(jobName);
-    if (jobContainer == null) {
-      return null;
-    }
-    return jobContainer.job;
   }
 
   @Data
