@@ -3,7 +3,10 @@ package com.transferwise.tasks.impl.jobs;
 import com.google.common.base.Joiner;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.dao.ITaskDao;
+import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.IBaseTask;
+import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.interfaces.IJobsService;
 import io.micrometer.core.instrument.Gauge;
@@ -28,6 +31,8 @@ import org.springframework.context.ApplicationContext;
 @Slf4j
 public class JobsService implements IJobsService, GracefulShutdownStrategy, InitializingBean {
 
+  @Autowired
+  private ITaskDao taskDao;
   @Autowired
   private ITasksService tasksService;
   @Autowired
@@ -133,7 +138,12 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
           log.info("Job '{}' registered with task id '{}'. It will be run at {}.", jobContainer.getUniqueName(), cronTask.getTaskId(), nextRuntime);
         }
       } else {
-        if (jobsProperties.isTestMode() || silent) {
+        FullTaskRecord alreadyScheduledTask = taskDao.getTask(cronTask.getTaskId(), FullTaskRecord.class);
+
+        if(alreadyScheduledTask.getStatus().equals(TaskStatus.ERROR.name()) && !silent) {
+          log.error("Job '{}' was not registered with task id '{}', because an task in ERROR state already exists.", jobContainer.getUniqueName(),
+              cronTask.getTaskId());
+        } else if (jobsProperties.isTestMode() || silent) {
           // We don't want to see this every time a new test runs while tasks are not cleaned.
           log.debug("Job '{}' was not registered with task id '{}', because the task already exists.", jobContainer.getUniqueName(),
               cronTask.getTaskId());
