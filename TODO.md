@@ -28,8 +28,6 @@ topics configurations. Could refactor the properties to more hierarhical structu
 
 23. Start using Avro or other binary messages for triggering queue. This Json crap is expensive?
 
-24. Add local extremums for most gauges.
-
 25. Check automatically if the concurrency policy returned is the same instance.
 Unfortunately, it is quite common for services to create a new instance everytime we ask it, for let's  say SimpleConcurrencyPolicy, and with
 doing that, losing any concurrency control.
