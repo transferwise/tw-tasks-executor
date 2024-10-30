@@ -5,4 +5,6 @@ import java.util.function.Supplier;
 public interface IEntryPointsService {
 
   <T> T continueOrCreate(String group, String name, Supplier<T> supplier);
+
+  <T> T  createEntrypoint(String group, String name, Supplier<T> supplier);
 }

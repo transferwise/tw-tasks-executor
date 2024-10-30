@@ -6,7 +6,6 @@ group = "com.transferwise.tasks"
 apply plugin: "java-library"
 apply plugin: "checkstyle"
 apply plugin: "idea"
-apply plugin: "com.github.spotbugs"
 
 apply from: "../build.libraries.gradle"
 
@@ -16,7 +15,7 @@ repositories {
 }
 
 configurations {
-    all {
+    configureEach {
         exclude(group: 'junit', module: 'junit')
         exclude(group: 'org.junit.vintage', module: 'junit-vintage-engine')
 
@@ -134,7 +133,6 @@ test {
 }
 
 tasks.findAll { it.name.startsWith("spotbugs") }*.configure {
-    effort = "max"
     excludeFilter = file('../spotbugs-exclude.xml')
     reports {
         xml.required = true
@@ -143,7 +141,7 @@ tasks.findAll { it.name.startsWith("spotbugs") }*.configure {
 }
 
 
-tasks.withType(Checkstyle) {
+tasks.withType(Checkstyle).configureEach {
     config = resources.text.fromFile(file('../google_checks.xml'))
 
     maxWarnings = 0

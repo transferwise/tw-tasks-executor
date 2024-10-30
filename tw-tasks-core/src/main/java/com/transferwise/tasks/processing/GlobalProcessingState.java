@@ -8,6 +8,8 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -39,8 +41,7 @@ public class GlobalProcessingState {
     private AtomicInteger size = new AtomicInteger();
     private AtomicInteger runningTasksCount = new AtomicInteger();
     private AtomicInteger inProgressTasksGrabbingCount = new AtomicInteger();
-    private Lock tasksGrabbingLock = new ReentrantLock();
-    private Condition tasksGrabbingCondition = tasksGrabbingLock.newCondition();
+    private Semaphore tasksGrabbingSemaphore;
 
     public Bucket(int minPriority, int maxPriority) {
       for (int i = minPriority; i <= maxPriority; i++) {
@@ -48,12 +49,22 @@ public class GlobalProcessingState {
       }
     }
 
+    // Optimization to avoid waiting behind a lock.
+    // One ongoing version update is enough to wake up all necessary components.
+    private AtomicBoolean versionUpdateInProgress = new AtomicBoolean();
+
     public void increaseVersion() {
+      if (versionUpdateInProgress.getAndSet(true)) {
+        return;
+      }
+
       versionLock.lock();
       try {
         version.incrementAndGet();
         versionCondition.signalAll();
       } finally {
+        // Needs to happen before we unlock.
+        versionUpdateInProgress.getAndSet(false);
         versionLock.unlock();
       }
     }

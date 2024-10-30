@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Semaphore;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -58,7 +59,9 @@ public class BucketsManager implements IBucketsManager, InitializingBean {
     for (String bucketId : bucketIds) {
       globalProcessingState.getBuckets().put(bucketId,
           new GlobalProcessingState.Bucket(priorityManager.getHighestPriority(), priorityManager.getLowestPriority())
-              .setBucketId(bucketId));
+              .setBucketId(bucketId)
+              .setTasksGrabbingSemaphore(new Semaphore(tasksProperties.getTaskGrabbingMaxConcurrency()))
+      );
     }
   }
 

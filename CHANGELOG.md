@@ -5,12 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-#### 1.44.0 - 2024/10/16
+## 1.45.0 - 2024/10/30
+
+### Changed
+
+- Context switches are reduced.
+- MDC values are cleared more aggressively.
+
+## 1.44.0 - 2024/10/16
 
 - When registering cron tasks, log error if job already exists, but task is in error state.
   - If silent mode is turned on, then this log will not appear.
 
-#### 1.43.0 - 2024/08/09
+## 1.43.0 - 2024/08/09
 
 - Added support for task context
 
@@ -34,7 +41,7 @@ ALTER TABLE tw_task_data WAIT 2
     LOCK = NONE;
 ```
 
-#### 1.42.0 - 2024/07/16
+## 1.42.0 - 2024/07/16
 
 ### Added
 
@@ -44,48 +51,48 @@ ALTER TABLE tw_task_data WAIT 2
 
 - Support for spring boot 3.1 and 2.7 versions.
 
-#### 1.41.6 - 2024/04/17
+## 1.41.6 - 2024/04/17
 
 ### Added
 
 - `/getTaskTypes` endpoint may be disabled through configuration property `tw-tasks.core.tasks-management.enable-get-task-types: false`. Services with
   extreme amount of tasks might benefit from this.
 
-#### 1.41.5 - 2024/04/05
+## 1.41.5 - 2024/04/05
 
 ### Changed
 
 * Use static methods to create BeanPostProcessors.
 
-#### 1.41.4 - 2024/04/02
+## 1.41.4 - 2024/04/02
 
 ### Changed
 
 - `/getTaskTypes` endpoint accepts optional query parameter `status` to filter only types of tasks in the particular status(es).
 - Fixed a bug with `taskType` and `taskSubType` filters on query endpoints when multiple values are supplied, where it would consider only one value.
 
-#### 1.41.3 - 2024/02/29
+## 1.41.3 - 2024/02/29
 
 ### Changed
 
 * Add compatibility with Spring Boot 3.2.
 * Update dependencies
 
-#### 1.41.2 - 2024/02/16
+## 1.41.2 - 2024/02/16
 
 ### Changed
 
 * Kafka producer instantiation will be attempted up to 5 times with a 500ms delay between each attempt. In some cases, it has been observed that the
   CI fails to start the Kafka producer because the kafka docker container itself seems to not be fully up & accessible yet.
 
-#### 1.41.1 - 2023/12/19
+## 1.41.1 - 2023/12/19
 
 ### Changed
 
 - When building a Spring `ResponseEntity` with an explicit status, provide an integer derived from the `HttpStatus` enum, rather than providing the
   `HttpStatus` directly, to handle binary incompatibility between Spring 5 and 6 causing NoSuchMethod errors when tw-tasks is used with Spring 6
 
-#### 1.41.0 - 2023/11/16
+## 1.41.0 - 2023/11/16
 
 ### Added
 
@@ -98,19 +105,19 @@ ALTER TABLE tw_task_data WAIT 2
 
 * NullPointerException in TaskManagementService.getTaskData in case task is not found
 
-#### 1.40.5 - 2023/10/30
+## 1.40.5 - 2023/10/30
 
 ### Added
 
 - Setting METADATA_MAX_AGE_CONFIG to two minutes for producer
 
-#### 1.40.4 - 2023/10/06
+## 1.40.4 - 2023/10/06
 
 ### Fixed
 
 * Monitoring queries for Postgres finding approximate table sizes in the databases were using a wrong schema and thus no records were found.
 
-#### 1.40.3 - 2023/08/01
+## 1.40.3 - 2023/08/01
 
 ### Added
 
@@ -122,26 +129,26 @@ ALTER TABLE tw_task_data WAIT 2
 * Build against Spring Boot 2.7.11 --> 2.7.14
 * Build against Spring Boot 2.6.14 --> 2.6.15
 
-#### 1.40.2 - 2023/07/14
+## 1.40.2 - 2023/07/14
 
 ### Added
 
 * introduced a new configuration parameter `tw-tasks.core.no-op-task-types` that allows a default no operation task handler to pick up deprecated task
   types in your service.
 
-#### 1.40.1 - 2023/07/12
+## 1.40.1 - 2023/07/12
 
 ### Fixed
 
 * `commitSync` operation sometimes reporting a WakeupException.
 
-#### 1.40.0 - 2023/06/12
+## 1.40.0 - 2023/06/12
 
 ### Added
 
 * CronJob annotation for Spring bean's methods
 
-#### 1.39.2 - 2023/06/06
+## 1.39.2 - 2023/06/06
 
 ### Fixed
 

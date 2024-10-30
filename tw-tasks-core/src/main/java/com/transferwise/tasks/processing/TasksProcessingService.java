@@ -335,15 +335,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
 
     try {
-      bucket.getTasksGrabbingLock().lock();
-      try {
-        while (bucket.getInProgressTasksGrabbingCount().incrementAndGet() > bucketProperties.getTaskGrabbingMaxConcurrency()) {
-          bucket.getInProgressTasksGrabbingCount().decrementAndGet();
-          boolean ignored = bucket.getTasksGrabbingCondition().await(tasksProperties.getGenericMediumDelay().toMillis(), TimeUnit.MILLISECONDS);
-        }
-      } finally {
-        bucket.getTasksGrabbingLock().unlock();
-      }
+      bucket.getTasksGrabbingSemaphore().acquire();
+      bucket.getInProgressTasksGrabbingCount().incrementAndGet();
       ongoingTasksGrabbingsCount.incrementAndGet();
       tasksGrabbingExecutor.submit(() -> {
         try {
@@ -402,15 +395,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             bucket.getSize().decrementAndGet();
             bucket.increaseVersion();
 
-            Lock tasksGrabbingLock = bucket.getTasksGrabbingLock();
-            tasksGrabbingLock.lock();
-            try {
-              bucket.getInProgressTasksGrabbingCount().decrementAndGet();
-              bucket.getTasksGrabbingCondition().signalAll();
-            } finally {
-              tasksGrabbingLock.unlock();
-            }
-
+            bucket.getInProgressTasksGrabbingCount().decrementAndGet();
+            bucket.getTasksGrabbingSemaphore().release();
             ongoingTasksGrabbingsCount.decrementAndGet();
           }
         });
@@ -761,7 +747,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
                   if (waitTimeMs > 0) {
                     try {
-                      bucket.getVersionCondition().await(waitTimeMs, TimeUnit.MILLISECONDS);
+                      var ignored = bucket.getVersionCondition().await(waitTimeMs, TimeUnit.MILLISECONDS);
                     } catch (InterruptedException e) {
                       log.error(e.getMessage(), e);
                     }

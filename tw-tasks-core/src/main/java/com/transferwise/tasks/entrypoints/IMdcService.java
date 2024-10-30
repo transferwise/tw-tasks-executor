@@ -16,7 +16,7 @@ public interface IMdcService {
 
   void put(@NonNull ITask task);
 
-  void put(@NonNull IBaseTask task);
+  void put(IBaseTask task);
 
   void put(UUID taskId, Long taskVersion);
 

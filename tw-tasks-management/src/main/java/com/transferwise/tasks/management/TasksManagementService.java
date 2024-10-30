@@ -117,21 +117,22 @@ public class TasksManagementService implements ITasksManagementService {
   @Transactional(rollbackFor = Exception.class)
   public ResumeTasksImmediatelyResponse resumeAllTasksImmediately(ResumeAllTasksImmediatelyRequest request) {
     return entryPointsHelper
-        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.RESUME_ALL_IMMEDIATELY, () -> {
-          ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
+        .continueOrCreate(ManagementEntryPointGroups.TW_TASKS_MANAGEMENT, ManagementEntryPointNames.RESUME_ALL_IMMEDIATELY,
+            () -> {
+              ResumeTasksImmediatelyResponse response = new ResumeTasksImmediatelyResponse();
 
-          if (StringUtils.isEmpty(request.getTaskType())) {
-            return response;
-          }
+              if (StringUtils.isEmpty(request.getTaskType())) {
+                return response;
+              }
 
-          List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount(), List.of(request.getTaskType()), null);
-          List<TaskVersionId> taskVersionIdsToResume = tasksInError.stream()
-              .filter(t -> t.getType().equals(request.getTaskType()))
-              .map(t -> new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-              .collect(Collectors.toList());
+              List<DaoTask1> tasksInError = managementTaskDao.getTasksInErrorStatus(request.getMaxCount(), List.of(request.getTaskType()), null);
+              List<TaskVersionId> taskVersionIdsToResume = tasksInError.stream()
+                  .filter(t -> t.getType().equals(request.getTaskType()))
+                  .map(t -> new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                  .collect(Collectors.toList());
 
-          return resumeTasksImmediately(new ResumeTasksImmediatelyRequest().setTaskVersionIds(taskVersionIdsToResume));
-        });
+              return resumeTasksImmediately(new ResumeTasksImmediatelyRequest().setTaskVersionIds(taskVersionIdsToResume));
+            });
   }
 
   @Override
@@ -143,10 +144,10 @@ public class TasksManagementService implements ITasksManagementService {
 
           return new GetTasksInErrorResponse().setTasksInError(
               tasks.stream().map(t -> new GetTasksInErrorResponse.TaskInError()
-                  .setErrorTime(t.getStateTime().toInstant())
-                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-                  .setType(t.getType())
-                  .setSubType(t.getSubType()))
+                      .setErrorTime(t.getStateTime().toInstant())
+                      .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                      .setType(t.getType())
+                      .setSubType(t.getSubType()))
                   .collect(Collectors.toList()));
         });
   }
@@ -161,8 +162,8 @@ public class TasksManagementService implements ITasksManagementService {
 
           return new GetTasksStuckResponse().setTasksStuck(
               tasks.stream().map(t -> new GetTasksStuckResponse.TaskStuck()
-                  .setStuckTime(t.getNextEventTime().toInstant())
-                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion())))
+                      .setStuckTime(t.getNextEventTime().toInstant())
+                      .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion())))
                   .collect(Collectors.toList()));
         });
   }
@@ -177,11 +178,11 @@ public class TasksManagementService implements ITasksManagementService {
                   request.getMaxCount(), request.getTaskTypes(), request.getTaskSubTypes());
               return new GetTasksInProcessingOrWaitingResponse().setTasksInProcessingOrWaiting(
                   tasks.stream().map(t -> new GetTasksInProcessingOrWaitingResponse.TaskInProcessingOrWaiting()
-                      .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-                      .setType(t.getType())
-                      .setSubType(t.getSubType())
-                      .setStatus(t.getStatus())
-                      .setStateTime(t.getStateTime().toInstant()))
+                          .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                          .setType(t.getType())
+                          .setSubType(t.getSubType())
+                          .setStatus(t.getStatus())
+                          .setStateTime(t.getStateTime().toInstant()))
                       .collect(Collectors.toList()));
             });
   }
@@ -194,12 +195,12 @@ public class TasksManagementService implements ITasksManagementService {
           List<FullTaskRecord> tasks = managementTaskDao.getTasks(request.getTaskIds());
           return new GetTasksByIdResponse().setTasks(
               tasks.stream().map(t -> new GetTasksByIdResponse.Task()
-                  .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
-                  .setType(t.getType())
-                  .setSubType(t.getSubType())
-                  .setStatus(t.getStatus())
-                  .setStateTime(t.getStateTime().toInstant())
-              )
+                      .setTaskVersionId(new TaskVersionId().setId(t.getId()).setVersion(t.getVersion()))
+                      .setType(t.getType())
+                      .setSubType(t.getSubType())
+                      .setStatus(t.getStatus())
+                      .setStateTime(t.getStateTime().toInstant())
+                  )
                   .collect(Collectors.toList())
           );
         });
