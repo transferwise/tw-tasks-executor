@@ -474,6 +474,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
       }
 
+      releaseCompletedOffsets(consumerBucket);
+
       consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommitted(), (map, e) -> {
         if (e != null) {
           coreMetricsTemplate.registerKafkaTasksExecutionTriggererCommit(bucketId, false, false);

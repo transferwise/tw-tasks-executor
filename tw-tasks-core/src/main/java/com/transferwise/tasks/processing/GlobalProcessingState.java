@@ -49,7 +49,7 @@ public class GlobalProcessingState {
       }
     }
 
-    // Optimization to avoid waiting behind a lock.
+    // Optimization to avoid waiting behind a lock, but also reducing the amount of signals and context switches.
     // One ongoing version update is enough to wake up all necessary components.
     private AtomicBoolean versionUpdateInProgress = new AtomicBoolean();
 

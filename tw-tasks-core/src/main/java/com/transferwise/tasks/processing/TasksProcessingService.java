@@ -299,7 +299,6 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
 
   protected ProcessTaskResponse grabTaskForProcessing(String bucketId, BaseTask task) {
     GlobalProcessingState.Bucket bucket = globalProcessingState.getBuckets().get(bucketId);
-    BucketProperties bucketProperties = bucketsManager.getBucketProperties(bucketId);
 
     ITaskHandler taskHandler = taskHandlerRegistry.getTaskHandler(task);
     if (taskHandler == null) {
