@@ -9,6 +9,12 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
+- Restoring Spring 4 compatibly.
+
+## 1.45.0 - 2024/10/30
+
+### Changed
+
 - Context switches are reduced.
 - MDC values are cleared more aggressively.
 
