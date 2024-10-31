@@ -18,7 +18,6 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
@@ -203,7 +202,7 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
   @Override
   public ResponseEntity<GetTaskTypesResponse> getTaskTypes(@RequestParam(name = "status", required = false) List<String> status) {
     if (!tasksProperties.getTasksManagement().isEnableGetTaskTypes()) {
-      return ResponseEntity.status(HttpStatus.GONE).build();
+      return ResponseEntity.status(410).build();
     }
     return callWithAuthentication(() -> {
       ITasksManagementService.GetTaskTypesResponse serviceResponse = tasksManagementService.getTaskTypes(status);
@@ -222,7 +221,7 @@ public class TasksManagementPortController implements ITasksManagementPort, Init
     final Authentication auth = getAuthenticationIfAllowed(roles);
 
     if (auth == null) {
-      return (T) ResponseEntity.status(HttpStatus.FORBIDDEN.value()).build();
+      return (T) ResponseEntity.status(403).build();
     }
 
     return fun.apply(auth);
