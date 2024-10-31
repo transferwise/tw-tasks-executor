@@ -1,20 +1,22 @@
 import org.eclipse.jgit.api.errors.RefAlreadyExistsException
+import com.github.spotbugs.snom.Confidence
+import com.github.spotbugs.snom.Effort
 
 buildscript {
     if (!project.hasProperty("springBootVersion")) {
         ext.springBootVersion = System.getenv("SPRING_BOOT_VERSION") ?: "3.2.2"
     }
     dependencies {
-        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.16.4"
+        classpath "com.avast.gradle:gradle-docker-compose-plugin:0.17.10"
     }
 }
 
 plugins {
-    id "com.github.spotbugs" version "5.0.14" apply false
+    id "com.github.spotbugs" version "6.0.+"
     id 'org.springframework.boot' version "$springBootVersion" apply false
     id "idea"
-    id 'org.ajoberstar.grgit' version '5.2.0'
-    id 'io.github.gradle-nexus.publish-plugin' version "1.1.0"
+    id 'org.ajoberstar.grgit' version '5.3.0'
+    id 'io.github.gradle-nexus.publish-plugin' version "2.0.0"
 
 }
 
@@ -36,7 +38,7 @@ idea.module {
     excludeDirs += file('logs2')
 }
 
-task tagRelease {
+tasks.register('tagRelease') {
     doLast {
         try {
             grgit.tag.add {
@@ -65,3 +67,9 @@ nexusPublishing {
 tasks.findByName("initializeSonatypeStagingRepository").setOnlyIf {
     System.getenv("OSS_SIGNING_KEY")
 }
+
+spotbugs {
+    effort = Effort.valueOf('MAX')
+    reportLevel = Confidence.valueOf('DEFAULT')
+}
+

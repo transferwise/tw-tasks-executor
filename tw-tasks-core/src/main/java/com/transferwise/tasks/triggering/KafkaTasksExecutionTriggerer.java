@@ -35,12 +35,15 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -77,6 +80,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 @Slf4j
 public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, GracefulShutdownStrategy, InitializingBean {
+
   private static final int MAX_KAFKA_PRODUCER_INSTANTIATION_ATTEMPTS = 5;
   private static final int KAFKA_PRODUCER_INSTANTIATION_FAILURE_WAIT_TIME_MS = 500;
   @Autowired
@@ -114,6 +118,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
   private final AtomicInteger pollingBucketsCount = new AtomicInteger();
   private final Lock lifecycleLock = new ReentrantLock();
 
+
   @Override
   public void afterPropertiesSet() {
     executorService = executorsHelper.newCachedExecutor("ktet");
@@ -125,11 +130,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       }
 
       String bucketId = taskTriggering.getBucketId();
-      ConsumerBucket consumerBucket = consumerBuckets.get(bucketId);
-      TopicPartition topicPartition = taskTriggering.getTopicPartition();
-      long offset = taskTriggering.getOffset();
+      var consumerBucket = consumerBuckets.get(bucketId);
+      consumerBucket.finishedTaskTriggerings.add(taskTriggering);
 
-      releaseCompletedOffset(consumerBucket, topicPartition, offset);
+      releaseCompletedOffsetsIfNoOneIsOnIt(consumerBucket);
     });
 
     coreMetricsTemplate.registerPollingBucketsCount(pollingBucketsCount);
@@ -345,40 +349,64 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
   }
 
-  void releaseCompletedOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
-    consumerBucket.getOffsetsStorageLock().lock();
-    // TODO: Lots of stuff inside this lock...
+  void releaseCompletedOffsetsIfNoOneIsOnIt(ConsumerBucket consumerBucket) {
+    if (consumerBucket.finishedTaskTriggeringsProcessingInProgress.getAndSet(true)) {
+      return;
+    }
+
     try {
-      ConsumerTopicPartition consumerTopicPartition = consumerBucket.getConsumerTopicPartitions().get(topicPartition);
+      releaseCompletedOffsets(consumerBucket);
+    } finally {
+      consumerBucket.finishedTaskTriggeringsProcessingInProgress.getAndSet(false);
+    }
+  }
 
-      TreeSet<Long> offsets = consumerTopicPartition.getOffsets();
-      if (!offsets.contains(offset)) {
-        // Theoretically possible, when we reconnect to Kafka and we had registered one offset multiple times
-        // (in this case there is only single record in TreeSet for it).
-
-        coreMetricsTemplate.registerKafkaTasksExecutionTriggererAlreadyCommitedOffset(consumerBucket.getBucketId());
-        log.debug("Offset {} has already been commited.", offset);
-        return;
-      }
-      consumerTopicPartition.getOffsetsCompleted().put(offset, Boolean.TRUE);
-
-      boolean isFirst = offsets.first() == offset;
-      if (isFirst) {
-        while (!offsets.isEmpty()) {
-          long firstOffset = offsets.first();
-          if (consumerTopicPartition.isDone(firstOffset)) {
-            // From Kafka Docs
-            // Note: The committed offset should always be the offset of the next message that your application will read.
-            consumerBucket.getOffsetsToBeCommitted().put(topicPartition, new OffsetAndMetadata(firstOffset + 1));
-            offsets.pollFirst();
-            consumerTopicPartition.getOffsetsCompleted().remove(firstOffset);
-          } else {
-            break;
-          }
+  void releaseCompletedOffsets(ConsumerBucket consumerBucket) {
+    consumerBucket.getOffsetsStorageLock().lock();
+    try {
+      while (true) {
+        var taskTriggering = consumerBucket.finishedTaskTriggerings.poll();
+        if (taskTriggering == null) {
+          return;
         }
+
+        TopicPartition topicPartition = taskTriggering.getTopicPartition();
+        long offset = taskTriggering.getOffset();
+        releaseCompletedOffset(consumerBucket, topicPartition, offset);
       }
     } finally {
       consumerBucket.getOffsetsStorageLock().unlock();
+    }
+  }
+
+  void releaseCompletedOffset(ConsumerBucket consumerBucket, TopicPartition topicPartition, long offset) {
+    ConsumerTopicPartition consumerTopicPartition = consumerBucket.getConsumerTopicPartitions().get(topicPartition);
+
+    TreeSet<Long> offsets = consumerTopicPartition.getOffsets();
+    if (!offsets.contains(offset)) {
+      // Theoretically possible, when we reconnect to Kafka, and we had registered one offset multiple times
+      // (in this case there is only single record in TreeSet for it).
+
+      coreMetricsTemplate.registerKafkaTasksExecutionTriggererAlreadyCommitedOffset(consumerBucket.getBucketId());
+      log.debug("Offset {} has already been commited.", offset);
+      return;
+    }
+    consumerTopicPartition.getOffsetsCompleted().put(offset, Boolean.TRUE);
+
+    boolean isFirst = offsets.first() == offset;
+    if (isFirst) {
+      while (!offsets.isEmpty()) {
+        long firstOffset = offsets.first();
+        if (consumerTopicPartition.isDone(firstOffset)) {
+          // From Kafka Docs
+          // Note: The committed offset should always be the offset of the next message that your application will read.
+          consumerBucket.getOffsetsToBeCommitted().put(topicPartition, new OffsetAndMetadata(firstOffset + 1));
+          offsets.pollFirst();
+          consumerTopicPartition.getOffsetsCompleted().remove(firstOffset);
+        } else {
+          break;
+        }
+      }
     }
   }
 
@@ -391,6 +419,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     var success = false;
 
     try {
+      releaseCompletedOffsets(consumerBucket);
+
       if (log.isDebugEnabled()) {
         log.debug("Sync-committing bucket '" + bucketId + "' offsets to Kafka: " + offsetsToCommit.entrySet().stream()
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
@@ -443,6 +473,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
         log.debug("Async-committing bucket '" + bucketId + "' offsets to Kafka: " + consumerBucket.getOffsetsToBeCommitted().entrySet().stream()
             .map(e -> e.getKey() + ":" + e.getValue().offset()).collect(Collectors.joining(", ")));
       }
+
+      releaseCompletedOffsets(consumerBucket);
 
       consumerBucket.getKafkaConsumer().commitAsync(consumerBucket.getOffsetsToBeCommitted(), (map, e) -> {
         if (e != null) {
@@ -739,6 +771,8 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     private Map<TopicPartition, OffsetAndMetadata> offsetsToBeCommitted = new ConcurrentHashMap<>();
     private int unprocessedFetchedRecordsCount;
     private boolean topicConfigured;
+    private Queue<TaskTriggering> finishedTaskTriggerings = new ConcurrentLinkedQueue<>();
+    private AtomicBoolean finishedTaskTriggeringsProcessingInProgress = new AtomicBoolean(false);
 
     public int getOffsetsToBeCommitedCount() {
       return offsetsToBeCommitted.size();

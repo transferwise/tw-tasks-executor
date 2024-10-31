@@ -28,7 +28,10 @@ public class MdcService implements IMdcService {
   }
 
   @Override
-  public void put(@NonNull IBaseTask task) {
+  public void put(IBaseTask task) {
+    if (task == null) {
+      return;
+    }
     put(task.getId(), task.getVersion());
     putType(task.getType());
   }
@@ -91,7 +94,8 @@ public class MdcService implements IMdcService {
         if (previousMap != null && previousMap.containsKey(key)) {
           MDC.put(key, previousMap.get(key));
         } else {
-          MDC.remove(key);
+          // We don't remove so we can have a sticky mdc keys visible for when an exception is logged outside.
+          // MDC.remove(key);
         }
       }
       keysSet.remove();

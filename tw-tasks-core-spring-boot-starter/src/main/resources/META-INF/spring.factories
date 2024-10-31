@@ -1,2 +1,3 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=com.transferwise.tasks.core.autoconfigure.TwTasksCoreAutoConfiguration
 org.springframework.context.ApplicationListener=com.transferwise.tasks.TwTasksApplicationListener
+org.springframework.boot.env.EnvironmentPostProcessor=com.transferwise.tasks.core.autoconfigure.TwTasksEnvironmentPostProcessor

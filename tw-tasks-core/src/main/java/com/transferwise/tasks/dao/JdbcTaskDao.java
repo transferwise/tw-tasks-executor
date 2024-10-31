@@ -99,7 +99,6 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   protected String insertTaskSql;
   protected String insertUniqueTaskKeySql;
   protected String insertTaskDataSql;
-  protected String insertTaskContext;
   protected String setToBeRetriedSql;
   protected String setToBeRetriedSql1;
   protected String grabForProcessingWithStatusAssertionSql;
@@ -286,7 +285,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         SerializedData serializedContext = taskDataSerializer.serialize(contextBlob, request.getCompression());
         jdbcTemplate.update(
             insertTaskDataSql,
-            args(taskId, Integer.valueOf(serializedData.getDataFormat()), serializedData.getData(), serializedContext.getDataFormat(),
+            args(taskId, serializedData.getDataFormat(), serializedData.getData(), serializedContext.getDataFormat(),
                 serializedContext.getData())
         );
         if (request.getData() != null) {

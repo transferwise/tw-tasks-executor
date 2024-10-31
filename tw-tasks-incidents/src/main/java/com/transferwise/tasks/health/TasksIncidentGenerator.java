@@ -46,7 +46,7 @@ public class TasksIncidentGenerator implements IncidentGenerator {
               errorIncident = new Incident()
                   .setId("twTasks/error")
                   .setMessage(buildDetailedErrorReport(erroneousTasksCountByType, "in ERROR"))
-                  .setSummary("" + cnt + " tasks in ERROR state.")
+                  .setSummary(cnt + " tasks in ERROR state.")
                   .setMetaData(Collections.singletonMap(TASK_CNT_KEY, String.valueOf(cnt)));
             }
           } else {
