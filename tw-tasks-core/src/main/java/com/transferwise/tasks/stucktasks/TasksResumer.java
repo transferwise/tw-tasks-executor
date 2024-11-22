@@ -83,6 +83,10 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy, In
 
   @Override
   public void afterPropertiesSet() {
+    if (!tasksProperties.isAutoStartProcessing()) {
+      log.info("Task Resumer stopped.");
+      return;
+    }
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_resumer";
     ExecutorService executorService = new ThreadNamingExecutorServiceWrapper("tw-tasks-resumer", executorServicesProvider.getGlobalExecutorService());
 

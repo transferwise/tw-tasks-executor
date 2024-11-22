@@ -9,6 +9,7 @@ import com.transferwise.common.leaderselector.ILock;
 import com.transferwise.common.leaderselector.LeaderSelectorV2;
 import com.transferwise.common.leaderselector.SharedReentrantLockBuilderFactory;
 import com.transferwise.tasks.TasksProperties;
+import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.entrypoints.EntryPoint;
@@ -47,6 +48,10 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy, In
 
   @Override
   public void afterPropertiesSet() {
+    if (tasksProperties.getStopTasksCleaner()) {
+      log.info("Tasks cleaner is disabled.");
+      return;
+    }
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_cleaner";
 
     TaskStatus[] statuses = {TaskStatus.DONE, TaskStatus.FAILED};

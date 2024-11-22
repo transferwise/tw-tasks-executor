@@ -332,6 +332,13 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
+   * If true, the task cleaner will stop cleaning up any old tasks.
+   *
+   * <p>It stops the task cleaner, during maintenance mode.
+   */
+  private Boolean stopTasksCleaner = false;
+
+  /**
    * How many tasks per bucket we are trying to grab at the same time.
    *
    * <p>Mainly meant as a soft safety measure in cases where concurrency policies are lacking good quality.
