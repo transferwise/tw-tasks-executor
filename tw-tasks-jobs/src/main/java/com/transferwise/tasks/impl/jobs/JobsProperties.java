@@ -13,4 +13,6 @@ public class JobsProperties {
   private String processingBucket = IBucketsManager.DEFAULT_ID;
 
   private boolean testMode = false;
+
+  private boolean jobsDisabled = true;
 }

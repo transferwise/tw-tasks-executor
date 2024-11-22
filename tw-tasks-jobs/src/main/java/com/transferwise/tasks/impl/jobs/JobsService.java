@@ -47,6 +47,9 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
   private final List<IJob> nonBeanJobs = new ArrayList<>();
 
   public void register(IJob job) {
+    if (jobsProperties.isJobsDisabled()) {
+      log.info("All Jobs are disabled, Job {} will not be registered.", job);
+    }
     nonBeanJobs.add(job);
   }
 
@@ -70,6 +73,10 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
 
   @Override
   public IJob getJobFor(IBaseTask task) {
+    if (jobsProperties.isJobsDisabled()) {
+      log.info("All Jobs are disabled. Task {} will not be processed.", task);
+      return null;
+    }
     String jobName = StringUtils.substringAfter(task.getType(), "|");
     jobName = StringUtils.substringBefore(jobName, "|");
     JobContainer jobContainer = cronTasksMap.get(jobName);
