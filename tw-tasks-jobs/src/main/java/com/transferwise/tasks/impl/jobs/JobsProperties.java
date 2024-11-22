@@ -14,5 +14,5 @@ public class JobsProperties {
 
   private boolean testMode = false;
 
-  private boolean jobsDisabled = true;
+  private boolean autoStartProcessing = true;
 }
