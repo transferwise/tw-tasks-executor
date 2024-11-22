@@ -48,10 +48,6 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy, In
 
   @Override
   public void afterPropertiesSet() {
-    if (tasksProperties.getStopTasksCleaner()) {
-      log.info("Tasks cleaner is disabled.");
-      return;
-    }
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_cleaner";
 
     TaskStatus[] statuses = {TaskStatus.DONE, TaskStatus.FAILED};
@@ -142,7 +138,9 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy, In
 
   @Override
   public void applicationStarted() {
-    leaderSelector.start();
+    if (!tasksProperties.getStopTasksCleaner()) {
+      leaderSelector.start();
+    }
   }
 
   @Override

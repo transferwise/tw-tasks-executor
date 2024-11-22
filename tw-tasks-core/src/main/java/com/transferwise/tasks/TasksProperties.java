@@ -334,7 +334,7 @@ public class TasksProperties {
   /**
    * If true, the task cleaner will stop cleaning up any old tasks.
    *
-   * <p>It stops the task cleaner, during maintenance mode.
+   * <p>It stops the task cleaner.
    */
   private Boolean stopTasksCleaner = false;
 
