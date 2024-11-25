@@ -42,8 +42,6 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
   protected JobsProperties jobsProperties;
   @Autowired
   private ApplicationContext applicationContext;
-  @Autowired
-  private BucketsManager bucketsManager;
   @Autowired(required = false)
   private MeterRegistry meterRegistry;
 
@@ -65,7 +63,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
 
   @Override
   public void applicationStarted() {
-    if (bucketsManager.getBucketProperties().getAutoStartProcessing()) {
+    if (jobsProperties.isAutoInitialize()) {
       initJobs(false);
     }
   }
