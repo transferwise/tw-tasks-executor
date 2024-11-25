@@ -332,11 +332,18 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
-   * If true, the task cleaner will stop cleaning up any old tasks.
+   * If true, task cleaner will stop cleaning up any old tasks.
    *
-   * <p>It stops the task cleaner.
+   * <p>It stops task cleaner.
    */
-  private Boolean stopTasksCleaner = false;
+  private Boolean startTasksCleaner = true;
+
+  /**
+   * If true, task resumer will stop.
+   *
+   * <p>It stops task resumer.
+   */
+  private Boolean startTaskResumer = true;
 
   /**
    * How many tasks per bucket we are trying to grab at the same time.

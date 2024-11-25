@@ -424,7 +424,7 @@ public class TasksResumer implements ITasksResumer, GracefulShutdownStrategy, In
 
   @Override
   public void applicationStarted() {
-    if (tasksProperties.isAutoStartProcessing()) {
+    if (tasksProperties.getStartTaskResumer()) {
       executorServicesProvider.getGlobalExecutorService().submit(this::resumeTasksForClient);
       leaderSelector.start();
     }

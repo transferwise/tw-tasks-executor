@@ -3,12 +3,15 @@ package com.transferwise.tasks.impl.jobs;
 import com.google.common.base.Joiner;
 import com.transferwise.common.gracefulshutdown.GracefulShutdownStrategy;
 import com.transferwise.tasks.ITasksService;
+import com.transferwise.tasks.buckets.BucketProperties;
+import com.transferwise.tasks.buckets.BucketsManager;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.IBaseTask;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.interfaces.IJobsService;
+import com.transferwise.tasks.processing.GlobalProcessingState.Bucket;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.ZonedDateTime;
@@ -39,6 +42,8 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
   protected JobsProperties jobsProperties;
   @Autowired
   private ApplicationContext applicationContext;
+  @Autowired
+  private BucketsManager bucketsManager;
   @Autowired(required = false)
   private MeterRegistry meterRegistry;
 
@@ -60,7 +65,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
 
   @Override
   public void applicationStarted() {
-    if (jobsProperties.isAutoStartProcessing()) {
+    if (bucketsManager.getBucketProperties().getAutoStartProcessing()) {
       initJobs(false);
     }
   }
