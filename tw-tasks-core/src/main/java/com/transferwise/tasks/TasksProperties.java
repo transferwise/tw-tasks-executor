@@ -332,16 +332,16 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
-   * If true, task cleaner will stop cleaning up any old tasks.
+   * If true, task cleaner will be started.
    *
-   * <p>It stops task cleaner.
+   * <p>It starts to run task cleaner.
    */
   private Boolean startTasksCleaner = true;
 
   /**
-   * If true, task resumer will stop.
+   * If true, task resumer will be started automatically.
    *
-   * <p>It stops task resumer.
+   * <p>It starts to run task resumer.
    */
   private Boolean startTaskResumer = true;
 
