@@ -336,14 +336,14 @@ public class TasksProperties {
    *
    * <p>It starts to run task cleaner.
    */
-  private Boolean startTasksCleaner = true;
+  private boolean startTasksCleaner = true;
 
   /**
    * If true, task resumer will be started automatically.
    *
    * <p>It starts to run task resumer.
    */
-  private Boolean startTaskResumer = true;
+  private boolean startTaskResumer = true;
 
   /**
    * How many tasks per bucket we are trying to grab at the same time.
