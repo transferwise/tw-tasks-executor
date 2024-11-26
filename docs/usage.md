@@ -87,6 +87,7 @@ Just replace the "YOUR_*" placeholders below.
 
 ```yaml
 prometheus:
+  enabled: true
   globalAlerts:
     tooManyTwTasksInErrorState:
       name: tooManyTwTasksInErrorState
