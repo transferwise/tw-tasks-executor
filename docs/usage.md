@@ -80,13 +80,25 @@ Write a port-level integration spec.
 Profit!
 
 ##### In Production you want to enable alerts
+
+In your staging and/or production kubernetes manifests add the global alert:
+
+Just replace the "YOUR_*" placeholders below.
+
 ```yaml
-tw-incidents:
-  victorops:
-    enabled: true
-    notify-base-url: https://alert.victorops.com/integrations/generic/12345678/alert/
-    routing-key: my-fancy-team
-    api-token: my api token that comes after the "/alert/" bit in the Victorops URL to notify
+prometheus:
+  globalAlerts:
+    tooManyTwTasksInErrorState:
+      name: tooManyTwTasksInErrorState
+      summary: Number of TwTasks in ERROR state.
+      description: Task has {{ $value }} errors. There must be 0 tasks in ERROR state. Investigate the problem and retry or mark as FAILED here - https://ninjas.transferwise.com/tasks/?service=YOUR_SERVICE_NAME
+      expr: |
+        sum (twTasks_health_tasksInErrorCountPerType{service="YOUR_SERVICE_NAME"}) > 0
+      severity: warning
+      repeatInterval: 6h
+      runbookURL: YOUR_RUN_BOOK_URL
+      slackChannel: '#YOUR_SLACK_CHANNEL'
+      dashboardURL: https://dashboards.tw.ee/d/6cf10e05-ed6e-4f91-9f68-5ca1f97a83d7/tw-tasks?var-service=YOUR_SERVICE_NAME
 ```
 
 ## Additional Configuration
