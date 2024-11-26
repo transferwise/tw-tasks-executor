@@ -137,7 +137,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy, In
 
   @Override
   public void applicationStarted() {
-    if (tasksProperties.getStartTasksCleaner()) {
+    if (tasksProperties.isStartTasksCleaner()) {
       leaderSelector.start();
     }
   }
