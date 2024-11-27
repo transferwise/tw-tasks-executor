@@ -1,6 +1,7 @@
 package com.transferwise.tasks.testapp.config;
 
 import com.transferwise.common.context.TwContextClockHolder;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.buckets.BucketProperties;
 import com.transferwise.tasks.buckets.IBucketsManager;
 import com.transferwise.tasks.domain.ITask;
@@ -17,7 +18,9 @@ import io.micrometer.core.instrument.MeterRegistry;
 import java.time.ZonedDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.CommonClientConfigs;
 import org.apache.kafka.clients.admin.AdminClient;
@@ -25,6 +28,9 @@ import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.CooperativeStickyAssignor;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringSerializer;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -139,6 +145,31 @@ public class TestConfiguration implements InitializingBean {
 
       return props;
     };
+  }
+
+  @Bean
+  public KafkaProducer<String, String> kafkaTaskTriggererProducer(TasksProperties tasksProperties) {
+    Map<String, Object> configs = new HashMap<>();
+    configs.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, tasksProperties.getTriggering().getKafka().getBootstrapServers());
+
+    configs.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+    configs.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+
+    configs.put(ProducerConfig.ACKS_CONFIG, "all");
+    configs.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 5);
+    configs.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true");
+    configs.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG, "10000");
+    configs.put(ProducerConfig.LINGER_MS_CONFIG, "5");
+    configs.put(ProducerConfig.CLIENT_ID_CONFIG, tasksProperties.getGroupId() + ".tw-tasks-triggerer");
+    configs.put(ProducerConfig.RECONNECT_BACKOFF_MAX_MS_CONFIG, "5000");
+    configs.put(ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG, "100");
+    configs.put(ProducerConfig.METADATA_MAX_AGE_CONFIG, "120000");
+
+    configs.putAll(tasksProperties.getTriggering().getKafka().getProperties());
+
+    return new KafkaProducer<>(configs);
   }
 
   @Bean
