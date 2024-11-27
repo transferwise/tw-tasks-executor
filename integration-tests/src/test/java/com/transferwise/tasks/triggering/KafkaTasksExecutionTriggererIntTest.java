@@ -23,6 +23,8 @@ import java.util.UUID;
 import lombok.SneakyThrows;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -34,12 +36,15 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
 
   public static final String PARTITION_KEY = "7a1a43c9-35af-4bea-9349-a1f344c8185c";
   private static final String BUCKET_ID = "manualStart";
+  private static final String TASK_TYPE = "test";
 
   private KafkaConsumer<String, String> kafkaConsumer;
   @Autowired
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
   private TasksProperties tasksProperties;
+  @Autowired
+  protected KafkaProducer<String, String> kafkaProducer;
 
   @BeforeEach
   @SneakyThrows
@@ -68,7 +73,6 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
   @Test
   void shouldUsePartitionKeyStrategyWhenCustomStrategyDefinedInProcessor() {
     final var data = "Hello World!";
-    final var taskType = "test";
     final var taskId = UuidUtils.generatePrefixCombUuid();
 
     testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor)
@@ -82,12 +86,12 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     final var taskRequest = new AddTaskRequest()
         .setTaskId(taskId)
         .setData(taskDataSerializer.serialize(data))
-        .setType(taskType)
+        .setType(TASK_TYPE)
         .setUniqueKey(uniqueKey.toString())
         .setRunAfterTime(ZonedDateTime.now().plusHours(1));
 
     transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest));
-    await().until(() -> testTasksService.getWaitingTasks(taskType, null).size() > 0);
+    await().until(() -> testTasksService.getWaitingTasks(TASK_TYPE, null).size() > 0);
 
     assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
         testTasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(0))
@@ -104,6 +108,48 @@ class KafkaTasksExecutionTriggererIntTest extends BaseIntTest {
     );
 
     Assertions.assertTrue(keys.contains(PARTITION_KEY));
+  }
+
+  @Test
+  void handlesPoisonPills() {
+    // setup:
+    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor)
+        .setProcessingPolicy(new SimpleTaskProcessingPolicy()
+            .setProcessingBucket(BUCKET_ID)
+            .setMaxProcessingDuration(Duration.of(1, ChronoUnit.HOURS))
+            .setPartitionKeyStrategy(new TestPartitionKeyStrategy()));
+
+
+    // when
+    int tasksToFire = 10;
+    for (int i = 0; i < tasksToFire; i++) {
+      publishPosionPill();
+      addTask();
+      publishPosionPill();
+    }
+    testTasksService.startTasksProcessing(BUCKET_ID);
+
+    await().until(
+        () -> resultRegisteringSyncTaskProcessor.getTaskResults().size() == tasksToFire
+    );
+
+  }
+
+  @SneakyThrows
+  private void addTask() {
+    UUID taskId = UuidUtils.generatePrefixCombUuid();
+    final var taskRequest = new AddTaskRequest()
+        .setTaskId(taskId)
+        .setData(taskDataSerializer.serialize("Hello World!"))
+        .setType(TASK_TYPE);
+
+    transactionsHelper.withTransaction().asNew().call(() -> testTasksService.addTask(taskRequest));
+  }
+
+  @SneakyThrows
+  private void publishPosionPill() {
+    final var topicName = "twTasks." + tasksProperties.getGroupId() + ".executeTask." + BUCKET_ID;
+    kafkaProducer.send(new ProducerRecord<>(topicName, "poison-pill")).get();
   }
 
   static class TestPartitionKeyStrategy implements IPartitionKeyStrategy {
