@@ -36,7 +36,7 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
   @Autowired
   private ITasksService tasksService;
   @Autowired
-  private JobsProperties jobsProperties;
+  protected JobsProperties jobsProperties;
   @Autowired
   private ApplicationContext applicationContext;
   @Autowired(required = false)
@@ -60,7 +60,9 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
 
   @Override
   public void applicationStarted() {
-    initJobs(false);
+    if (jobsProperties.isAutoInitialize()) {
+      initJobs(false);
+    }
   }
 
   @Override

@@ -332,6 +332,20 @@ public class TasksProperties {
   private boolean paranoidTasksCleaning = false;
 
   /**
+   * If true, task cleaner will be started.
+   *
+   * <p>It starts to run task cleaner.
+   */
+  private boolean startTasksCleaner = true;
+
+  /**
+   * If true, task resumer will be started automatically.
+   *
+   * <p>It starts to run task resumer.
+   */
+  private boolean startTaskResumer = true;
+
+  /**
    * How many tasks per bucket we are trying to grab at the same time.
    *
    * <p>Mainly meant as a soft safety measure in cases where concurrency policies are lacking good quality.
