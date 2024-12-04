@@ -55,7 +55,7 @@ public class CoreKafkaListener implements GracefulShutdownStrategy, Initializing
   }
 
   public void poll() {
-    Map<String, Object> kafkaConsumerProps = new HashMap<>(kafkaProperties.buildConsumerProperties());
+    Map<String, Object> kafkaConsumerProps = new HashMap<>(kafkaProperties.buildConsumerProperties(null));
     kafkaConsumerProps.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, false);
     kafkaConsumerProps.put(ConsumerConfig.CLIENT_ID_CONFIG, kafkaConsumerProps.getOrDefault(ConsumerConfig.CLIENT_ID_CONFIG, "") + ".core");
 

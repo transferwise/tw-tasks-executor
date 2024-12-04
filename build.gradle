@@ -4,7 +4,7 @@ import com.github.spotbugs.snom.Effort
 
 buildscript {
     if (!project.hasProperty("springBootVersion")) {
-        ext.springBootVersion = System.getenv("SPRING_BOOT_VERSION") ?: "3.4.0"
+        ext.springBootVersion = System.getenv("SPRING_BOOT_VERSION") ?: "3.3.1"
     }
     dependencies {
         classpath "com.avast.gradle:gradle-docker-compose-plugin:0.17.10"

@@ -19,7 +19,7 @@ public class SpringKafkaConsumerPropertiesProvider implements IKafkaListenerCons
 
   @Override
   public Map<String, Object> getProperties(int shard) {
-    var props = kafkaProperties.buildConsumerProperties();
+    var props = kafkaProperties.buildConsumerProperties(null);
 
     try {
       var kafkaClientsVersion = new Semver(AppInfoParser.getVersion());

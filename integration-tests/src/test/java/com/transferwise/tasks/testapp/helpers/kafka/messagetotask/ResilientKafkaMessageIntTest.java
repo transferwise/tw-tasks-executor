@@ -37,7 +37,7 @@ class ResilientKafkaMessageIntTest extends BaseIntTest {
   @AfterEach
   @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
   void cleanup() {
-    try (AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties())) {
+    try (AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties(null))) {
       adminClient.deleteTopics(Collections.singletonList(CorruptedMessageTestSetup.KAFKA_TOPIC_WITH_CORRUPTED_MESSAGES));
     }
   }
