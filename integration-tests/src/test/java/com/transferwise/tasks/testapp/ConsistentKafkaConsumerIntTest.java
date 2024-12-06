@@ -57,7 +57,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     }
 
     AtomicBoolean shouldFinish = new AtomicBoolean(false);
-    var consumerProps = kafkaProperties.buildConsumerProperties();
+    var consumerProps = kafkaProperties.buildConsumerProperties(null);
     consumerProps.put(CommonClientConfigs.GROUP_ID_CONFIG, groupId);
 
     ConsistentKafkaConsumer<String> consumer = new ConsistentKafkaConsumer<String>()
@@ -133,7 +133,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     String groupId = "flakyMessagesAccepterWillNotStopTheProcessing" + iteration;
     int n = 10;
 
-    AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties());
+    AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties(null));
     try {
       TopicPartition tp = new TopicPartition(topic, 0);
       long latestOffset = adminClient.listOffsets(Map.of(tp, new LatestSpec())).partitionResult(tp).get().offset();
@@ -152,7 +152,7 @@ class ConsistentKafkaConsumerIntTest extends BaseIntTest {
     }
 
     long start = System.currentTimeMillis();
-    var consumerProps = kafkaProperties.buildConsumerProperties();
+    var consumerProps = kafkaProperties.buildConsumerProperties(null);
     consumerProps.put(CommonClientConfigs.GROUP_ID_CONFIG, groupId);
     new ConsistentKafkaConsumer<String>()
         .setTopics(Collections.singletonList(topic))

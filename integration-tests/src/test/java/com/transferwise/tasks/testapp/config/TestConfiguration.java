@@ -51,7 +51,7 @@ public class TestConfiguration implements InitializingBean {
     bucketsManager.registerBucketProperties("manualStart", new BucketProperties()
         .setAutoStartProcessing(false));
 
-    AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties());
+    AdminClient adminClient = AdminClient.create(kafkaProperties.buildAdminProperties(null));
 
     short one = 1;
 
@@ -131,7 +131,7 @@ public class TestConfiguration implements InitializingBean {
   @Bean
   public IKafkaListenerConsumerPropertiesProvider twTasksKafkaListenerSpringKafkaConsumerPropertiesProvider() {
     return shard -> {
-      var props = kafkaProperties.buildConsumerProperties();
+      var props = kafkaProperties.buildConsumerProperties(null);
 
       // Having a separate group id can greatly reduce Kafka re-balancing times for tests.
       props.put(CommonClientConfigs.GROUP_ID_CONFIG, props.get(CommonClientConfigs.GROUP_ID_CONFIG) + "-tw-tasks-kafka-listener-" + shard);
