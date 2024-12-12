@@ -6,11 +6,13 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
+import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse.Result;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -179,11 +181,15 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, ProcessTaskResponse processTaskResponse) {
+  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, Duration timeTillGrab, ProcessTaskResponse processTaskResponse) {
     meterCache.counter(METRIC_TASKS_TASK_GRABBING, TagsSet.of(TAG_TASK_TYPE, taskType,
             TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority), TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
             TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()))
         .increment();
+
+    if (processTaskResponse.getResult() == Result.OK) {
+      meterCache.timer("...", TagsSet.empty()).record(timeTillGrab);
+    }
   }
 
   @Override
