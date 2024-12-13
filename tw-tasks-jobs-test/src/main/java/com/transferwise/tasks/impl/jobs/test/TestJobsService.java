@@ -9,6 +9,7 @@ import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.impl.jobs.JobsService;
 import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.test.ITestTasksService;
+import java.util.Collection;
 import java.util.UUID;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,12 +58,19 @@ public class TestJobsService extends JobsService implements ITestJobsService {
 
   @Override
   public void reset() {
-    transactionsHelper.withTransaction().asNew().call(() -> {
+    transactionsHelper.withTransaction().run(() -> {
       testTasksService.reset();
       if (jobsProperties.isAutoInitialize()) {
         initJobs(true);
       }
-      return null;
+    });
+  }
+
+  @Override
+  public void resetAndInitialize(Collection<IJob> jobs) {
+    transactionsHelper.withTransaction().run(() -> {
+      testTasksService.reset();
+      initJobs(true, jobs);
     });
   }
 }

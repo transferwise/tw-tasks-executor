@@ -13,13 +13,12 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
@@ -42,8 +41,8 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
   @Autowired(required = false)
   private MeterRegistry meterRegistry;
 
-  private List<JobContainer> jobContainers;
-  private Map<String, JobContainer> cronTasksMap = new HashMap<>();
+  private final List<JobContainer> jobContainers = new ArrayList<>();
+  private final Map<String, JobContainer> jobContainersMap = new HashMap<>();
   private final List<IJob> nonBeanJobs = new ArrayList<>();
 
   public void register(IJob job) {
@@ -74,24 +73,32 @@ public class JobsService implements IJobsService, GracefulShutdownStrategy, Init
   public IJob getJobFor(IBaseTask task) {
     String jobName = StringUtils.substringAfter(task.getType(), "|");
     jobName = StringUtils.substringBefore(jobName, "|");
-    JobContainer jobContainer = cronTasksMap.get(jobName);
+    JobContainer jobContainer = jobContainersMap.get(jobName);
     if (jobContainer == null) {
       return null;
     }
     return jobContainer.job;
   }
 
-  protected void initJobs(boolean silent) {
-    List<IJob> availableCronTasks = new ArrayList<>(applicationContext.getBeansOfType(IJob.class).values());
-
-    jobContainers = Stream.concat(availableCronTasks.stream(), nonBeanJobs.stream())
-        .map(cronTask -> new JobContainer().setJob(cronTask).setTaskId(cronTask.getTaskId())
-            .setUniqueName(StringUtils.trimToNull(cronTask.getUniqueName())))
-        .collect(Collectors.toList());
-    cronTasksMap = jobContainers.stream().collect(Collectors.toMap(JobContainer::getUniqueName, Function.identity()));
-
+  protected void initJobs(boolean silent, Collection<IJob> jobs) {
+    jobContainers.clear();
+    jobContainersMap.clear();
+    for (IJob job : jobs) {
+      var jobContainer = new JobContainer()
+          .setJob(job)
+          .setTaskId(job.getTaskId())
+          .setUniqueName(StringUtils.trimToNull(job.getUniqueName()));
+      jobContainers.add(jobContainer);
+      jobContainersMap.put(jobContainer.getUniqueName(), jobContainer);
+    }
     validateState();
     registerCronTasks(silent);
+  }
+
+  protected void initJobs(boolean silent) {
+    List<IJob> jobs = new ArrayList<>(applicationContext.getBeansOfType(IJob.class).values());
+    jobs.addAll(nonBeanJobs);
+    initJobs(silent, jobs);
   }
 
   private void validateState() {
