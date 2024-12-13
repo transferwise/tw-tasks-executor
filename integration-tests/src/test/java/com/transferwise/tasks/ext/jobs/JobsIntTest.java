@@ -16,6 +16,7 @@ import com.transferwise.tasks.impl.jobs.interfaces.IJob;
 import com.transferwise.tasks.impl.jobs.test.ITestJobsService;
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -112,6 +113,23 @@ class JobsIntTest extends BaseIntTest {
 
     await().until(() -> testJobsService.hasFinished(handle));
     assertThat(job.executionsCount).isEqualTo(1);
+  }
+
+  @Test
+  void onlySelectedJobsWillExecute() {
+    JobC job = new JobC();
+    testJobsService.resetAndInitialize(List.of(job));
+
+    // manually triggered job is initialized and executed
+    assertThat(job.executionsCount).isZero();
+
+    ITestJobsService.ExecuteAsyncHandle handle = testJobsService.executeAsync(job);
+
+    await().until(() -> testJobsService.hasFinished(handle));
+    assertThat(job.executionsCount).isEqualTo(1);
+
+    // other did not initialize
+    assertThat(testTasksService.getTasks("TaskJob|JobA", null)).isEmpty();
   }
 
   private <T extends IJob> T registerJobBean(T job) {
