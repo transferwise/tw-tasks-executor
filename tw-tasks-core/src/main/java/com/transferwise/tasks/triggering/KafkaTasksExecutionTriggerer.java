@@ -30,6 +30,7 @@ import com.transferwise.tasks.utils.LogUtils;
 import com.transferwise.tasks.utils.WaitUtils;
 import com.vdurmont.semver4j.Semver;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -180,7 +181,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     if (BooleanUtils.isTrue(bucketsManager.getBucketProperties(processingBucketId).getTriggerInSameProcess())) {
-      TaskTriggering taskTriggering = new TaskTriggering().setTask(task).setBucketId(processingBucketId);
+      TaskTriggering taskTriggering = new TaskTriggering()
+          .setTask(task)
+          .setBucketId(processingBucketId)
+          .setTriggeredAt(Instant.now());
       ITasksProcessingService.AddTaskForProcessingResponse addTaskForProcessingResponse = tasksProcessingService.addTaskForProcessing(taskTriggering);
 
       if (addTaskForProcessingResponse.getResult() == ITasksProcessingService.AddTaskForProcessingResponse.ResultCode.OK) {
@@ -284,7 +288,11 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
           mdcService.with(() -> {
             mdcService.put(task);
 
-            TaskTriggering taskTriggering = new TaskTriggering().setTask(task).setBucketId(bucketId).setOffset(offset)
+            TaskTriggering taskTriggering = new TaskTriggering()
+                .setTask(task)
+                .setBucketId(bucketId)
+                .setOffset(offset)
+                .setTriggeredAt(Instant.ofEpochMilli(consumerRecord.timestamp()))
                 .setTopicPartition(topicPartition);
 
             coreMetricsTemplate.registerKafkaTasksExecutionTriggererTriggersReceive(bucketId);

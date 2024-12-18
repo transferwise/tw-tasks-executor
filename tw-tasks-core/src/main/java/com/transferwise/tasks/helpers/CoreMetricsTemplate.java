@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public static final String METRIC_TASKS_FAILED_STATUS_CHANGE_COUNT = METRIC_PREFIX + "tasks.failedStatusChangeCount";
   public static final String METRIC_TASKS_DEBUG_PRIORITY_QUEUE_CHECK = METRIC_PREFIX + "tasks.debug.priorityQueueCheck";
   public static final String METRIC_TASKS_TASK_GRABBING = METRIC_PREFIX + "tasks.taskGrabbing";
+  public static final String METRIC_TASKS_TASK_GRABBING_TIME = METRIC_PREFIX + "tasks.taskGrabbingTime";
   public static final String METRIC_TASKS_DEBUG_ROOM_MAP_ALREADY_HAS_TYPE = METRIC_PREFIX + "tasks.debug.roomMapAlreadyHasType";
   public static final String METRIC_TASKS_DEBUG_TASK_TRIGGERING_QUEUE_EMPTY = METRIC_PREFIX + "tasks.debug.taskTriggeringQueueEmpty";
   public static final String METRIC_TASKS_DUPLICATES_COUNT = METRIC_PREFIX + "tasks.duplicatesCount";
@@ -179,11 +181,23 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, ProcessTaskResponse processTaskResponse) {
-    meterCache.counter(METRIC_TASKS_TASK_GRABBING, TagsSet.of(TAG_TASK_TYPE, taskType,
-            TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority), TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
-            TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()))
-        .increment();
+  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, ProcessTaskResponse processTaskResponse,
+      Instant taskTriggeredAt) {
+
+    TagsSet tags = TagsSet.of(
+        TAG_TASK_TYPE, taskType,
+        TAG_BUCKET_ID, bucketId,
+        TAG_PRIORITY, String.valueOf(priority),
+        TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
+        TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()
+    );
+
+    meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags).increment();
+
+    long millisSinceTaskTriggered = taskTriggeredAt != null
+        ? System.currentTimeMillis() - taskTriggeredAt.toEpochMilli()
+        : 0;
+    meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(millisSinceTaskTriggered, TimeUnit.MILLISECONDS);
   }
 
   @Override

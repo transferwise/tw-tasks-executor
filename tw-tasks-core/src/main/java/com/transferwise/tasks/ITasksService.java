@@ -1,8 +1,6 @@
 package com.transferwise.tasks;
 
-import com.transferwise.tasks.ITasksService.AddTaskResponse.Result;
 import com.transferwise.tasks.domain.TaskContext;
-import com.transferwise.tasks.domain.TaskStatus;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.Duration;
 import java.time.ZonedDateTime;
