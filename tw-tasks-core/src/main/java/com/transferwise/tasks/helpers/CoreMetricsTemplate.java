@@ -7,12 +7,12 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse.Result;
+import com.transferwise.tasks.triggering.TaskTriggering;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
-import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +41,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public static final String METRIC_TASKS_FAILED_STATUS_CHANGE_COUNT = METRIC_PREFIX + "tasks.failedStatusChangeCount";
   public static final String METRIC_TASKS_DEBUG_PRIORITY_QUEUE_CHECK = METRIC_PREFIX + "tasks.debug.priorityQueueCheck";
   public static final String METRIC_TASKS_TASK_GRABBING = METRIC_PREFIX + "tasks.taskGrabbing";
+  public static final String METRIC_TASKS_TASK_GRABBING_TIME = METRIC_PREFIX + "tasks.taskGrabbingTime";
   public static final String METRIC_TASKS_DEBUG_ROOM_MAP_ALREADY_HAS_TYPE = METRIC_PREFIX + "tasks.debug.roomMapAlreadyHasType";
   public static final String METRIC_TASKS_DEBUG_TASK_TRIGGERING_QUEUE_EMPTY = METRIC_PREFIX + "tasks.debug.taskTriggeringQueueEmpty";
   public static final String METRIC_TASKS_DUPLICATES_COUNT = METRIC_PREFIX + "tasks.duplicatesCount";
@@ -181,14 +182,23 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, Duration timeTillGrab, ProcessTaskResponse processTaskResponse) {
-    meterCache.counter(METRIC_TASKS_TASK_GRABBING, TagsSet.of(TAG_TASK_TYPE, taskType,
-            TAG_BUCKET_ID, bucketId, TAG_PRIORITY, String.valueOf(priority), TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
-            TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()))
+  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, long epochMilliBeforeProcessing, ProcessTaskResponse processTaskResponse,
+      TaskTriggering taskTriggering) {
+
+    TagsSet tags = TagsSet.of(
+        TAG_TASK_TYPE, taskType,
+        TAG_BUCKET_ID, bucketId,
+        TAG_PRIORITY, String.valueOf(priority),
+        TAG_GRABBING_RESPONSE, processTaskResponse.getResult().name(),
+        TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()
+    );
+
+    meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags)
         .increment();
 
     if (processTaskResponse.getResult() == Result.OK) {
-      meterCache.timer("...", TagsSet.empty()).record(timeTillGrab);
+      long timeTillProcessingStarted = epochMilliBeforeProcessing - taskTriggering.getTriggerAt().toEpochMilli();
+      meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(timeTillProcessingStarted, TimeUnit.MILLISECONDS);
     }
   }
 

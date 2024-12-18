@@ -181,7 +181,10 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
     }
 
     if (BooleanUtils.isTrue(bucketsManager.getBucketProperties(processingBucketId).getTriggerInSameProcess())) {
-      TaskTriggering taskTriggering = new TaskTriggering().setTask(task).setBucketId(processingBucketId);
+      TaskTriggering taskTriggering = new TaskTriggering()
+          .setTask(task)
+          .setBucketId(processingBucketId)
+          .setTriggerAt(Instant.now());
       ITasksProcessingService.AddTaskForProcessingResponse addTaskForProcessingResponse = tasksProcessingService.addTaskForProcessing(taskTriggering);
 
       if (addTaskForProcessingResponse.getResult() == ITasksProcessingService.AddTaskForProcessingResponse.ResultCode.OK) {

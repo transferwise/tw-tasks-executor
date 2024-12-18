@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
+import com.transferwise.tasks.triggering.TaskTriggering;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 
@@ -50,7 +51,7 @@ public interface ICoreMetricsTemplate {
 
   void registerFailedNextEventTimeChange(String taskType, ZonedDateTime fromNextEventTime, ZonedDateTime toNextEventTime);
 
-  void registerTaskGrabbingResponse(String bucketId, String type, int priority, Duration timeTillGrab, ProcessTaskResponse processTaskResponse);
+  void registerTaskGrabbingResponse(String bucketId, String type, int priority, long epochMilliBeforeProcessing, ProcessTaskResponse processTaskResponse, TaskTriggering taskTriggering);
 
   void debugPriorityQueueCheck(String bucketId, int priority);
 
