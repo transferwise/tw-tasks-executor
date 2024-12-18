@@ -3,7 +3,7 @@ package com.transferwise.tasks.helpers;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
-import com.transferwise.tasks.triggering.TaskTriggering;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,8 +50,7 @@ public interface ICoreMetricsTemplate {
 
   void registerFailedNextEventTimeChange(String taskType, ZonedDateTime fromNextEventTime, ZonedDateTime toNextEventTime);
 
-  void registerTaskGrabbingResponse(String bucketId, String type, int priority, long epochMilliBeforeProcessing,
-      ProcessTaskResponse processTaskResponse, TaskTriggering taskTriggering);
+  void registerTaskGrabbingResponse(String bucketId, String type, int priority, ProcessTaskResponse processTaskResponse, Instant taskTriggeredAt);
 
   void debugPriorityQueueCheck(String bucketId, int priority);
 

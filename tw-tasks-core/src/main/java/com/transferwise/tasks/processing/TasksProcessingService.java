@@ -212,11 +212,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         mdcService.with(() -> {
           mdcService.put(task);
           try {
-
-            long epochMilliBeforeProcessing = System.currentTimeMillis();
             ProcessTaskResponse processTaskResponse = grabTaskForProcessing(bucketId, task);
-            coreMetricsTemplate.registerTaskGrabbingResponse(bucketId, type, priority, epochMilliBeforeProcessing, processTaskResponse,
-                taskTriggering);
+            coreMetricsTemplate.registerTaskGrabbingResponse(bucketId, type, priority, processTaskResponse, taskTriggering.getTriggerAt());
 
             if (processTaskResponse.getResult() == ProcessTaskResponse.Result.NO_SPACE) {
               noRoomMap.put(type, Boolean.TRUE);

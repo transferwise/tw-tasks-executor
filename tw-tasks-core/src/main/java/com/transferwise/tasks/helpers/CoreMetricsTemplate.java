@@ -6,12 +6,12 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
-import com.transferwise.tasks.triggering.TaskTriggering;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.ImmutableTag;
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.binder.kafka.KafkaClientMetrics;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
@@ -181,8 +181,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, long epochMilliBeforeProcessing,
-      ProcessTaskResponse processTaskResponse, TaskTriggering taskTriggering) {
+  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, ProcessTaskResponse processTaskResponse,
+      Instant taskTriggeredAt) {
 
     TagsSet tags = TagsSet.of(
         TAG_TASK_TYPE, taskType,
@@ -195,8 +195,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
     meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags)
         .increment();
 
-    long timeTillProcessingStarted = epochMilliBeforeProcessing - taskTriggering.getTriggerAt().toEpochMilli();
-    meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(timeTillProcessingStarted, TimeUnit.MILLISECONDS);
+    long millisSinceTaskTriggered = System.currentTimeMillis() - taskTriggeredAt.toEpochMilli();
+    meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(millisSinceTaskTriggered, TimeUnit.MILLISECONDS);
   }
 
   @Override
