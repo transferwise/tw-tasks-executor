@@ -50,7 +50,8 @@ public interface ICoreMetricsTemplate {
 
   void registerFailedNextEventTimeChange(String taskType, ZonedDateTime fromNextEventTime, ZonedDateTime toNextEventTime);
 
-  void registerTaskGrabbingResponse(String bucketId, String type, int priority, long epochMilliBeforeProcessing, ProcessTaskResponse processTaskResponse, TaskTriggering taskTriggering);
+  void registerTaskGrabbingResponse(String bucketId, String type, int priority, long epochMilliBeforeProcessing,
+      ProcessTaskResponse processTaskResponse, TaskTriggering taskTriggering);
 
   void debugPriorityQueueCheck(String bucketId, int priority);
 

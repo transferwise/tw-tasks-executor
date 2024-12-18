@@ -181,8 +181,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, long epochMilliBeforeProcessing, ProcessTaskResponse processTaskResponse,
-      TaskTriggering taskTriggering) {
+  public void registerTaskGrabbingResponse(String bucketId, String taskType, int priority, long epochMilliBeforeProcessing,
+      ProcessTaskResponse processTaskResponse, TaskTriggering taskTriggering) {
 
     TagsSet tags = TagsSet.of(
         TAG_TASK_TYPE, taskType,
