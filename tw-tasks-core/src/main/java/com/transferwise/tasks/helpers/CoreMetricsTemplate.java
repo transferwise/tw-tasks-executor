@@ -194,7 +194,9 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
 
     meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags).increment();
 
-    long millisSinceTaskTriggered = System.currentTimeMillis() - taskTriggeredAt.toEpochMilli();
+    long millisSinceTaskTriggered = taskTriggeredAt != null
+        ? System.currentTimeMillis() - taskTriggeredAt.toEpochMilli()
+        : 0;
     meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(millisSinceTaskTriggered, TimeUnit.MILLISECONDS);
   }
 
