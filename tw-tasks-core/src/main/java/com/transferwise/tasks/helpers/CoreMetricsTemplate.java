@@ -196,10 +196,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
     meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags)
         .increment();
 
-    if (processTaskResponse.getResult() == Result.OK) {
-      long timeTillProcessingStarted = epochMilliBeforeProcessing - taskTriggering.getTriggerAt().toEpochMilli();
-      meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(timeTillProcessingStarted, TimeUnit.MILLISECONDS);
-    }
+    long timeTillProcessingStarted = epochMilliBeforeProcessing - taskTriggering.getTriggerAt().toEpochMilli();
+    meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(timeTillProcessingStarted, TimeUnit.MILLISECONDS);
   }
 
   @Override
