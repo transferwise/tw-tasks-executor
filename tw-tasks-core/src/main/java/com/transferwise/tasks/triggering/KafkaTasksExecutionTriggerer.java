@@ -184,7 +184,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
       TaskTriggering taskTriggering = new TaskTriggering()
           .setTask(task)
           .setBucketId(processingBucketId)
-          .setTriggerAt(Instant.now());
+          .setTriggeredAt(Instant.now());
       ITasksProcessingService.AddTaskForProcessingResponse addTaskForProcessingResponse = tasksProcessingService.addTaskForProcessing(taskTriggering);
 
       if (addTaskForProcessingResponse.getResult() == ITasksProcessingService.AddTaskForProcessingResponse.ResultCode.OK) {
@@ -292,7 +292,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                 .setTask(task)
                 .setBucketId(bucketId)
                 .setOffset(offset)
-                .setTriggerAt(Instant.ofEpochMilli(consumerRecord.timestamp()))
+                .setTriggeredAt(Instant.ofEpochMilli(consumerRecord.timestamp()))
                 .setTopicPartition(topicPartition);
 
             coreMetricsTemplate.registerKafkaTasksExecutionTriggererTriggersReceive(bucketId);

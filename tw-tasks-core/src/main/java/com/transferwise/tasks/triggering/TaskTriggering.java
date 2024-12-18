@@ -12,7 +12,7 @@ public class TaskTriggering {
 
   private BaseTask task;
   private long offset;
-  private Instant triggerAt;
+  private Instant triggeredAt;
   private long sequence;
   private TopicPartition topicPartition;
   private String bucketId;
