@@ -292,7 +292,7 @@ public class KafkaTasksExecutionTriggerer implements ITasksExecutionTriggerer, G
                 .setTask(task)
                 .setBucketId(bucketId)
                 .setOffset(offset)
-                .setTriggerAt(Instant.ofEpochSecond(consumerRecord.timestamp()))
+                .setTriggerAt(Instant.ofEpochMilli(consumerRecord.timestamp()))
                 .setTopicPartition(topicPartition);
 
             coreMetricsTemplate.registerKafkaTasksExecutionTriggererTriggersReceive(bucketId);
