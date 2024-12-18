@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.48.0 - 2024/12/13
+
+### Added
+
+- Added timer `twTasks.tasks.taskGrabbingTime` tracking the time between a task being triggered and a task being grabbed for processing
+
 ## 1.47.0 - 2024/12/13
 
 ### Added

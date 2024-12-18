@@ -192,8 +192,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
         TAG_GRABBING_CODE, processTaskResponse.getCode() == null ? "UNKNOWN" : processTaskResponse.getCode().name()
     );
 
-    meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags)
-        .increment();
+    meterCache.counter(METRIC_TASKS_TASK_GRABBING, tags).increment();
 
     long millisSinceTaskTriggered = System.currentTimeMillis() - taskTriggeredAt.toEpochMilli();
     meterCache.timer(METRIC_TASKS_TASK_GRABBING_TIME, tags).record(millisSinceTaskTriggered, TimeUnit.MILLISECONDS);
