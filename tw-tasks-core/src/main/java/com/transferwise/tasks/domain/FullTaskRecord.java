@@ -2,7 +2,6 @@ package com.transferwise.tasks.domain;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.time.ZonedDateTime;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -24,7 +23,7 @@ public class FullTaskRecord implements ITask {
   private ZonedDateTime nextEventTime;
   private String processingClientId;
   private TaskContext taskContext;
-  
+
   @Override
   public ITaskVersionId getVersionId() {
     return new TaskVersionId(id, version);

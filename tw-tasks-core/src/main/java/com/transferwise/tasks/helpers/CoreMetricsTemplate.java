@@ -6,7 +6,6 @@ import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
-import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse.Result;
 import com.transferwise.tasks.triggering.TaskTriggering;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.ImmutableTag;

@@ -1,7 +1,6 @@
 package com.transferwise.tasks.domain;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import java.util.Objects;
 import java.util.UUID;
 import lombok.Data;
 import lombok.experimental.Accessors;

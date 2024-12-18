@@ -3,13 +3,12 @@ package com.transferwise.tasks.helpers;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.handler.interfaces.StuckDetectionSource;
 import com.transferwise.tasks.processing.TasksProcessingService.ProcessTaskResponse;
-import java.time.Duration;
+import com.transferwise.tasks.triggering.TaskTriggering;
 import java.time.ZonedDateTime;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
-import com.transferwise.tasks.triggering.TaskTriggering;
 import org.apache.kafka.clients.consumer.Consumer;
 import org.apache.kafka.clients.producer.Producer;
 

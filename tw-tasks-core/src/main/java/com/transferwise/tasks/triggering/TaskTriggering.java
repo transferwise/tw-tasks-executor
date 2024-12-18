@@ -1,10 +1,10 @@
 package com.transferwise.tasks.triggering;
 
 import com.transferwise.tasks.domain.BaseTask;
+import java.time.Instant;
 import lombok.Data;
 import lombok.experimental.Accessors;
 import org.apache.kafka.common.TopicPartition;
-import java.time.Instant;
 
 @Data
 @Accessors(chain = true)
