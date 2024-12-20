@@ -13,6 +13,7 @@ import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.AddTaskRequest;
+import com.transferwise.tasks.TasksProperties;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.dao.ITaskDao.InsertTaskRequest;
 import com.transferwise.tasks.domain.IBaseTask;
@@ -48,6 +49,8 @@ import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.mutable.MutableObject;
+import org.apache.kafka.clients.producer.KafkaProducer;
+import org.apache.kafka.clients.producer.ProducerRecord;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -70,6 +73,10 @@ public class TaskProcessingIntTest extends BaseIntTest {
   protected ITaskDataSerializer taskDataSerializer;
   @Autowired
   protected GlobalProcessingState globalProcessingState;
+  @Autowired
+  protected TasksProperties tasksProperties;
+  @Autowired
+  protected KafkaProducer<String, String> kafkaProducer;
 
   private KafkaTasksExecutionTriggerer kafkaTasksExecutionTriggerer;
 
@@ -152,8 +159,12 @@ public class TaskProcessingIntTest extends BaseIntTest {
     log.info("Tasks execution took {} ms", end - start);
 
     KafkaTasksExecutionTriggerer.ConsumerBucket consumerBucket = kafkaTasksExecutionTriggerer.getConsumerBucket("default");
-    assertEquals(0, consumerBucket.getOffsetsCompletedCount());
-    assertEquals(0, consumerBucket.getOffsetsCount());
+    kafkaTasksExecutionTriggerer.stopTasksProcessing("default").get();
+    kafkaTasksExecutionTriggerer.startTasksProcessing("default");
+    var originalOffset = consumerBucket.getOffsetsCompletedCount();
+
+    assertEquals(originalOffset, consumerBucket.getOffsetsCompletedCount());
+    assertEquals(originalOffset, consumerBucket.getOffsetsCount());
     assertEquals(0, consumerBucket.getUnprocessedFetchedRecordsCount());
 
     await().until(() -> consumerBucket.getOffsetsToBeCommitedCount() == 0);
@@ -431,6 +442,48 @@ public class TaskProcessingIntTest extends BaseIntTest {
       }
       return false;
     }));
+  }
+
+  @Test
+  void taskProcessingWillHandlePoisonPillAttack() {
+    // given:
+    int tasksToFire = 10;
+    AtomicInteger counter = new AtomicInteger();
+
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      counter.incrementAndGet();
+      return new ProcessResult().setResultCode(ResultCode.DONE);
+    });
+
+    // when:
+    for (int i = 0; i < tasksToFire; i++) {
+      publishPosionPill();
+      addTask();
+      publishPosionPill();
+    }
+
+    // then:
+    await().until(() -> transactionsHelper.withTransaction().asNew().call(() -> {
+      try {
+        return testTasksService.getFinishedTasks("test", null).size() == tasksToFire
+            && counter.get() == tasksToFire;
+      } catch (Throwable t) {
+        log.error(t.getMessage(), t);
+      }
+      return false;
+    }));
+  }
+
+  @SneakyThrows
+  private void publishPosionPill() {
+    final var topicName = "twTasks." + tasksProperties.getGroupId() + ".executeTask.default";
+    kafkaProducer.send(new ProducerRecord<>(topicName, "poison-pill")).get();
+  }
+
+  private void addTask() {
+    transactionsHelper.withTransaction().asNew().call(() ->
+        tasksService.addTask(new ITasksService.AddTaskRequest().setType("test").setData(taskDataSerializer.serialize("foo")))
+    );
   }
 
   private int counterSum(String name) {
