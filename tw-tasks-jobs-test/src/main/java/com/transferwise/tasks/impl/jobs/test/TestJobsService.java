@@ -58,7 +58,7 @@ public class TestJobsService extends JobsService implements ITestJobsService {
 
   @Override
   public void reset() {
-    transactionsHelper.withTransaction().run(() -> {
+    transactionsHelper.withTransaction().asNew().run(() -> {
       testTasksService.reset();
       if (jobsProperties.isAutoInitialize()) {
         initJobs(true);
@@ -68,7 +68,7 @@ public class TestJobsService extends JobsService implements ITestJobsService {
 
   @Override
   public void resetAndInitialize(Collection<IJob> jobs) {
-    transactionsHelper.withTransaction().run(() -> {
+    transactionsHelper.withTransaction().asNew().run(() -> {
       testTasksService.reset();
       initJobs(true, jobs);
     });
