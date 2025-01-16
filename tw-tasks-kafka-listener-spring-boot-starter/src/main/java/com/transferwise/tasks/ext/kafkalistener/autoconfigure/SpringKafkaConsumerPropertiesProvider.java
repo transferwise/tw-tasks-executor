@@ -2,6 +2,7 @@ package com.transferwise.tasks.ext.kafkalistener.autoconfigure;
 
 import com.transferwise.tasks.helpers.kafka.IKafkaListenerConsumerPropertiesProvider;
 import com.vdurmont.semver4j.Semver;
+import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -19,7 +20,7 @@ public class SpringKafkaConsumerPropertiesProvider implements IKafkaListenerCons
 
   @Override
   public Map<String, Object> getProperties(int shard) {
-    var props = kafkaProperties.buildConsumerProperties(null);
+    var props = new HashMap<String, Object>();
 
     try {
       var kafkaClientsVersion = new Semver(AppInfoParser.getVersion());
@@ -30,6 +31,8 @@ public class SpringKafkaConsumerPropertiesProvider implements IKafkaListenerCons
     } catch (Exception e) {
       log.error("Could not understand Kafka client version.", e);
     }
+
+    props.putAll(kafkaProperties.buildConsumerProperties(null));
 
     return props;
   }

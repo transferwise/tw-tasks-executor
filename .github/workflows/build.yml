@@ -75,9 +75,9 @@ jobs:
       - name: "Install packages"
         run: apt-get update && apt-get install -y git
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Gradle cache"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle
@@ -92,7 +92,7 @@ jobs:
       - name: "Test if publishing works"
         run: GRADLE_USER_HOME=$HOME/.gradle ./gradlew publishToMavenLocal --console=plain --info --stacktrace
       - name: "Publish Test Report"
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v4
         if: always()
         with:
           check_name: Test Report-(${{ matrix.spring_boot_version }})
@@ -116,7 +116,7 @@ jobs:
           tar -zcvf all-test-reports-${{ matrix.spring_boot_version }}.tar.gz **/build/reports
         if: always()
       - name: "Store test results"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: all-test-reports-${{ matrix.spring_boot_version }}
@@ -141,9 +141,9 @@ jobs:
         run: |
           apt-get update && apt-get install -y git unzip
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: "Gradle cache"
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.gradle

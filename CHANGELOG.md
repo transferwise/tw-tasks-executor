@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.49.0 - 2025/01/08
+
+### Changed
+
+- Allow for partition.assignment.strategy for consumer to be overridden in tw-tasks-kafka-listener-spring-boot-starter
+  - Nothing to do for most cases.
+
+#### Consider the following only if you use tw-tasks-kafka-listener-spring-boot-starter
+
+It is worth keeping an eye on:
+  - changes to assignors used, log `Successfully synced group in generation Generation`
+  - on assignment strategy failures on consumers in prod and [consumer state](https://dashboards.tw.ee/d/f7094f30-a509-4592-aced-37584a70132a/kafka-consumer-groups-and-lag-details-kminion?orgId=1&refresh=30s&viewPanel=14).
+
+If you use `com.wise.kafka.assignors.CanaryAwareRangeAssignor`, consider setting this config: 
+```
+spring.kafka.consumer.properties.partition.assignment.strategy:
+com.wise.kafka.assignors.CanaryAwareRangeAssignor, org.apache.kafka.clients.consumer.RangeAssignor, org.apache.kafka.clients.consumer.CooperativeStickyAssignor
+```
+
 ## 1.48.2 - 2024/12/20
 
 ### Changed
