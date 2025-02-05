@@ -293,8 +293,8 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
   @Override
   @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
-  public boolean cancelTask(CancelTaskRequest request) {
-    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.CANCEL_TASK,
+  public boolean deleteTask(deleteTaskRequest request) {
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.DELETE_TASK,
         () -> {
           UUID taskId = request.getTaskId();
           mdcService.put(request.getTaskId(), request.getVersion());
@@ -302,7 +302,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
 
           if (task == null) {
-            log.debug("Cannot cancel task '" + taskId + "' as it was not found.");
+            log.debug("Cannot delete task '" + taskId + "' as it was not found.");
             return false;
           }
 
@@ -311,22 +311,22 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           long version = task.getVersion();
 
           if (version != request.getVersion()) {
-            coreMetricsTemplate.registerTaskCancelled(null, task.getType());
+            coreMetricsTemplate.registerTaskDeleted(null, task.getType());
             log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
             return false;
           }
 
           if (task.getStatus().equals(TaskStatus.WAITING.name())) {
             if (!taskDao.deleteTask(taskId, version)) {
-              coreMetricsTemplate.registerTaskCancelledFailure(null, task.getType());
+              coreMetricsTemplate.registerTaskDeletedFailure(null, task.getType());
               return false;
             } else {
-              coreMetricsTemplate.registerTaskCancelled(null, task.getType());
+              coreMetricsTemplate.registerTaskDeleted(null, task.getType());
               return true;
             }
           }
 
-          coreMetricsTemplate.registerTaskCancelledFailure(null, task.getType());
+          coreMetricsTemplate.registerTaskDeletedFailure(null, task.getType());
           return false;
         });
   }
