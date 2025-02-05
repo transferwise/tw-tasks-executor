@@ -151,4 +151,17 @@ public interface ITasksService {
     STARTED, STOPPED, STOP_IN_PROGRESS
   }
 
+  /**
+   * Cancels a task in WAITING state.
+   *
+   * <p>If the task is not found or not in WAITING state, false is returned.
+   */
+  boolean cancelTask(CancelTaskRequest request);
+
+  @Data
+  @Accessors(chain = true)
+  class CancelTaskRequest {
+    private UUID taskId;
+    private long version;
+  }
 }
