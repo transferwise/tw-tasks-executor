@@ -164,4 +164,18 @@ public interface ITasksService {
     private UUID taskId;
     private long version;
   }
+
+  /**
+   * Cancel a task
+   *
+   * <p>If the task is not found, false is returned.
+   */
+  boolean cancelTask(CancelTaskRequest request);
+
+  @Data
+  @Accessors(chain = true)
+  class CancelTaskRequest {
+    private UUID taskId;
+    private long version;
+  }
 }

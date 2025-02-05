@@ -18,6 +18,7 @@ public final class EntryPointsNames {
   public static final String ASYNC_HANDLE_FAIL = "asyncHandleFail";
   public static final String RESCHEDULE_TASK = "rescheduleTask";
   public static final String DELETE_TASK = "deleteTask";
+  public static final String CANCEL_TASK = "cancelTask";
   public static final String GET_TASK = "getTask";
 
   private EntryPointsNames() {

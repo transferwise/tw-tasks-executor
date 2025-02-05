@@ -49,7 +49,7 @@ public class TasksCleaner implements ITasksCleaner, GracefulShutdownStrategy, In
   public void afterPropertiesSet() {
     String nodePath = "/tw/tw_tasks/" + tasksProperties.getGroupId() + "/tasks_cleaner";
 
-    TaskStatus[] statuses = {TaskStatus.DONE, TaskStatus.FAILED};
+    TaskStatus[] statuses = {TaskStatus.DONE, TaskStatus.FAILED, TaskStatus.CANCELLED};
     for (TaskStatus status : statuses) {
       DeletableStatus deletableStatus = new DeletableStatus();
       deletableStatus.status = status;

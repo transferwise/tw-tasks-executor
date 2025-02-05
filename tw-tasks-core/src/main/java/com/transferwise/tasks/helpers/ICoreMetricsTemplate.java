@@ -129,6 +129,10 @@ public interface ICoreMetricsTemplate {
 
   void registerTaskDeleted(String bucketId, String taskType);
 
-  void registerTaskDeletedFailure(String bucketId, String taskType);
+  void registerTaskDeletionFailure(String bucketId, String taskType);
+
+  void registerTaskCancelled(String bucketId, String taskType);
+
+  void registerTaskCancellationFailure(String bucketId, String taskType);
 
 }

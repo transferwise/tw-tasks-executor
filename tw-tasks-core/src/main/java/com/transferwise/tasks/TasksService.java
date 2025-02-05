@@ -293,7 +293,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
   @Override
   @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)
-  public boolean deleteTask(deleteTaskRequest request) {
+  public boolean deleteTask(DeleteTaskRequest request) {
     return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.DELETE_TASK,
         () -> {
           UUID taskId = request.getTaskId();
@@ -318,7 +318,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
 
           if (task.getStatus().equals(TaskStatus.WAITING.name())) {
             if (!taskDao.deleteTask(taskId, version)) {
-              coreMetricsTemplate.registerTaskDeletedFailure(null, task.getType());
+              coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
               return false;
             } else {
               coreMetricsTemplate.registerTaskDeleted(null, task.getType());
@@ -326,11 +326,52 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
             }
           }
 
-          coreMetricsTemplate.registerTaskDeletedFailure(null, task.getType());
+          coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
           return false;
         });
   }
 
+
+  @Override
+  @EntryPoint(usesExisting = true)
+  @Transactional(rollbackFor = Exception.class)
+  public boolean cancelTask(CancelTaskRequest request) {
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.CANCEL_TASK,
+        () -> {
+          UUID taskId = request.getTaskId();
+          mdcService.put(request.getTaskId(), request.getVersion());
+
+          FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
+
+          if (task == null) {
+            log.debug("Cannot cancel task '" + taskId + "' as it was not found.");
+            return false;
+          }
+
+          mdcService.put(task);
+
+          long version = task.getVersion();
+
+          if (version != request.getVersion()) {
+            coreMetricsTemplate.registerTaskCancelled(null, task.getType());
+            log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
+            return false;
+          }
+
+          if (task.getStatus().equals(TaskStatus.WAITING.name())) {
+            if (!taskDao.setStatus(taskId, TaskStatus.CANCELLED, version)) {
+              coreMetricsTemplate.registerTaskCancellationFailure(null, task.getType());
+              return false;
+            } else {
+              coreMetricsTemplate.registerTaskCancelled(null, task.getType());
+              return true;
+            }
+          }
+
+          coreMetricsTemplate.registerTaskCancellationFailure(null, task.getType());
+          return false;
+        });
+  }
 
   /**
    * We register an after commit hook here, so as soon as transaction has finished, the task will be triggered.

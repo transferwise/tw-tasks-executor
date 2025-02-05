@@ -9,7 +9,7 @@
       CREATE TABLE tw_task
       (
         id                     BINARY(16) PRIMARY KEY NOT NULL,
-        status                 ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED'),
+        status                 ENUM('NEW', 'WAITING', 'SUBMITTED', 'PROCESSING', 'DONE', 'ERROR', 'FAILED', 'CANCELLED'),
         -- Microsecond precision (6) is strongly recommended here to reduce the chance of gap locks deadlocking on tw_task_idx1
         next_event_time        DATETIME(6) NOT NULL,
         state_time             DATETIME(6) NOT NULL,
