@@ -106,9 +106,9 @@ public class TaskDeletionIntTest extends BaseIntTest {
 
   @ParameterizedTest
   @EnumSource(value = TaskStatus.class,
-      names = {"UNKNOWN"},
+      names = {"PROCESSING", "UNKNOWN"},
       mode = EnumSource.Mode.EXCLUDE)
-  void taskWillBeDeletedForAnyStatus(TaskStatus status) {
+  void taskWillBeDeletedForAnyStatusExceptProcessing(TaskStatus status) {
     final long initialFailedNextEventTimeChangeCount = getFailedDeletionCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 

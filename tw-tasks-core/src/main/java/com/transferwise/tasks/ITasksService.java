@@ -154,7 +154,7 @@ public interface ITasksService {
   /**
    * Delete a task
    *
-   * <p>If the task is not found, false is returned.
+   * <p>If the task is not found or in PROCESSING state, false is returned.
    */
   boolean deleteTask(DeleteTaskRequest request);
 
