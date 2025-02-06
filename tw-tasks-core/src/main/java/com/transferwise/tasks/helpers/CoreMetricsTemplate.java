@@ -54,9 +54,9 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public static final String METRIC_TASKS_RESUMINGS_COUNT = METRIC_PREFIX + "tasks.resumingsCount";
   public static final String METRIC_TASKS_MARKED_AS_FAILED_COUNT = METRIC_PREFIX + "tasks.markedAsFailedCount";
   public static final String METRIC_TASKS_RESCHEDULED_COUNT = METRIC_PREFIX + "tasks.rescheduledCount";
+  public static final String METRIC_TASKS_CANCELLED_COUNT = METRIC_PREFIX + "tasks.cancelledCount";
   public static final String METRIC_TASKS_DELETED_COUNT = METRIC_PREFIX + "tasks.deletedCount";
   public static final String METRIC_TASKS_FAILED_DELETION_COUNT = METRIC_PREFIX + "tasks.failedDeletionCount";
-  public static final String METRIC_TASKS_CANCELLED_COUNT = METRIC_PREFIX + "tasks.cancelledCount";
   public static final String METRIC_TASKS_FAILED_CANCELLATION_COUNT = METRIC_PREFIX + "tasks.failedCancellationCount";
   public static final String METRIC_TASKS_FAILED_NEXT_EVENT_TIME_CHANGE_COUNT = METRIC_PREFIX + "tasks.failedNextEventTimeChangeCount";
   public static final String METRIC_TASKS_ADDINGS_COUNT = METRIC_PREFIX + "task.addings.count";

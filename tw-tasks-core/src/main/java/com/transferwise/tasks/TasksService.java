@@ -316,18 +316,13 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
             return false;
           }
 
-          if (task.getStatus().equals(TaskStatus.WAITING.name())) {
-            if (!taskDao.deleteTask(taskId, version)) {
-              coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
-              return false;
-            } else {
-              coreMetricsTemplate.registerTaskDeleted(null, task.getType());
-              return true;
-            }
+          if (!taskDao.deleteTask(taskId, version)) {
+            coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
+            return false;
+          } else {
+            coreMetricsTemplate.registerTaskDeleted(null, task.getType());
+            return true;
           }
-
-          coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
-          return false;
         });
   }
 
