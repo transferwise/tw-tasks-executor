@@ -168,7 +168,7 @@ public interface ITasksService {
   /**
    * Cancel a task
    *
-   * <p>If the task is not found, false is returned.
+   * <p>If the task is not found or not in WAITING state, false is returned.
    */
   boolean cancelTask(CancelTaskRequest request);
 

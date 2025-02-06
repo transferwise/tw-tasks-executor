@@ -311,7 +311,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           long version = task.getVersion();
 
           if (version != request.getVersion()) {
-            coreMetricsTemplate.registerTaskDeleted(null, task.getType());
+            coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
             log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
             return false;
           }
@@ -348,7 +348,7 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
           long version = task.getVersion();
 
           if (version != request.getVersion()) {
-            coreMetricsTemplate.registerTaskCancelled(null, task.getType());
+            coreMetricsTemplate.registerTaskCancellationFailure(null, task.getType());
             log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
             return false;
           }

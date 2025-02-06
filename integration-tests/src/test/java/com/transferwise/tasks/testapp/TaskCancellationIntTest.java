@@ -48,7 +48,6 @@ public class TaskCancellationIntTest extends BaseIntTest {
 
   @Test
   void taskCanBeSuccessfullyCancelled() {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
@@ -71,15 +70,13 @@ public class TaskCancellationIntTest extends BaseIntTest {
     );
 
     await().until(() -> testTasksService.getTasks("test", null, WAITING).isEmpty());
-    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
     assertEquals(0, getFailedCancellationCount());
     assertEquals(1, getTaskCancelledCount());
   }
 
   @Test
   void taskWillNotBeCancelledIfVersionHasAlreadyChanged() {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    final long initialFailedNextEventTimeChangeCount = getFailedCancellationCount();
+    final long initialFailedCancellationCount = getFailedCancellationCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
@@ -102,7 +99,7 @@ public class TaskCancellationIntTest extends BaseIntTest {
             )
         )
     );
-    assertEquals(initialFailedNextEventTimeChangeCount + 1, getFailedCancellationCount());
+    assertEquals(initialFailedCancellationCount + 1, getFailedCancellationCount());
     assertEquals(0, getTaskCancelledCount());
   }
 
@@ -111,8 +108,7 @@ public class TaskCancellationIntTest extends BaseIntTest {
       names = {"WAITING", "UNKNOWN"},
       mode = EnumSource.Mode.EXCLUDE)
   void taskWillNotBeCancelledIfNotWaiting(TaskStatus status) {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
-    final long initialFailedNextEventTimeChangeCount = getFailedCancellationCount();
+    final long initialFailedCancellationCount = getFailedCancellationCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
@@ -147,7 +143,7 @@ public class TaskCancellationIntTest extends BaseIntTest {
             )
         )
     );
-    assertEquals(initialFailedNextEventTimeChangeCount + 1, getFailedCancellationCount());
+    assertEquals(initialFailedCancellationCount + 1, getFailedCancellationCount());
     assertEquals(0, getTaskCancelledCount());
   }
 

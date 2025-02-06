@@ -48,7 +48,6 @@ public class TaskDeletionIntTest extends BaseIntTest {
 
   @Test
   void taskCanBeSuccessfullyDeleted() {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
@@ -71,14 +70,12 @@ public class TaskDeletionIntTest extends BaseIntTest {
     ));
 
     await().until(() -> testTasksService.getTasks("test", null, WAITING).isEmpty());
-    await().until(() -> resultRegisteringSyncTaskProcessor.getTaskResults().get(taskId) != null);
     assertEquals(0, getFailedDeletionCount());
     assertEquals(1, getTaskDeletedCount());
   }
 
   @Test
   void taskWillNotBeDeletedIfVersionHasAlreadyChanged() {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
     final long initialFailedNextEventTimeChangeCount = getFailedDeletionCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
@@ -102,24 +99,24 @@ public class TaskDeletionIntTest extends BaseIntTest {
             )
         )
     );
+
     assertEquals(initialFailedNextEventTimeChangeCount + 1, getFailedDeletionCount());
     assertEquals(0, getTaskDeletedCount());
   }
 
   @ParameterizedTest
   @EnumSource(value = TaskStatus.class,
-      names = {"WAITING", "UNKNOWN"},
+      names = {"UNKNOWN"},
       mode = EnumSource.Mode.EXCLUDE)
-  void taskWillBeDeletedIfWaiting(TaskStatus status) {
-    testTaskHandlerAdapter.setProcessor(resultRegisteringSyncTaskProcessor);
+  void taskWillBeDeletedForAnyStatus(TaskStatus status) {
     final long initialFailedNextEventTimeChangeCount = getFailedDeletionCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.addTask(new ITasksService.AddTaskRequest()
             .setTaskId(taskId)
-            .setData(taskDataSerializer.serialize("I do want to be deleted!"))
-            .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(2)))
+            .setData(taskDataSerializer.serialize("I want to be deleted!"))
+            .setType("test").setRunAfterTime(ZonedDateTime.now().plusDays(12)))
     );
 
     await().until(() -> !testTasksService.getWaitingTasks("test", null).isEmpty());
@@ -129,8 +126,6 @@ public class TaskDeletionIntTest extends BaseIntTest {
     transactionsHelper.withTransaction().asNew().call(() ->
         tasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(task.getVersion()))
     );
-
-    await().until(() -> testTasksService.getWaitingTasks("test", null).isEmpty());
 
     var updateTask = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
@@ -147,8 +142,8 @@ public class TaskDeletionIntTest extends BaseIntTest {
             )
         )
     );
-    assertEquals(initialFailedNextEventTimeChangeCount + 1, getFailedDeletionCount());
-    assertEquals(0, getTaskDeletedCount());
+    assertEquals(initialFailedNextEventTimeChangeCount, getFailedDeletionCount());
+    assertEquals(1, getTaskDeletedCount());
   }
 
   private long getFailedDeletionCount() {

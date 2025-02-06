@@ -9,7 +9,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Changed
 
-- Added support to cancel tasks in progress and to delete tasks.
+- Added support to cancel tasks in waiting and to delete tasks.
 
 
 ## 1.49.0 - 2025/01/08
