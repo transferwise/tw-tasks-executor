@@ -1,7 +1,7 @@
 ext.projectName = "TwTasks Extension - Kafka Listener"
 ext.projectDescription = '''
 Set of components that simplify consumption of kafka messages from arbitrary topic
-with further convertion of those to task instances. While providing sensible defaults
+with further converting of those to task instances. While providing sensible defaults
 the extension is not as flexible as kafka integration oriented libraries, such as spring-kafka,
 consider using those instead if more flexibility is needed.
 
