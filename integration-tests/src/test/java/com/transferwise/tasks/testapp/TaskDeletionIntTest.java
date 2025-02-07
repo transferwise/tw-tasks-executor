@@ -1,6 +1,5 @@
 package com.transferwise.tasks.testapp;
 
-import static com.transferwise.tasks.domain.TaskStatus.WAITING;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -11,6 +10,7 @@ import com.transferwise.tasks.BaseIntTest;
 import com.transferwise.tasks.ITaskDataSerializer;
 import com.transferwise.tasks.ITasksService;
 import com.transferwise.tasks.ITasksService.GetTaskRequest;
+import com.transferwise.tasks.ITasksService.GetTaskResponse.Result;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
@@ -69,7 +69,7 @@ public class TaskDeletionIntTest extends BaseIntTest {
         )
     ));
 
-    await().until(() -> testTasksService.getTasks("test", null, WAITING).isEmpty());
+    await().until(() -> tasksService.getTask(new GetTaskRequest().setTaskId(taskId)).getResult().equals(Result.NOT_FOUND));
     assertEquals(0, getFailedDeletionCount());
     assertEquals(1, getTaskDeletedCount());
   }

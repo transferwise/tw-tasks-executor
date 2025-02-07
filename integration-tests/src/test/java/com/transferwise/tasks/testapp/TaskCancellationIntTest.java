@@ -1,6 +1,6 @@
 package com.transferwise.tasks.testapp;
 
-import static com.transferwise.tasks.domain.TaskStatus.WAITING;
+import static com.transferwise.tasks.domain.TaskStatus.CANCELLED;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -69,7 +69,7 @@ public class TaskCancellationIntTest extends BaseIntTest {
         ))
     );
 
-    await().until(() -> testTasksService.getTasks("test", null, WAITING).isEmpty());
+    await().until(() -> !testTasksService.getTasks("test", null, CANCELLED).isEmpty());
     assertEquals(0, getFailedCancellationCount());
     assertEquals(1, getTaskCancelledCount());
   }
