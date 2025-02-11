@@ -289,49 +289,6 @@ public class TasksService implements ITasksService, GracefulShutdownStrategy, In
     return tasksExecutionTriggerer.getTasksProcessingState(bucketId);
   }
 
-
-  @Override
-  @EntryPoint(usesExisting = true)
-  @Transactional(rollbackFor = Exception.class)
-  public boolean deleteTask(DeleteTaskRequest request) {
-    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.DELETE_TASK,
-        () -> {
-          UUID taskId = request.getTaskId();
-          mdcService.put(request.getTaskId(), request.getVersion());
-
-          FullTaskRecord task = taskDao.getTask(taskId, FullTaskRecord.class);
-
-          if (task == null) {
-            log.debug("Cannot delete task '" + taskId + "' as it was not found.");
-            return false;
-          }
-
-          mdcService.put(task);
-
-          long version = task.getVersion();
-
-          if (version != request.getVersion()) {
-            coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
-            log.debug("Expected version " + request.getVersion() + " does not match " + version + ".");
-            return false;
-          }
-
-          if (!task.getStatus().equals(TaskStatus.PROCESSING.name())) {
-            if (!taskDao.deleteTask(taskId, version)) {
-              coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
-              return false;
-            } else {
-              coreMetricsTemplate.registerTaskDeleted(null, task.getType());
-              return true;
-            }
-          }
-
-          coreMetricsTemplate.registerTaskDeletionFailure(null, task.getType());
-          return false;
-        });
-  }
-
-
   @Override
   @EntryPoint(usesExisting = true)
   @Transactional(rollbackFor = Exception.class)

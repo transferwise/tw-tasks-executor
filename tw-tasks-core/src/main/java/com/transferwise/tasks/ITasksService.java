@@ -152,20 +152,6 @@ public interface ITasksService {
   }
 
   /**
-   * Delete a task
-   *
-   * <p>If the task is not found or in PROCESSING state, false is returned.
-   */
-  boolean deleteTask(DeleteTaskRequest request);
-
-  @Data
-  @Accessors(chain = true)
-  class DeleteTaskRequest {
-    private UUID taskId;
-    private long version;
-  }
-
-  /**
    * Cancel a task
    *
    * <p>If the task is not found or not in WAITING state, false is returned.

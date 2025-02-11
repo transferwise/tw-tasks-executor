@@ -127,10 +127,6 @@ public interface ICoreMetricsTemplate {
   @SuppressWarnings("rawtypes")
   void registerKafkaProducer(Producer producer);
 
-  void registerTaskDeleted(String bucketId, String taskType);
-
-  void registerTaskDeletionFailure(String bucketId, String taskType);
-
   void registerTaskCancelled(String bucketId, String taskType);
 
   void registerTaskCancellationFailure(String bucketId, String taskType);
