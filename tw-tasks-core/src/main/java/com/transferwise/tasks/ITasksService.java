@@ -150,18 +150,4 @@ public interface ITasksService {
   enum TasksProcessingState {
     STARTED, STOPPED, STOP_IN_PROGRESS
   }
-
-  /**
-   * Cancel a task
-   *
-   * <p>If the task is not found or not in WAITING state, false is returned.
-   */
-  boolean cancelTask(CancelTaskRequest request);
-
-  @Data
-  @Accessors(chain = true)
-  class CancelTaskRequest {
-    private UUID taskId;
-    private long version;
-  }
 }

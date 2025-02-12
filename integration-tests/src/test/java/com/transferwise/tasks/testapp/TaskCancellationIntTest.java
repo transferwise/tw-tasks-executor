@@ -14,6 +14,8 @@ import com.transferwise.tasks.ITasksService.GetTaskRequest;
 import com.transferwise.tasks.dao.ITaskDao;
 import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskStatus;
+import com.transferwise.tasks.domain.TaskVersionId;
+import com.transferwise.tasks.management.ITasksManagementService;
 import com.transferwise.tasks.test.ITestTasksService;
 import io.micrometer.core.instrument.Counter;
 import java.time.ZonedDateTime;
@@ -37,36 +39,32 @@ public class TaskCancellationIntTest extends BaseIntTest {
   private ITaskDataSerializer taskDataSerializer;
   @Autowired
   private ITaskDao taskDao;
+  @Autowired
+  private ITasksManagementService tasksManagementService;
 
   @BeforeEach
   void setup() {
-    transactionsHelper.withTransaction().asNew().call(() -> {
-      testTasksService.reset();
-      return null;
-    });
+    testTasksService.reset();
   }
 
   @Test
   void taskCanBeSuccessfullyCancelled() {
     UUID taskId = UuidUtils.generatePrefixCombUuid();
 
-    transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest()
-            .setTaskId(taskId)
-            .setData(taskDataSerializer.serialize("I want to be cancelled"))
-            .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(1)))
-    );
+    tasksService.addTask(new ITasksService.AddTaskRequest()
+        .setTaskId(taskId)
+        .setData(taskDataSerializer.serialize("I want to be cancelled"))
+        .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(1)));
 
     await().until(() -> !testTasksService.getWaitingTasks("test", null).isEmpty());
 
     var task = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
-    assertTrue(transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.cancelTask(
-            new ITasksService.CancelTaskRequest()
-                .setTaskId(taskId)
-                .setVersion(task.getVersion())
-        ))
+    assertTrue(
+        tasksManagementService.cancelTask(
+            new ITasksManagementService.CancelTaskRequest()
+                .setTaskVersionId(new TaskVersionId().setId(taskId).setVersion(task.getVersion()))
+        )
     );
 
     await().until(() -> !testTasksService.getTasks("test", null, CANCELLED).isEmpty());
@@ -79,26 +77,21 @@ public class TaskCancellationIntTest extends BaseIntTest {
     final long initialFailedCancellationCount = getFailedCancellationCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
-    transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest()
-            .setTaskId(taskId)
-            .setData(taskDataSerializer.serialize("I want to be cancelled too!"))
-            .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(1)))
-    );
+    tasksService.addTask(new ITasksService.AddTaskRequest()
+        .setTaskId(taskId)
+        .setData(taskDataSerializer.serialize("I want to be cancelled too!"))
+        .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(1)));
 
     await().until(() -> !testTasksService.getWaitingTasks("test", null).isEmpty());
 
     var task = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
     assertFalse(
-        transactionsHelper.withTransaction().asNew().call(() ->
-            tasksService.cancelTask(
-                new ITasksService.CancelTaskRequest()
-                    .setTaskId(taskId)
-                    .setVersion(task.getVersion() - 1)
-            )
-        )
-    );
+        tasksManagementService.cancelTask(
+            new ITasksManagementService.CancelTaskRequest()
+                .setTaskVersionId(new TaskVersionId().setId(taskId).setVersion(task.getVersion() - 1))
+        ));
+
     assertEquals(initialFailedCancellationCount + 1, getFailedCancellationCount());
     assertEquals(0, getTaskCancelledCount());
   }
@@ -111,20 +104,16 @@ public class TaskCancellationIntTest extends BaseIntTest {
     final long initialFailedCancellationCount = getFailedCancellationCount();
     final UUID taskId = UuidUtils.generatePrefixCombUuid();
 
-    transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.addTask(new ITasksService.AddTaskRequest()
-            .setTaskId(taskId)
-            .setData(taskDataSerializer.serialize("I do not want to be cancelled!"))
-            .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(2)))
-    );
+    tasksService.addTask(new ITasksService.AddTaskRequest()
+        .setTaskId(taskId)
+        .setData(taskDataSerializer.serialize("I do not want to be cancelled!"))
+        .setType("test").setRunAfterTime(ZonedDateTime.now().plusHours(2)));
 
     await().until(() -> !testTasksService.getWaitingTasks("test", null).isEmpty());
     List<Task> tasks = testTasksService.getWaitingTasks("test", null);
     Task task = tasks.stream().filter(t -> t.getId().equals(taskId)).findFirst().orElseThrow();
 
-    transactionsHelper.withTransaction().asNew().call(() ->
-        tasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(task.getVersion()))
-    );
+    tasksService.resumeTask(new ITasksService.ResumeTaskRequest().setTaskId(taskId).setVersion(task.getVersion()));
 
     await().until(() -> testTasksService.getWaitingTasks("test", null).isEmpty());
 
@@ -135,14 +124,11 @@ public class TaskCancellationIntTest extends BaseIntTest {
     var finalTask = tasksService.getTask(new GetTaskRequest().setTaskId(taskId));
 
     assertFalse(
-        transactionsHelper.withTransaction().asNew().call(() ->
-            tasksService.cancelTask(
-                new ITasksService.CancelTaskRequest()
-                    .setTaskId(taskId)
-                    .setVersion(finalTask.getVersion())
-            )
-        )
-    );
+        tasksManagementService.cancelTask(
+            new ITasksManagementService.CancelTaskRequest()
+                .setTaskVersionId(new TaskVersionId().setId(taskId).setVersion(finalTask.getVersion()))
+        ));
+
     assertEquals(initialFailedCancellationCount + 1, getFailedCancellationCount());
     assertEquals(0, getTaskCancelledCount());
   }

@@ -6,6 +6,8 @@ import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.entrypoints.EntryPoint;
+import com.transferwise.tasks.entrypoints.EntryPointsGroups;
+import com.transferwise.tasks.entrypoints.EntryPointsNames;
 import com.transferwise.tasks.entrypoints.IEntryPointsService;
 import com.transferwise.tasks.entrypoints.IMdcService;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
@@ -269,4 +271,45 @@ public class TasksManagementService implements ITasksManagementService {
                   .collect(Collectors.toList()));
         });
   }
+
+  @Override
+  @EntryPoint(usesExisting = true)
+  public boolean cancelTask(CancelTaskRequest request) {
+    return entryPointsHelper.continueOrCreate(EntryPointsGroups.TW_TASKS_ENGINE, EntryPointsNames.CANCEL_TASK,
+        () -> {
+          TaskVersionId taskVersionId = request.getTaskVersionId();
+          mdcService.put(taskVersionId.getId(), taskVersionId.getVersion());
+
+          FullTaskRecord task = taskDao.getTask(taskVersionId.getId(), FullTaskRecord.class);
+
+          if (task == null) {
+            log.debug("Cannot cancel task '" + taskVersionId.getId() + "' as it was not found.");
+            return false;
+          }
+
+          mdcService.put(task);
+
+          long version = task.getVersion();
+
+          if (version != request.getTaskVersionId().getVersion()) {
+            coreMetricsTemplate.registerTaskCancellationFailure( task.getType());
+            log.debug("Expected version " + request.getTaskVersionId().getVersion() + " does not match " + version + ".");
+            return false;
+          }
+
+          if (task.getStatus().equals(TaskStatus.WAITING.name())) {
+            if (!taskDao.setStatus(taskVersionId.getId(), TaskStatus.CANCELLED, version)) {
+              coreMetricsTemplate.registerTaskCancellationFailure( task.getType());
+              return false;
+            } else {
+              coreMetricsTemplate.registerTaskCancelled( task.getType());
+              return true;
+            }
+          }
+
+          coreMetricsTemplate.registerTaskCancellationFailure( task.getType());
+          return false;
+        });
+  }
+
 }

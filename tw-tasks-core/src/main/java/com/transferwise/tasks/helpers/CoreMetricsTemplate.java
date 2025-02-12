@@ -537,13 +537,13 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
 
   }
 
-  public void registerTaskCancelled(String bucketId, String taskType) {
-    meterCache.counter(METRIC_TASKS_CANCELLED_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId), TAG_TASK_TYPE, taskType))
+  public void registerTaskCancelled(String taskType) {
+    meterCache.counter(METRIC_TASKS_CANCELLED_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(null), TAG_TASK_TYPE, taskType))
         .increment();
   }
 
-  public void registerTaskCancellationFailure(String bucketId, String taskType) {
-    meterCache.counter(METRIC_TASKS_FAILED_CANCELLATION_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(bucketId), TAG_TASK_TYPE, taskType))
+  public void registerTaskCancellationFailure(String taskType) {
+    meterCache.counter(METRIC_TASKS_FAILED_CANCELLATION_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(null), TAG_TASK_TYPE, taskType))
         .increment();
   }
 }
