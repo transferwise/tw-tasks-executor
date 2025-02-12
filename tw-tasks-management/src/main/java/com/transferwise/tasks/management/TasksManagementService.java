@@ -292,24 +292,23 @@ public class TasksManagementService implements ITasksManagementService {
           long version = task.getVersion();
 
           if (version != request.getTaskVersionId().getVersion()) {
-            coreMetricsTemplate.registerTaskCancellationFailure( task.getType());
+            coreMetricsTemplate.registerTaskCancellationFailure(task.getType());
             log.debug("Expected version " + request.getTaskVersionId().getVersion() + " does not match " + version + ".");
             return false;
           }
 
           if (task.getStatus().equals(TaskStatus.WAITING.name())) {
             if (!taskDao.setStatus(taskVersionId.getId(), TaskStatus.CANCELLED, version)) {
-              coreMetricsTemplate.registerTaskCancellationFailure( task.getType());
+              coreMetricsTemplate.registerTaskCancellationFailure(task.getType());
               return false;
             } else {
-              coreMetricsTemplate.registerTaskCancelled( task.getType());
+              coreMetricsTemplate.registerTaskCancelled(task.getType());
               return true;
             }
           }
 
-          coreMetricsTemplate.registerTaskCancellationFailure( task.getType());
+          coreMetricsTemplate.registerTaskCancellationFailure(task.getType());
           return false;
         });
   }
-
 }
