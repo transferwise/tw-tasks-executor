@@ -21,6 +21,7 @@ import org.apache.commons.lang3.StringUtils;
 @JsonDeserialize(using = TaskVersionId.TaskVersionIdJsonDeserializer.class)
 public class TaskVersionId implements ITaskVersionId {
 
+  // Task ID
   private UUID id;
   private long version;
 

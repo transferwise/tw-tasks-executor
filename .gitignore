@@ -8,3 +8,4 @@ build
 
 .idea
 /demoapp/src/main/resources/application-rds.yml
+*.iml

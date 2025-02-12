@@ -54,6 +54,8 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public static final String METRIC_TASKS_RESUMINGS_COUNT = METRIC_PREFIX + "tasks.resumingsCount";
   public static final String METRIC_TASKS_MARKED_AS_FAILED_COUNT = METRIC_PREFIX + "tasks.markedAsFailedCount";
   public static final String METRIC_TASKS_RESCHEDULED_COUNT = METRIC_PREFIX + "tasks.rescheduledCount";
+  public static final String METRIC_TASKS_CANCELLED_COUNT = METRIC_PREFIX + "tasks.cancelledCount";
+  public static final String METRIC_TASKS_FAILED_CANCELLATION_COUNT = METRIC_PREFIX + "tasks.failedCancellationCount";
   public static final String METRIC_TASKS_FAILED_NEXT_EVENT_TIME_CHANGE_COUNT = METRIC_PREFIX + "tasks.failedNextEventTimeChangeCount";
   public static final String METRIC_TASKS_ADDINGS_COUNT = METRIC_PREFIX + "task.addings.count";
   public static final String GAUGE_TASKS_SERVICE_IN_PROGRESS_TRIGGERINGS_COUNT = METRIC_PREFIX + "tasksService.inProgressTriggeringsCount";
@@ -533,5 +535,15 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
     private TagsSet tags;
     private Meter meter;
 
+  }
+
+  public void registerTaskCancelled(String taskType) {
+    meterCache.counter(METRIC_TASKS_CANCELLED_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(null), TAG_TASK_TYPE, taskType))
+        .increment();
+  }
+
+  public void registerTaskCancellationFailure(String taskType) {
+    meterCache.counter(METRIC_TASKS_FAILED_CANCELLATION_COUNT, TagsSet.of(TAG_BUCKET_ID, resolveBucketId(null), TAG_TASK_TYPE, taskType))
+        .increment();
   }
 }

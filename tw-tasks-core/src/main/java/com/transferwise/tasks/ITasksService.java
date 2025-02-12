@@ -150,5 +150,4 @@ public interface ITasksService {
   enum TasksProcessingState {
     STARTED, STOPPED, STOP_IN_PROGRESS
   }
-
 }

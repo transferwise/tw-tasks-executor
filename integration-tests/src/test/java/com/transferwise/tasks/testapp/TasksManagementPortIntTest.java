@@ -85,7 +85,7 @@ public class TasksManagementPortIntTest extends BaseIntTest {
   }
 
   @Test
-  void crackerCantGetErronouseTasks() {
+  void crackerCantGetErroneousTasks() {
     ResponseEntity<GetTasksInErrorResponse> response = badEngineerTemplate().postForEntity("/v1/twTasks/getTasksInError",
         new ITasksManagementPort.GetTasksInErrorRequest().setMaxCount(1), GetTasksInErrorResponse.class
     );

@@ -228,4 +228,17 @@ public interface ITasksManagementService {
       private List<String> subTypes;
     }
   }
+
+  /**
+   * Cancel a task
+   *
+   * <p>If the task is not found or not in WAITING state, false is returned.
+   */
+  boolean cancelTask(CancelTaskRequest request);
+
+  @Data
+  @Accessors(chain = true)
+  class CancelTaskRequest {
+    private TaskVersionId taskVersionId;
+  }
 }
