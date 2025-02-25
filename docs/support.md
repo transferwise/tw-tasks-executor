@@ -1,7 +1,7 @@
 # Support
 
 ## Support for integration tests
-For making integration testing easy and fun, the following support classes can be used. They are especially convinient for
+For making integration testing easy and fun, the following support classes can be used. They are especially convenient for
 tasks with Json payload.
 
 - `IToKafkaTestHelper`
