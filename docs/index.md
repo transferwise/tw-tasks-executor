@@ -41,6 +41,7 @@ Basically fire-and-forget-until-alert kind of system.
 - Priorities
   - Higher priority tasks will be always run before lower priority tasks. We want instant payouts to have higher priority.
   - TwTasks allows even to stretch the maximum concurrency when all the processing slots are full for high priority tasks.
+  - ⚠️Using priority without isolated concurrency slots for tasks with different priorities can cause issues. see [priorities.md](priorities.md) for more.
 - Automatic retries
   - When a task fails with an unhandled exception, we can specify if and when it will be retried again. It is very common,
     that during a payout execution the Partner side has technical issues and in that case we would want to retry again after
