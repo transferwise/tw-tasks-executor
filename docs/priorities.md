@@ -5,6 +5,7 @@ Please refer to [algorithms.md](algorithms.md) for details about the implementat
 ### Risks
 
 Using priorities can have some risks:
+
 - inability of tw-tasks to commit offsets
 - increase lag in trigger topic
 - OOM caused by tracking entries related to tasks that were handled but not commited yet.
@@ -38,22 +39,33 @@ public class TaskBucketMapper {
 
 ```
 
-2. Isolate concurrency policies per priority/shard
+2. isolate concurrency policies per priority/shard
+
+Having the same slots with different priorities/shards, can cause high priority tasks processing to stop the processing of low priority ones.
+
+If high priority tasks have a high enough throughput, it would monopolise the concurrency slots.
+
+The consequence of this, is that triggers might not be acknowledged, causing high offset count tracking and delay in commiting offsets (on impacted shard) which might cause kafka consumer re-balances (if consumer for the
+impacted shard doesn't send heat-beats. This is an issue, as of Feb 2025).
+
+By isolating the concurrency policies, we make sure that the lower priority tasks would have a chance to run.
 
 Below, a simple example showcasing isolation of the concurrency policy per priority.
+
 ```Java
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class TaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
-  private static final int MAX_SLOTS = 5; // 5 slots for all priorities
+  // consider more slots for high priority, in a real-life scenario
+  private static final int MAX_SLOTS = 5; // 5 slots per priority
   ConcurrentHashMap<PriorityEnum, AtomicInteger> prioritySlots = new ConcurrentHashMap<>();
 
   @Override
   public BookSpaceResponse bookSpace(IBaseTask task) {
     var priority = PriorityEnum.toEnum(task.getPriority());
-    if (prioritySlots.computeIfAbsent(priority, k -> new AtomicInteger()).getAndIncrement() >= MAX_SLOTS) {
+    if (prioritySlots.computeIfAbsent(priority, k -> new AtomicInteger()).getAndIncrement() > MAX_SLOTS) {
       prioritySlots.get(priority).decrementAndGet();
       return new BookSpaceResponse(false);
     }
@@ -64,7 +76,6 @@ public class TaskConcurrencyPolicy implements ITaskConcurrencyPolicy {
   @Override
   public void freeSpace(IBaseTask task) {
     var priority = PriorityEnum.toEnum(task.getPriority());
-    prioritySlots.get(priority).decrementAndGet();
     prioritySlots.get(priority).decrementAndGet();
     if (inProgressForType.decrementAndGet() < 0) {
       throw new IllegalStateException("Counter went below zero. Algorithm error detected.");
@@ -83,5 +94,3 @@ enum PriorityEnum {
 }
 
 ```
-
-In a real-life scenario, we would want more slots for high priority.
