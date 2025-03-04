@@ -11,7 +11,7 @@ import com.transferwise.tasks.domain.Task;
 import com.transferwise.tasks.domain.TaskContext;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
-import com.transferwise.tasks.helpers.sql.CacheKey;
+import com.transferwise.tasks.helpers.sql.WeightedCacheKey;
 import com.transferwise.tasks.helpers.sql.SqlHelper;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -76,7 +76,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
   private final JdbcTemplate jdbcTemplate;
   private final Queries queries;
   private final ITaskSqlMapper sqlMapper;
-  private final ConcurrentHashMap<CacheKey, String> sqlCache;
+  private final ConcurrentHashMap<WeightedCacheKey, String> sqlCache;
   private final ITaskDaoDataSerializer taskDataSerializer;
   private final JsonConverter jsonConverter = new DefaultJsonConverter(new ObjectMapper());
 
@@ -102,7 +102,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
     }
 
     String query = sqlCache.computeIfAbsent(
-        new CacheKey(
+        new WeightedCacheKey(
             Queries.GET_ID_AND_VERSION_BY_TYPE_AND_SUBTYPE_AND_STATUS,
             subType == null ? 0 : 1,
             ArrayUtils.getLength(statuses)
@@ -181,7 +181,7 @@ public class JdbcTestTaskDao implements ITestTaskDao {
     }
 
     String sql = sqlCache.computeIfAbsent(
-        new CacheKey(
+        new WeightedCacheKey(
             Queries.GET_TASKS_BY_TYPE_AND_STATUS_AND_SUB_TYPE,
             subType == null ? 0 : 1,
             ArrayUtils.getLength(statuses)

@@ -7,7 +7,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## 1.50.2 - 2025/03/04
 
-- Update CacheKey to support weights up to 32.
+- Update CacheKey to support weights up to 32 (5 bits) from previously 8 (3 bits).
 
 ## 1.50.1 - 2025/02/25
 

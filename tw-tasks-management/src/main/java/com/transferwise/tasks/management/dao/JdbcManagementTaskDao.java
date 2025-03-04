@@ -13,7 +13,7 @@ import com.transferwise.tasks.dao.ITwTaskTables;
 import com.transferwise.tasks.domain.FullTaskRecord;
 import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
-import com.transferwise.tasks.helpers.sql.CacheKey;
+import com.transferwise.tasks.helpers.sql.WeightedCacheKey;
 import com.transferwise.tasks.helpers.sql.SqlHelper;
 import com.transferwise.tasks.management.dao.JdbcManagementTaskDao.Queries.QueryBuilder;
 import com.transferwise.tasks.management.dao.JdbcManagementTaskDao.Queries.QueryBuilder.Op;
@@ -146,7 +146,7 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
   private final JdbcTemplate jdbcTemplate;
   private final Queries queries;
   private final ITaskSqlMapper sqlMapper;
-  private final ConcurrentHashMap<CacheKey, String> queriesCache;
+  private final ConcurrentHashMap<WeightedCacheKey, String> queriesCache;
   private final ITaskDaoDataSerializer taskDataSerializer;
 
   public JdbcManagementTaskDao(DataSource dataSource, ITwTaskTables tables, ITaskSqlMapper sqlMapper, ITaskDaoDataSerializer taskDataSerializer) {
@@ -278,7 +278,7 @@ public class JdbcManagementTaskDao implements IManagementTaskDao {
       int questionsCount = questionBuckets[bucketId];
 
       String sql = queriesCache.computeIfAbsent(
-          new CacheKey(Queries.GET_TASKS, bucketId),
+          new WeightedCacheKey(Queries.GET_TASKS, bucketId),
           k -> SqlHelper.expandParametersList(queries.getTasks, questionsCount)
       );
 
