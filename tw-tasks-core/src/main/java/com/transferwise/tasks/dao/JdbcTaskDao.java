@@ -18,8 +18,8 @@ import com.transferwise.tasks.domain.TaskStatus;
 import com.transferwise.tasks.domain.TaskVersionId;
 import com.transferwise.tasks.helpers.ICoreMetricsTemplate;
 import com.transferwise.tasks.helpers.sql.ArgumentPreparedStatementSetter;
-import com.transferwise.tasks.helpers.sql.CacheKey;
 import com.transferwise.tasks.helpers.sql.SqlHelper;
+import com.transferwise.tasks.helpers.sql.WeightedCacheKey;
 import com.transferwise.tasks.utils.TimeUtils;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
@@ -80,7 +80,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
   @Autowired
   protected ObjectMapper objectMapper;
 
-  private final ConcurrentHashMap<CacheKey, String> sqlCache = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<WeightedCacheKey, String> sqlCache = new ConcurrentHashMap<>();
 
   private final JdbcTemplate jdbcTemplate;
   private final ITaskSqlMapper sqlMapper;
@@ -531,7 +531,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         final int currentProcessedIdsCount = processedIdsCount;
 
         if (tasksProperties.isParanoidTasksCleaning()) {
-          var tasksDeleteLockSql = sqlCache.computeIfAbsent(new CacheKey(LOCK_TASKS_FOR_DELETE_SQL, b),
+          var tasksDeleteLockSql = sqlCache.computeIfAbsent(new WeightedCacheKey(LOCK_TASKS_FOR_DELETE_SQL, b),
               k -> SqlHelper.expandParametersList(lockTasksForDeleteBatchesSql, bucketSize)
           );
 
@@ -562,7 +562,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         }
 
         String tasksDeleteSql = sqlCache.computeIfAbsent(
-            new CacheKey(DELETE_TASKS_BY_ID_BATCHES, b),
+            new WeightedCacheKey(DELETE_TASKS_BY_ID_BATCHES, b),
             k -> SqlHelper.expandParametersList(deleteTasksByIdBatchesSql, bucketSize)
         );
 
@@ -580,7 +580,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         });
 
         var uniqueTaskKeysDeleteSql = sqlCache.computeIfAbsent(
-            new CacheKey(DELETE_UNIQUE_TASK_KEYS_BY_ID_BATCHES, b),
+            new WeightedCacheKey(DELETE_UNIQUE_TASK_KEYS_BY_ID_BATCHES, b),
             k -> SqlHelper.expandParametersList(deleteUniqueTaskKeysByIdBatchesSql, bucketSize)
         );
 
@@ -598,7 +598,7 @@ public abstract class JdbcTaskDao implements ITaskDao, InitializingBean {
         });
 
         var taskDatasDeleteSql = sqlCache.computeIfAbsent(
-            new CacheKey(DELETE_TASK_DATAS_BY_ID_BATCHES, b),
+            new WeightedCacheKey(DELETE_TASK_DATAS_BY_ID_BATCHES, b),
             k -> SqlHelper.expandParametersList(deleteTaskDatasByIdBatchesSql, bucketSize)
         );
 
