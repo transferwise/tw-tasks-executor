@@ -5,12 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.50.2 - 2025/03/04
+
+- Update CacheKey to support weights up to 32.
+
+## 1.50.1 - 2025/02/25
+
+- Remove TagSet for the cancellation flow specifically for bucket metrics as it is not used.
+
 ## 1.50.0 - 2025/02/12
 
 ### Changed
 
-- Added support to cancel tasks in waiting state.
+- Added support to cancel tasks in waiting state, by introducing a new Enum for TaskStatus.
 
+If you have an Enum for TaskStatus in DB, you will need to add a new value 'CANCELLED' to it.
+
+```sql
+ALTER TYPE status ADD VALUE 'CANCELLED';
+```
 
 ## 1.49.0 - 2025/01/08
 
