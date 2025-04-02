@@ -482,7 +482,7 @@ public class TaskProcessingIntTest extends BaseIntTest {
 
 
   @Test
-  void taskWithRateLimitingConcurrencyPolicyWillNotHang2() {
+  void taskWithRateLimitingConcurrencyPolicyWillNotHangWithManyTasks() {
     AtomicInteger counter = new AtomicInteger();
     testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
       log.info("Processing task {}", counter.incrementAndGet());
