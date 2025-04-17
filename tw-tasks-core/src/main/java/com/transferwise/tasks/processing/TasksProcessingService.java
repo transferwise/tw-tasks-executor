@@ -451,9 +451,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
             ITaskProcessor taskProcessor = taskHandler.getProcessor(task.toBaseTask());
             processWithInterceptors(0, task, () -> {
               log.debug("Processing task '{}' using {}.", taskId, taskProcessor);
-              if (taskProcessor instanceof ISyncTaskProcessor) {
+              if (taskProcessor instanceof ISyncTaskProcessor syncTaskProcessor) {
                 try {
-                  ISyncTaskProcessor syncTaskProcessor = (ISyncTaskProcessor) taskProcessor;
                   MutableObject<ISyncTaskProcessor.ProcessResult> resultHolder = new MutableObject<>();
                   boolean isProcessorTransactional = syncTaskProcessor.isTransactional(task);
 
@@ -512,20 +511,22 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                       return null;
                     });
                   } catch (Throwable t) {
-                    log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                        LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                    ITaskRetryPolicy retryPolicy = taskHandler.getRetryPolicy(task.toBaseTask());
+                    ZonedDateTime retryTime = retryPolicy.getRetryTime(task, t);
+                    handleProcessingError(retryPolicy, task, t, retryTime);
                     processingResultHolder.setValue(ProcessingResult.ERROR);
-                    setRetriesOrError(bucketId, taskHandler, task, t);
+                    setRetriesOrError(bucketId, task, retryTime);
                   }
                 } catch (Throwable t) {
                   // Clear the interrupted flag.
                   if (Thread.interrupted()) {
                     log.debug("Task {} got interrupted.", LogUtils.asParameter(task.getVersionId()));
                   }
-                  log.error("Processing task {} type: '{}' subType: '{}' failed.",
-                      LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(), t);
+                  ITaskRetryPolicy retryPolicy = taskHandler.getRetryPolicy(task.toBaseTask());
+                  ZonedDateTime retryTime = retryPolicy.getRetryTime(task, t);
+                  handleProcessingError(retryPolicy, task, t, retryTime);
                   processingResultHolder.setValue(ProcessingResult.ERROR);
-                  setRetriesOrError(bucketId, taskHandler, task, t);
+                  setRetriesOrError(bucketId, task, retryTime);
                 } finally {
                   taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, processingResultHolder.getValue());
                 }
@@ -552,22 +553,22 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
                     unitOfWork.setDeadline(null);
                   }
                 } catch (Throwable t) {
-                  log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+                  ITaskRetryPolicy retryPolicy = taskHandler.getRetryPolicy(task.toBaseTask());
+                  ZonedDateTime retryTime = retryPolicy.getRetryTime(task, t);
+                  handleProcessingError(retryPolicy, task, t, retryTime);
                   if (taskMarkedAsFinished.compareAndSet(false, true)) {
                     taskFinished(bucketId, concurrencyPolicy, task, processingStartTimeMs, ProcessingResult.ERROR);
                   }
-                  setRetriesOrError(bucketId, taskHandler, task, t);
+                  setRetriesOrError(bucketId, task, retryTime);
                 }
               } else {
-                log.error(
-                    "Marking task {} as ERROR, because No suitable processor found for task " + LogUtils.asParameter(task.getVersionId())
-                        + ".");
+                log.error("Marking task {} as ERROR, because no suitable processor found for task.", LogUtils.asParameter(task.getVersionId()));
                 markAsError(task, bucketId);
               }
             });
           });
     } catch (Throwable t) {
-      log.error("Processing task '" + task.getVersionId() + "' failed.", t);
+      log.error("Processing task {} failed.", LogUtils.asParameter(task.getVersionId()), t);
     } finally {
       mdcService.clear();
     }
@@ -641,6 +642,21 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
     }
   }
 
+  protected void handleProcessingError(ITaskRetryPolicy retryPolicy, Task task, Throwable t, ZonedDateTime retryTime) {
+    if (t != null) {
+      var exceptionHandler = retryPolicy.getExceptionHandler();
+      if (exceptionHandler != null) {
+        exceptionHandler.handle(t, task, retryTime);
+      } else {
+        log.error("Processing task {} type: '{}' subType: '{}' failed {}.",
+            LogUtils.asParameter(task.getVersionId()), task.getType(), task.getSubType(),
+            (retryTime != null ? "and will be retried at " + retryTime : "with no retry and will be marked as ERROR"),
+            t
+        );
+      }
+    }
+  }
+
   protected void setRetriesOrError(String bucketId, ITaskHandler taskHandler, Task task, Throwable t) {
     ZonedDateTime retryTime = taskHandler.getRetryPolicy(task.toBaseTask()).getRetryTime(task, t);
     setRetriesOrError(bucketId, task, retryTime);
@@ -655,7 +671,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         coreMetricsTemplate.registerFailedStatusChange(task.getType(), task.getStatus(), TaskStatus.ERROR);
       }
     } else {
-      log.info("Task {} will be reprocessed @ " + retryTime + ".", LogUtils.asParameter(task.getVersionId()));
+      log.info("Task {} will be reprocessed @ {}.", LogUtils.asParameter(task.getVersionId()), retryTime);
       coreMetricsTemplate.registerTaskRetryOnError(bucketId, task.getType());
       setToBeRetried(task, retryTime, false);
     }

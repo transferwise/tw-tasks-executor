@@ -1,6 +1,7 @@
 package com.transferwise.tasks.handler;
 
 import com.transferwise.tasks.domain.ITask;
+import com.transferwise.tasks.handler.interfaces.ITaskExceptionHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import java.time.ZonedDateTime;
 import java.util.List;
@@ -14,6 +15,7 @@ import lombok.experimental.Accessors;
 public class ChainedTaskRetryPolicy implements ITaskRetryPolicy {
 
   private List<ITaskRetryPolicy> retryPolicies;
+  private ITaskExceptionHandler exceptionHandler;
 
   @Override
   public ZonedDateTime getRetryTime(ITask task, Throwable t) {

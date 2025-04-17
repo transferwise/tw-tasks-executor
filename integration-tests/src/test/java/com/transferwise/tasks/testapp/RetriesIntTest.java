@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -73,6 +74,40 @@ class RetriesIntTest extends BaseIntTest {
     );
 
     await().until(() -> processingCount.get() == n);
+  }
+
+  @Test
+  void customExceptionHandlerIsCalled() {
+    AtomicInteger processingCount = new AtomicInteger();
+    int n = 5;
+
+    testTaskHandlerAdapter.setProcessor((ISyncTaskProcessor) task -> {
+      log.info("Task retry nr: {}", task.getProcessingTriesCount());
+      processingCount.incrementAndGet();
+      throw new RuntimeException("You can not pass, Frodo!");
+    });
+
+    var exceptionsCaught = new CopyOnWriteArrayList<Throwable>();
+
+    testTaskHandlerAdapter.setRetryPolicy(
+        new ExponentialTaskRetryPolicy()
+            .setDelay(Duration.ofMillis(0))
+            .setMaxCount(n)
+            .setMultiplier(1)
+            .setExceptionHandler((t, task, retryTime) -> {
+              log.info("Custom exception handler logging error for task {}", task.getVersionId());
+              exceptionsCaught.add(t);
+            })
+    );
+
+    transactionsHelper.withTransaction().asNew().call(() ->
+        tasksService.addTask(new ITasksService.AddTaskRequest()
+            .setData(taskDataSerializer.serialize("Hello World!"))
+            .setType("test"))
+    );
+
+    await().until(() -> processingCount.get() == n);
+    assertEquals(n, exceptionsCaught.size());
   }
 
   @ParameterizedTest(name = "Repeating cron task getProcessingTriesCount resetting {0} works, tries {1}")

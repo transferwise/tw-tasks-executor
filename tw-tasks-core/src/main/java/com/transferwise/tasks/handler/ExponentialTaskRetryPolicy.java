@@ -3,6 +3,7 @@ package com.transferwise.tasks.handler;
 import com.google.common.math.LongMath;
 import com.transferwise.common.context.TwContextClockHolder;
 import com.transferwise.tasks.domain.ITask;
+import com.transferwise.tasks.handler.interfaces.ITaskExceptionHandler;
 import com.transferwise.tasks.handler.interfaces.ITaskRetryPolicy;
 import java.time.Duration;
 import java.time.ZonedDateTime;
@@ -27,6 +28,7 @@ public class ExponentialTaskRetryPolicy implements ITaskRetryPolicy {
   private Duration maxDelay = Duration.ofDays(1);
   private long maxCount = 1;
   private long triesDelta = 0;
+  private ITaskExceptionHandler exceptionHandler;
 
   @Override
   public ZonedDateTime getRetryTime(ITask taskForProcessing, Throwable t) {
