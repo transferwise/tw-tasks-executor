@@ -17,4 +17,15 @@ public interface ITaskRetryPolicy {
   default boolean resetTriesCountOnSuccess(IBaseTask task) {
     return false;
   }
+
+  /**
+   * By default, when a task fails with a processing error, we log it with ERROR level and retry it according to the retry policy. Override this
+   * method with custom exception handler to change the default behavior. For example, if you want to log it differently or log it only on the last
+   * retry.
+   *
+   * @return the custom exception handler or {@code null} if the default behavior should be used
+   */
+  default ITaskExceptionHandler getExceptionHandler() {
+    return null;
+  }
 }

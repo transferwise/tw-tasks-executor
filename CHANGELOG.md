@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 1.51.0 - 2025/04/17
+
+### Changed
+
+By default, when a task fails with a processing error, we log it with ERROR level and retry it according to the retry policy.
+Override `ITaskRetryPolicy#getExceptionHandler` method with custom exception handler to change the default behavior.
+For example, if you want to log it differently or log it only on last the retry.
+
 ## 1.50.0 - 2025/02/12
 
 ### Changed
