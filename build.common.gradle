@@ -80,6 +80,8 @@ dependencies {
     testImplementation libraries.junitMockito
     testImplementation libraries.assertJCore
 
+    testRuntimeOnly libraries.junitPlatformLauncher
+
     if (springBootVersion.startsWith("2")) {
         /*
          Since hibernate-validator is depending on jakarta.validation:jakarta-validation-api and we are forcing the version to newer one to be able to compile for both javax and jakarta then we need to explicitly

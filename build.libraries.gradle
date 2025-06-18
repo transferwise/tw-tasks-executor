@@ -57,6 +57,7 @@ ext {
             slf4j                           : "org.slf4j:slf4j-api",
             junitApi                        : 'org.junit.jupiter:junit-jupiter-api',
             junitEngine                     : 'org.junit.jupiter:junit-jupiter-engine',
+            junitPlatformLauncher           : 'org.junit.platform:junit-platform-launcher',
             junitParams                     : 'org.junit.jupiter:junit-jupiter-params',
             junitMockito                    : 'org.mockito:mockito-junit-jupiter',
             assertJCore                     : 'org.assertj:assertj-core',
