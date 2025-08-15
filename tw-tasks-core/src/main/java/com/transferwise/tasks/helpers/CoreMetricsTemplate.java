@@ -440,7 +440,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   }
 
   @Override
-  public Object registerProcessingTriggersLimit(String bucketId, Supplier<Number> countSupplier){
+  public Object registerProcessingTriggersLimit(String bucketId, Supplier<Number> countSupplier) {
     return registerGauge(GAUGE_PROCESSING_TRIGGERS_LIMIT, countSupplier, TAG_BUCKET_ID, resolveBucketId(bucketId));
   }
 
