@@ -730,7 +730,8 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         return;
       }
       for (String bucketId : bucketsManager.getBucketIds()) {
-        if (!bucketsManager.getBucketProperties(bucketId).getTriggerSameTaskInAllNodes() && tasksProperties.isCheckVersionBeforeGrabbing()) {
+        final var bucketProperties = bucketsManager.getBucketProperties(bucketId);
+        if (!bucketProperties.getTriggerSameTaskInAllNodes() && tasksProperties.isCheckVersionBeforeGrabbing()) {
           log.warn(
               "Suboptimal configuration for bucket '" + bucketId + "' found. triggerSameTaskInAllNodes=false and checkVersionBeforeGrabbing=true.");
         }
@@ -740,6 +741,7 @@ public class TasksProcessingService implements GracefulShutdownStrategy, ITasksP
         coreMetricsTemplate.registerRunningTasksCount(bucketId, () -> bucket.getRunningTasksCount().get());
         coreMetricsTemplate.registerInProgressTasksGrabbingCount(bucketId, () -> bucket.getInProgressTasksGrabbingCount().get());
         coreMetricsTemplate.registerProcessingTriggersCount(bucketId, () -> bucket.getSize().get());
+        coreMetricsTemplate.registerProcessingTriggersLimit(bucketId, () -> bucketProperties.getMaxTriggersInMemory());
         coreMetricsTemplate.registerProcessingStateVersion(bucketId, () -> bucket.getVersion().get());
 
         tasksProcessingExecutor.submit(() -> {

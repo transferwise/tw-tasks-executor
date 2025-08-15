@@ -107,6 +107,8 @@ public interface ICoreMetricsTemplate {
 
   Object registerProcessingTriggersCount(String bucketId, Supplier<Number> countSupplier);
 
+  Object registerProcessingTriggersLimit(String bucketId, Supplier<Number> countSupplier);
+
   Object registerRunningTasksCount(String bucketId, Supplier<Number> countSupplier);
 
   Object registerInProgressTasksGrabbingCount(String bucketId, Supplier<Number> countSupplier);

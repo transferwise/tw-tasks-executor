@@ -96,6 +96,7 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   public static final String GAUGE_PROCESSING_RUNNING_TASKS_COUNT = METRIC_PREFIX + "processing.runningTasksCount";
   public static final String GAUGE_PROCESSING_IN_PROGRESS_TASKS_GRABBING_COUNT = METRIC_PREFIX + "processing.inProgressTasksGrabbingCount";
   public static final String GAUGE_PROCESSING_TRIGGERS_COUNT = METRIC_PREFIX + "processing.triggersCount";
+  public static final String GAUGE_PROCESSING_TRIGGERS_LIMIT = METRIC_PREFIX + "processing.triggersLimit";
   public static final String GAUGE_PROCESSING_STATE_VERSION = METRIC_PREFIX + "processing.stateVersion";
 
   private static final String TAG_PROCESSING_RESULT = "processingResult";
@@ -436,6 +437,11 @@ public class CoreMetricsTemplate implements ICoreMetricsTemplate {
   @Override
   public Object registerProcessingTriggersCount(String bucketId, Supplier<Number> countSupplier) {
     return registerGauge(GAUGE_PROCESSING_TRIGGERS_COUNT, countSupplier, TAG_BUCKET_ID, resolveBucketId(bucketId));
+  }
+
+  @Override
+  public Object registerProcessingTriggersLimit(String bucketId, Supplier<Number> countSupplier) {
+    return registerGauge(GAUGE_PROCESSING_TRIGGERS_LIMIT, countSupplier, TAG_BUCKET_ID, resolveBucketId(bucketId));
   }
 
   @Override
