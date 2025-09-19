@@ -9,6 +9,7 @@ dependencies {
 
     implementation libraries.apacheCuratorRecipies
     implementation libraries.micrometerCore
+    implementation libraries.wiseEnvironmentStarter
 
     runtimeOnly libraries.twGracefulShutdown
     runtimeOnly libraries.twContextStarter

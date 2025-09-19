@@ -1,6 +1,8 @@
 package com.transferwise.tasks.core.autoconfigure;
 
 import com.transferwise.tasks.helpers.CoreMetricsTemplate;
+import com.wise.common.environment.WiseEnvironment;
+import com.wise.common.environment.WiseProfile;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -34,6 +36,13 @@ public class TwTasksEnvironmentPostProcessor implements EnvironmentPostProcessor
 
       MapPropertySource mapPropertySource = new MapPropertySource(PROPERTY_SOURCE_KEY, map);
       environment.getPropertySources().addLast(mapPropertySource);
+
+      WiseEnvironment.setDefaultProperties(dsl -> dsl
+          .source("tw-tasks-executor")
+          .profile(WiseProfile.PRODUCTION)
+          .keyPrefix("tw-tasks.core.")
+          .set("max-triggers-in-memory", 100_000)
+      );
     }
   }
 }
