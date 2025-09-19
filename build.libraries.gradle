@@ -10,6 +10,8 @@ ext {
             guava                           : "com.google.guava:guava:33.3.1-jre",
             jakartaValidationApi            : 'jakarta.validation:jakarta.validation-api:3.0.2',
             javaxValidationApi              : "javax.validation:validation-api:2.0.1.Final",
+            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.6-7',
+            lz4Java                         : 'org.lz4:lz4-java:1.8.0',
             semver4j                        : "com.vdurmont:semver4j:3.1.0",
             spotbugsAnnotations             : "com.github.spotbugs:spotbugs-annotations:${spotbugs.toolVersion.get()}",
             springBootDependencies          : "org.springframework.boot:spring-boot-dependencies:$springBootVersion",
@@ -23,8 +25,7 @@ ext {
             twBaseUtils                     : "com.transferwise.common:tw-base-utils:1.13.0",
             twEntryPointsStarter            : 'com.transferwise.common:tw-entrypoints-starter:2.16.0',
             twSpyqlStarter                  : 'com.transferwise.common:tw-spyql-starter:1.6.2',
-            lubenZstd                       : 'com.github.luben:zstd-jni:1.5.6-7',
-            lz4Java                         : 'org.lz4:lz4-java:1.8.0',
+            wiseEnvironmentStarter          : "com.transferwise.common:wise-environment-starter:0.1.4",
 
             // versions managed by spring-boot-dependencies platform
             flywayCore                      : "org.flywaydb:flyway-core",

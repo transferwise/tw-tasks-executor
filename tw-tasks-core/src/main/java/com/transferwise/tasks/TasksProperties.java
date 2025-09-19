@@ -84,7 +84,7 @@ public class TasksProperties {
    */
   @Min(1L)
   @jakarta.validation.constraints.Min(1L)
-  private int maxTriggersInMemory = 100000;
+  private int maxTriggersInMemory = 10_000;
   /**
    * How many triggers maximum do we retrieve from Kafka with one polling loop.
    */

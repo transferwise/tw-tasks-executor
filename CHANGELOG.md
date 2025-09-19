@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# 1.51.2 - 2025/08/15
+# 1.51.3 - 2025/09/19
+
+### Changed
+
+- Reducing default maxTriggersInMemory to 10_000, but leaving it the same for production environment.
+  It allows to reduce the reserve heap size in non-production environments.
 
 ### Changed
 
