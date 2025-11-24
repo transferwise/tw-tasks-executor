@@ -1,3 +1,11 @@
+> [!IMPORTANT]
+> **This repository is no longer open source**
+>
+> To better serve Wise business and customer needs, this library is no longer open source and will not receive further public updates. The codebase has moved to our internal systems.
+>
+> **For continued development and access, please refer to the internal repository:**
+> https://github.com/transferwise/tw-tasks-executor-private
+
 # TwTasks - TransferWise Tasks Executor
 
 ![Apache 2](https://img.shields.io/hexpm/l/plug.svg)
