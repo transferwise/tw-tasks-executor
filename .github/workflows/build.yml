@@ -50,12 +50,12 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: example-password-change-me
       zk-service1:
-        image: bitnami/zookeeper:3.7.1
+        image: bitnamilegacy/zookeeper:3.9.3 # this is the last build, so we can use legacy version (internal lib uses different one already)
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
       zk1:
-        image: bitnami/zookeeper:3.7.1
+        image: bitnamilegacy/zookeeper:3.9.3 # this is the last build, so we can use legacy version (internal lib uses different one already)
         env:
           ALLOW_ANONYMOUS_LOGIN: "yes"
           JVMFLAGS: "-Xmx512m -Xms64m"
