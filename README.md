@@ -1,9 +1,13 @@
 > [!IMPORTANT]
-> **This repository is no longer open source**
+> **This repository is no longer maintained**
 >
-> To better serve Wise business and customer needs, this library is no longer open source and will not receive further public updates. The codebase has moved to our internal systems.
+> To better serve Wise business and customer needs, this repository will not receive further public updates.
+> We have moved the codebase to our internal systems to better align with evolving business requirements.
 >
-> **For continued development and access, please refer to the internal repository:**
+> You can continue to use the existing code under the terms of the Apache 2.0 license, but it will not receive updates or support.
+>
+> **For continued development and access (Wise employees only):**
+> The codebase has moved to a private repository accessible to authorized Wise personnel:
 > https://github.com/transferwise/tw-tasks-executor-private
 
 # TwTasks - TransferWise Tasks Executor
