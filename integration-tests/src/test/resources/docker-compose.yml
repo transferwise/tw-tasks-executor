@@ -2,7 +2,7 @@ version: '3.7'
 
 services:
   zookeeper:
-    image: bitnami/zookeeper:3.7.1
+    image: bitnamilegacy/zookeeper:3.9.3 # this is the last build, so we can use legacy version (internal lib uses different one already)
     hostname: zookeeper
     ports:
       - "2181"
@@ -10,7 +10,7 @@ services:
       ALLOW_ANONYMOUS_LOGIN: "yes"
       JVMFLAGS: -server -Xms25m -Xmx512m -Djava.awt.headless=true -XX:MaxMetaspaceExpansion=2M -XX:+HeapDumpOnOutOfMemoryError -XX:GCHeapFreeLimit=5 -XX:GCTimeLimit=90 -XX:ReservedCodeCacheSize=256m -Djava.security.egd=file:/dev/./urandom -XX:SoftRefLRUPolicyMSPerMB=5 -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=20 -XX:+ExplicitGCInvokesConcurrent
   kafka-zk:
-    image: bitnami/zookeeper:3.7.1
+    image: bitnamilegacy/zookeeper:3.9.3 # this is the last build, so we can use legacy version (internal lib uses different one already)
     hostname: kafka-zk
     ports:
       - "2181"
